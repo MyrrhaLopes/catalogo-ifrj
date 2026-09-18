@@ -3,6 +3,7 @@ import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import { errorHandler } from "./http/middleware/errorHandler.middleware";
 import { userRouter } from "./http/features/users/user.route";
+import { speciesRouter } from "./http/features/species/species.route";
 
 const app = express();
 app.use(morgan("dev"));
@@ -10,6 +11,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use("/api/v1/", userRouter);
+app.use("/api/v1/", speciesRouter);
 // error handler global vai no final, depois de todas as rotas
 app.use(errorHandler);
 

@@ -35,13 +35,15 @@ export const specimenTable = pgTable("specimens", {
     .notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
-export type SpecimenTableInsert = typeof specimenTable.$inferInsert
+export type SpecimenTableInsert = typeof specimenTable.$inferInsert;
 
 export const speciesTable = pgTable("species", {
   id: serial("id").primaryKey(),
-  speciesRoot: integer("sepecies").references(() => taxonomyTable.id, {
-    onDelete: "cascade",
-  }).notNull(),
+  speciesRoot: integer("sepecies")
+    .references(() => taxonomyTable.id, {
+      onDelete: "cascade",
+    })
+    .notNull(),
   specimen: integer("specimen").references(() => specimenTable.id, {
     onDelete: "set null",
   }), //permitir criar espécies e seus artigos por mais que não haja um espécime físico no catálogo
@@ -51,6 +53,7 @@ export const speciesTable = pgTable("species", {
     .notNull(),
 });
 export type SpeciesTableInsert = typeof speciesTable.$inferInsert;
+export type SpeciesTableSelect = typeof speciesTable.$inferSelect;
 
 export const popularNameTable = pgTable("popular_names", {
   id: serial("id").primaryKey(),
