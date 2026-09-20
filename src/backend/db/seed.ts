@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { sql } from "drizzle-orm";
 import { db } from "./drizzle.ts";
 import {
@@ -27,30 +28,16 @@ async function seed() {
     process.exit(0);
   }
 
-  // 2. Taxonomia raiz (parent auto-referencia — precisa de SQL bruto)
-  await db.execute(
-    sql`INSERT INTO taxonomies (label, label_value, parent, created_by)
-        VALUES ('Reino', 'animalia', currval(pg_get_serial_sequence('taxonomies','id')), ${user.id})
-        ON CONFLICT DO NOTHING`,
-  );
-
-  // currval não funciona antes do primeiro uso da sequência; usa subquery
-  await db.execute(sql`
-    WITH ins AS (
-      INSERT INTO taxonomies (label, label_value, created_by, parent)
-      VALUES ('Reino', 'animalia', ${user.id}, 0)
-      RETURNING id
-    )
-    UPDATE taxonomies SET parent = ins.id FROM ins WHERE taxonomies.id = ins.id
+  // 2. Nó raiz auto-referente: usa nextval em CTE para id = parent
+  const rootResult = await db.execute(sql`
+    WITH seq AS (SELECT nextval('taxonomies_id_seq') AS id)
+    INSERT INTO taxonomies (id, label, label_value, created_by, parent)
+    SELECT seq.id, 'Reino', 'animalia', ${user.id}::uuid, seq.id FROM seq
+    RETURNING id
   `);
+  const rootId = Number((rootResult.rows[0] as { id: unknown }).id);
 
-  const [root] = await db
-    .select()
-    .from(taxonomyTable)
-    .where(sql`${taxonomyTable.labelValue} = 'animalia'`)
-    .limit(1);
-
-  // 3. Filo → Classe → Ordem → Família → Gênero → Espécie (nó folha)
+  // 3. Hierarquia taxonômica
   const taxa = [
     { label: "Filo", labelValue: "chordata" },
     { label: "Classe", labelValue: "actinopterygii" },
@@ -60,7 +47,7 @@ async function seed() {
     { label: "Espécie", labelValue: "thalassoma_noronhanum" },
   ];
 
-  let parentId = root.id;
+  let parentId = rootId;
   for (const t of taxa) {
     const [inserted] = await db
       .insert(taxonomyTable)
@@ -69,21 +56,19 @@ async function seed() {
     parentId = inserted.id;
   }
 
-  const speciesRootId = parentId; // nó folha = a espécie em si
-
-  // 4. Espécie
+  // 4. Espécie (speciesRoot aponta para o nó folha da taxonomia)
   const [species] = await db
     .insert(speciesTable)
-    .values({ speciesRoot: speciesRootId, createdBy: user.id })
+    .values({ speciesRoot: parentId, createdBy: user.id })
     .returning();
 
-  // 5. Artigo (conteúdo mínimo — estrutura do jsonb ignorada)
+  // 5. Artigo com conteúdo mínimo
   await db.insert(articleTable).values({
     species: species.id,
     content: { placeholder: true },
   });
 
-  console.log(`Seed concluído. species.id = ${species.id}`);
+  console.log(`Seed OK — species.id=${species.id}, user=${user.email}`);
 }
 
 seed()
