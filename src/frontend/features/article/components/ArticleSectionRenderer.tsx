@@ -1,6 +1,10 @@
+import { z } from "zod";
 import type { ArticleContent } from "@/backend/http/features/article/article.schema";
+import {
+  sectionKeys,
+  articleSectionValues,
+} from "@/backend/http/features/article/article.schema";
 import type { SpeciesDetails } from "../../species/species.api";
-import type { SectionItem } from "./types";
 import { ArticleBlockRenderer } from "./ArticleBlockRenderer";
 
 export function ArticleSectionRenderer({
@@ -8,11 +12,11 @@ export function ArticleSectionRenderer({
   content,
   species,
 }: {
-  sectionKey: "left" | "center" | "right";
+  sectionKey: z.infer<typeof sectionKeys>;
   content: ArticleContent;
   species: SpeciesDetails;
 }) {
-  const blocks = (content.sections[sectionKey] as SectionItem[] | undefined) ?? [];
+  const blocks = articleSectionValues.parse(content.sections[sectionKey] ?? []);
 
   return (
     <>

@@ -29,16 +29,18 @@ const articleBlock: z.ZodType<ArticleBlock> = z.union([
 
 const defaultArticleBlocks = z.enum(["TOC", "SOURCES", "PROPERTIES"]);
 
-const articleSectionValues = z.array(
+export const articleSectionValues = z.array(
   z.union([articleBlock, defaultArticleBlocks]),
 );
+
+export const sectionKeys = z.enum(["left", "center", "right"]);
 
 export const articleContent = z.object({
   sections: z
     .object({
-      left: articleSectionValues.optional(),
-      center: articleSectionValues.optional(),
-      right: articleSectionValues.optional(),
+      [sectionKeys.enum.left]: articleSectionValues.optional(),
+      [sectionKeys.enum.center]: articleSectionValues.optional(),
+      [sectionKeys.enum.right]: articleSectionValues.optional(),
     })
     .default({}),
 });
