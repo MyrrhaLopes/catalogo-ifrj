@@ -1,58 +1,33 @@
-export type ArticleSection = {
-  id: string;
-  title: string;
-  content: string;
-};
+import { articleWithImagesSchema } from "@/backend/http/features/article/article.schema";
+import type {
+  ArticleContent,
+  Article,
+  ArticleImage,
+  ArticleWithImages,
+} from "@/backend/http/features/article/article.schema";
 
-export type ArticleSource = {
-  label: string;
-  url: string;
-};
-
-export type ArticleContent = {
-  sections: ArticleSection[];
-  sources?: ArticleSource[];
-};
-
-export type Article = {
-  id: number;
-  content: ArticleContent;
-  species: number;
-  createdAt: string;
-};
-
-export type ArticleImage = {
-  id: number;
-  url: string;
-  alt: string | null;
-  article: number | null;
-};
-
-export type ArticleWithImages = {
-  article: Article;
-  images: ArticleImage[];
-};
+export type { ArticleContent, Article, ArticleImage, ArticleWithImages };
 
 export async function getArticleBySpecies(speciesId: number): Promise<ArticleWithImages> {
-  const res = await fetch(`/api/v1/species/${speciesId}/article`);
+  const res = await fetch(`/api/v1/articles/?speciesId=${speciesId}`);
   if (res.status === 404) throw new Error("Artigo não encontrado");
   if (!res.ok) throw new Error("Erro ao buscar artigo");
-  return res.json() as Promise<ArticleWithImages>;
+  return articleWithImagesSchema.parse(await res.json());
 }
 
 export async function createArticle(
   speciesId: number,
   content: ArticleContent,
 ): Promise<Article> {
-  const res = await fetch(`/api/v1/species/${speciesId}/article`, {
+  const res = await fetch(`/api/v1/articles/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify(content),
+    body: JSON.stringify({ speciesId, ...content }),
   });
   if (!res.ok) throw new Error("Erro ao criar artigo");
-  const data = await res.json() as { article: Article };
-  return data.article;
+  const { article } = await res.json() as { article: Article };
+  return article;
 }
 
 export async function updateArticle(
@@ -66,6 +41,6 @@ export async function updateArticle(
     body: JSON.stringify(content),
   });
   if (!res.ok) throw new Error("Erro ao atualizar artigo");
-  const data = await res.json() as { article: Article };
-  return data.article;
+  const { article } = await res.json() as { article: Article };
+  return article;
 }

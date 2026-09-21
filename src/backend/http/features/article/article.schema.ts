@@ -1,19 +1,78 @@
 import { z } from "zod";
 
-export const articleSectionSchema = z.object({
-  id: z.string().min(1),
-  title: z.string().min(1),
-  content: z.string().min(1),
+type ArticleBlock =
+  | { type: "text"; content: string }
+  | { type: "image"; content: string }
+  | { type: "column"; columns: ArticleBlock[][] };
+
+const textBlock = z.object({
+  type: z.literal("text"),
+  content: z.string(),
 });
 
-export const articleSourceSchema = z.object({
-  label: z.string().min(1),
-  url: z.url(),
+const imageBlock = z.object({
+  type: z.literal("image"),
+  content: z.string(),
+});
+const columnBlock = z.object({
+  type: z.literal("column"),
+  columns: z.array(
+    z.array(z.lazy((): z.ZodType<ArticleBlock> => articleBlock)),
+  ),
 });
 
-export const articleContentSchema = z.object({
-  sections: z.array(articleSectionSchema).min(1),
-  sources: z.array(articleSourceSchema).optional().default([]),
-});
+const articleBlock: z.ZodType<ArticleBlock> = z.union([
+  textBlock,
+  imageBlock,
+  columnBlock,
+]);
 
-export type ArticleContent = z.infer<typeof articleContentSchema>;
+const defaultArticleBlocks = z.enum(["TOC", "SOURCES", "PROPERTIES"]);
+
+const articleSectionValues = z.array(
+  z.union([articleBlock, defaultArticleBlocks]),
+);
+
+export const articleContent = z.object({
+  sections: z
+    .object({
+      left: articleSectionValues.optional(),
+      center: articleSectionValues.optional(),
+      right: articleSectionValues.optional(),
+    })
+    .default({}),
+});
+export type ArticleContent = z.infer<typeof articleContent>;
+
+export const imageSchema = z.object({
+  id: z.number(),
+  url: z.string(),
+  alt: z.string().nullable(),
+  article: z.number().nullable(),
+  createdAt: z.string(),
+});
+export type ArticleImage = z.infer<typeof imageSchema>;
+
+export const articleSchema = z.object({
+  id: z.number(),
+  content: articleContent,
+  createdAt: z.string(),
+});
+export type Article = z.infer<typeof articleSchema>;
+
+export const articleWithImagesSchema = z.object({
+  article: articleSchema,
+  images: z.array(imageSchema),
+});
+export type ArticleWithImages = z.infer<typeof articleWithImagesSchema>;
+
+// Request schemas (used by route handlers)
+export const speciesIdQuerySchema = z.object({
+  speciesId: z.coerce.number().int().positive(),
+});
+export const articleIdParamSchema = z.object({
+  articleId: z.coerce.number().int().positive(),
+});
+export const createArticleBodySchema = z.object({
+  speciesId: z.number().int().positive(),
+});

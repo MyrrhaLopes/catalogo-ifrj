@@ -4,6 +4,19 @@ import { eq } from "drizzle-orm";
 import type { ArticleContent } from "./article.schema";
 
 export const ARTICLE_SERVICE = {
+  getById: async (articleId: number) => {
+    const [article] = await db
+      .select()
+      .from(articleTable)
+      .where(eq(articleTable.id, articleId));
+
+    const images = article
+      ? await db.select().from(imageTable).where(eq(imageTable.article, article.id))
+      : [];
+
+    return { article: article ?? null, images };
+  },
+
   getBySpecies: async (speciesId: number) => {
     const [article] = await db
       .select()

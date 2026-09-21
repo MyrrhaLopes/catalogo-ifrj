@@ -6,6 +6,11 @@ import path from "path";
 
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    proxy: {
+      "/api": "http://localhost:3000",
+    },
+  },
   plugins: [
     tanstackRouter({
       target: "react",

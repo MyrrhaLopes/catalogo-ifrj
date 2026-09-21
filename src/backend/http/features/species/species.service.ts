@@ -9,7 +9,6 @@ import {
   type SpeciesTableInsert,
 } from "@/backend/db/schema";
 import { eq } from "drizzle-orm";
-import { ARTICLE_SERVICE } from "@/backend/http/features/article/article.service";
 
 export const SPECIES_SERVICE = {
   registerSpecie: async (values: SpeciesTableInsert) => {
@@ -24,36 +23,14 @@ export const SPECIES_SERVICE = {
     return await db.select().from(speciesTable);
   },
 
-  getSpecieById: async (specieId: number) => {
-    const [species] = await db
-      .select()
-      .from(speciesTable)
-      .where(eq(speciesTable.id, specieId));
-    return species ?? null;
-  },
-
-  deleteSpecie: async (specieId: number) => {
-    await db.delete(speciesTable).where(eq(speciesTable.id, specieId));
-  },
-
-  addPopularName: async (specieId: number, name: string, origin?: string) => {
-    const [popularName] = await db
-      .insert(popularNameTable)
-      .values({ name, origin })
-      .returning();
-    await db
-      .insert(speciesPopularNamePivot)
-      .values({ speciesId: specieId, popularNameId: popularName.id });
-    return popularName;
-  },
-
-  getSpeciesDetails: async (specieId: number) => {
+  getSpecieById: async (specieId: number, options: { withTaxonomy?: boolean } = {}) => {
     const [species] = await db
       .select()
       .from(speciesTable)
       .where(eq(speciesTable.id, specieId));
 
     if (!species) return null;
+    if (!options.withTaxonomy) return species;
 
     // Walk taxonomy tree upward to build breadcrumb (cycle-safe via visited set)
     const taxonomyPath: Array<{ id: number; label: string; labelValue: string }> = [];
@@ -103,8 +80,21 @@ export const SPECIES_SERVICE = {
       )
       .where(eq(attributeTable.species, specieId));
 
-    const { article, images } = await ARTICLE_SERVICE.getBySpecies(specieId);
+    return { ...species, taxonomyPath, popularNames, attributes };
+  },
 
-    return { ...species, taxonomyPath, popularNames, article, images, attributes };
+  deleteSpecie: async (specieId: number) => {
+    await db.delete(speciesTable).where(eq(speciesTable.id, specieId));
+  },
+
+  addPopularName: async (specieId: number, name: string, origin?: string) => {
+    const [popularName] = await db
+      .insert(popularNameTable)
+      .values({ name, origin })
+      .returning();
+    await db
+      .insert(speciesPopularNamePivot)
+      .values({ speciesId: specieId, popularNameId: popularName.id });
+    return popularName;
   },
 };

@@ -1,19 +1,36 @@
 import "dotenv/config";
-import { sql } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 import { db } from "./drizzle.ts";
 import {
   usersTable,
   taxonomyTable,
   speciesTable,
   articleTable,
+  popularNameTable,
+  speciesPopularNamePivot,
 } from "./schema.ts";
 import bcrypt from "bcrypt";
+
+const articleContent = {
+  sections: {
+    left: ["TOC"],
+    center: [
+      {
+        type: "text",
+        content:
+          "# Distribuição de população\n\nConteúdo central do artigo sobre a espécie.\n\n# Morfologia\n\nDescrição morfológica da espécie.",
+      },
+      "SOURCES",
+    ],
+    right: ["PROPERTIES"],
+  },
+};
 
 async function seed() {
   console.log("Seeding...");
 
-  // 1. Usuário
-  const [user] = await db
+  // 1. Usuário — busca existente se já houver conflito
+  let [user] = await db
     .insert(usersTable)
     .values({
       name: "Admin Seed",
@@ -24,8 +41,11 @@ async function seed() {
     .returning();
 
   if (!user) {
-    console.log("Usuário já existe, pulando seed.");
-    process.exit(0);
+    [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.email, "seed@ifrj.edu.br"));
+    console.log("Usuário já existe, continuando seed com usuário existente.");
   }
 
   // 2. Nó raiz auto-referente: usa nextval em CTE para id = parent
@@ -37,38 +57,67 @@ async function seed() {
   `);
   const rootId = Number((rootResult.rows[0] as { id: unknown }).id);
 
-  // 3. Hierarquia taxonômica
-  const taxa = [
+  // 3. Hierarquia taxonômica compartilhada até o gênero
+  const sharedTaxa = [
     { label: "Filo", labelValue: "chordata" },
     { label: "Classe", labelValue: "actinopterygii" },
     { label: "Ordem", labelValue: "perciformes" },
     { label: "Família", labelValue: "labridae" },
     { label: "Gênero", labelValue: "thalassoma" },
-    { label: "Espécie", labelValue: "thalassoma_noronhanum" },
   ];
 
   let parentId = rootId;
-  for (const t of taxa) {
+  for (const t of sharedTaxa) {
     const [inserted] = await db
       .insert(taxonomyTable)
       .values({ ...t, parent: parentId, createdBy: user.id })
       .returning();
     parentId = inserted.id;
   }
+  const genusId = parentId;
 
-  // 4. Espécie (speciesRoot aponta para o nó folha da taxonomia)
-  const [species] = await db
-    .insert(speciesTable)
-    .values({ speciesRoot: parentId, createdBy: user.id })
+  // 4a. Primeira espécie — sem nomes populares
+  const [speciesNode1] = await db
+    .insert(taxonomyTable)
+    .values({ label: "Espécie", labelValue: "noronhanum", parent: genusId, createdBy: user.id })
     .returning();
 
-  // 5. Artigo com conteúdo mínimo
-  await db.insert(articleTable).values({
-    species: species.id,
-    content: { placeholder: true },
-  });
+  const [species1] = await db
+    .insert(speciesTable)
+    .values({ speciesRoot: speciesNode1.id, createdBy: user.id })
+    .returning();
 
-  console.log(`Seed OK — species.id=${species.id}, user=${user.email}`);
+  await db.insert(articleTable).values({ species: species1.id, content: articleContent });
+
+  // 4b. Segunda espécie — com nomes populares para testar a interface
+  const [speciesNode2] = await db
+    .insert(taxonomyTable)
+    .values({ label: "Espécie", labelValue: "bifasciatum", parent: genusId, createdBy: user.id })
+    .returning();
+
+  const [species2] = await db
+    .insert(speciesTable)
+    .values({ speciesRoot: speciesNode2.id, createdBy: user.id })
+    .returning();
+
+  await db.insert(articleTable).values({ species: species2.id, content: articleContent });
+
+  const popularNames = [
+    { name: "budião-cabeçazul", origin: "pt-BR" },
+    { name: "donzela-de-cabeça-azul", origin: "pt-BR" },
+    { name: "bluehead wrasse", origin: "en" },
+  ];
+
+  for (const pn of popularNames) {
+    const [inserted] = await db.insert(popularNameTable).values(pn).returning();
+    await db
+      .insert(speciesPopularNamePivot)
+      .values({ speciesId: species2.id, popularNameId: inserted.id });
+  }
+
+  console.log(
+    `Seed OK — species1.id=${species1.id}, species2.id=${species2.id}, user=${user.email}`,
+  );
 }
 
 seed()
