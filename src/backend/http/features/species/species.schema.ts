@@ -64,3 +64,62 @@ export const addPopularNameSchema = z.object({
 export const speciesQuerySchema = z.object({
   withTaxonomy: z.coerce.boolean().optional().default(false),
 });
+
+// Search schemas
+export const attributeTemplateSchema = z.object({
+  id: z.number(),
+  label: z.string(),
+  unit: z.enum(["meter", "minute"]),
+});
+export type AttributeTemplate = z.infer<typeof attributeTemplateSchema>;
+
+export const speciesSearchResultSchema = speciesWithTaxonomySchema.extend({
+  thumbnail: z.string().nullable(),
+  excerpt: z.string().nullable(),
+});
+export type SpeciesSearchResult = z.infer<typeof speciesSearchResultSchema>;
+
+export const searchResponseSchema = z.object({
+  species: z.array(speciesSearchResultSchema),
+  total: z.number(),
+  page: z.number(),
+  pageSize: z.number(),
+});
+export type SearchResponse = z.infer<typeof searchResponseSchema>;
+
+const parseIntArray = (val: unknown): number[] | undefined => {
+  if (typeof val === "string" && val.length > 0)
+    return val
+      .split(",")
+      .map(Number)
+      .filter((n) => Number.isFinite(n) && n > 0);
+  if (Array.isArray(val)) return val.map(Number).filter(Number.isFinite);
+  return undefined;
+};
+
+const parseAttrs = (val: unknown) => {
+  if (typeof val !== "string") return undefined;
+  try {
+    return JSON.parse(val);
+  } catch {
+    return undefined;
+  }
+};
+
+export const speciesListQuerySchema = z.object({
+  q: z.string().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(100).default(20),
+  taxNodes: z.preprocess(parseIntArray, z.array(z.number().int().positive()).optional()),
+  attrs: z.preprocess(
+    parseAttrs,
+    z
+      .array(
+        z.object({
+          templateId: z.number().int().positive(),
+          valueInBaseUnit: z.number(),
+        }),
+      )
+      .optional(),
+  ),
+});

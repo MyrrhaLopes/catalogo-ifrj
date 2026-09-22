@@ -1,8 +1,9 @@
 import { createRouter } from "@tanstack/react-router";
 import { rootRoute } from "./rootRoute";
 import { speciesViewRoute } from "./pages/SpeciesViewPage";
+import { speciesSearchRoute } from "./pages/SpeciesSearchPage";
 
-const routeTree = rootRoute.addChildren([speciesViewRoute]);
+const routeTree = rootRoute.addChildren([speciesSearchRoute, speciesViewRoute]);
 
 export const router = createRouter({ routeTree });
 

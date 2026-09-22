@@ -1,7 +1,13 @@
 import { Router } from "express";
 import { SPECIES_SERVICE } from "./species.service";
 import { authorizeUser } from "../../middleware/authorizeUser";
-import { idParamSchema, createSpeciesSchema, addPopularNameSchema, speciesQuerySchema } from "./species.schema";
+import {
+  idParamSchema,
+  createSpeciesSchema,
+  addPopularNameSchema,
+  speciesQuerySchema,
+  speciesListQuerySchema,
+} from "./species.schema";
 
 export const speciesRouter = Router();
 
@@ -19,10 +25,31 @@ speciesRouter.post("/species/", authorizeUser, async (req, res, next) => {
   }
 });
 
-speciesRouter.get("/species/", async (_req, res, next) => {
+speciesRouter.get("/species/", async (req, res, next) => {
   try {
+    const hasSearchParams =
+      req.query.q !== undefined ||
+      req.query.page !== undefined ||
+      req.query.taxNodes !== undefined ||
+      req.query.attrs !== undefined;
+
+    if (hasSearchParams) {
+      const params = speciesListQuerySchema.parse(req.query);
+      const result = await SPECIES_SERVICE.searchSpecies(params);
+      return res.status(200).json(result);
+    }
+
     const species = await SPECIES_SERVICE.getSpecies();
     return res.status(200).json({ species });
+  } catch (err) {
+    next(err);
+  }
+});
+
+speciesRouter.get("/species/attribute-templates", async (_req, res, next) => {
+  try {
+    const templates = await SPECIES_SERVICE.getAttributeTemplates();
+    return res.status(200).json({ templates });
   } catch (err) {
     next(err);
   }
