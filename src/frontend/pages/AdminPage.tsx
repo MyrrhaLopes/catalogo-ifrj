@@ -8,6 +8,8 @@ import { SpeciesTable } from "../features/admin/components/SpeciesTable";
 import { UsersTable } from "../features/admin/components/UsersTable";
 import { CreateSpeciesModal } from "../features/admin/components/CreateSpeciesModal";
 import { TaxonomyTree } from "../features/admin/components/TaxonomyTree";
+import { SpecimenTable } from "../features/admin/components/SpecimenTable";
+import { CreateSpecimenModal } from "../features/admin/components/CreateSpecimenModal";
 import { Plus } from "lucide-react";
 
 export const adminRoute = createRoute({
@@ -28,6 +30,7 @@ const sidebarItems: { id: Section; label: string }[] = [
 function AdminPage() {
   const [section, setSection] = useState<Section>("species");
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createSpecimenModalOpen, setCreateSpecimenModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -71,9 +74,20 @@ function AdminPage() {
           )}
 
           {section === "specimen" && (
-            <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
-              Gerenciamento de espécimes em breve.
-            </div>
+            <>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Espécimes</h2>
+                <Button size="sm" onClick={() => setCreateSpecimenModalOpen(true)}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Adicionar espécime
+                </Button>
+              </div>
+              <SpecimenTable />
+              <CreateSpecimenModal
+                open={createSpecimenModalOpen}
+                onOpenChange={setCreateSpecimenModalOpen}
+              />
+            </>
           )}
 
           {section === "users" && (
