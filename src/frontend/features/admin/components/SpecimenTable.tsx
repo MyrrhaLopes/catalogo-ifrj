@@ -1,5 +1,6 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { tableFeatures, createColumnHelper, useTable } from "@tanstack/react-table";
+import { useNavigate } from "@tanstack/react-router";
 import {
   Table,
   TableBody,
@@ -21,8 +22,9 @@ import {
 } from "@/frontend/components/ui/alert-dialog";
 import { Button } from "@/frontend/components/ui/button";
 import { Input } from "@/frontend/components/ui/input";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Lock, Pencil, Trash2 } from "lucide-react";
 import { useSpecimenList, useUpdateSpecimen, useDeleteSpecimen } from "../hooks/useAdminSpecimen";
+import { cn } from "@/frontend/shared/utils";
 import type { Specimen } from "@/frontend/features/specimens/specimen.api";
 
 // ────────────────────────────────────────────────────────────────────
@@ -83,12 +85,62 @@ function EditableCell({ specimenId, field, value, type = "text" }: EditableCellP
 
   return (
     <span
-      className="block cursor-pointer rounded px-1 py-0.5 transition-colors hover:bg-muted"
+      className="group relative block cursor-pointer rounded border border-dashed border-transparent px-1 py-0.5 transition-colors hover:border-muted-foreground/40 hover:bg-muted"
       onClick={startEdit}
       title="Clique para editar"
     >
-      {value != null ? String(value) : <span className="text-muted-foreground">—</span>}
+      <Pencil className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+      <span className="pr-4">
+        {value != null ? String(value) : <span className="text-muted-foreground">—</span>}
+      </span>
     </span>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Read-only (locked) cell
+// ────────────────────────────────────────────────────────────────────
+
+function LockedCell({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="flex items-center gap-1 text-muted-foreground">
+      <Lock className="h-3 w-3 shrink-0" />
+      {children}
+    </span>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Linked species cell
+// ────────────────────────────────────────────────────────────────────
+
+function LinkedSpeciesCell({ specimen }: { specimen: Specimen }) {
+  const navigate = useNavigate();
+  const ids = specimen.linkedSpeciesIds;
+
+  if (ids.length === 0) return <span className="text-muted-foreground">—</span>;
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {ids.map((sid) => (
+        <button
+          key={sid}
+          className="text-xs text-primary hover:underline"
+          onClick={() =>
+            void navigate({
+              to: "/admin",
+              search: (prev) => ({
+                ...prev,
+                section: "species" as const,
+                selectedSpeciesId: sid,
+              }),
+            })
+          }
+        >
+          Espécie #{sid}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -102,8 +154,13 @@ function DeleteCell({ specimen }: { specimen: Specimen }) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-          <Trash2 className="h-4 w-4" />
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-destructive border-destructive/40 hover:bg-red-500 hover:text-white hover:border-red-500"
+        >
+          <Trash2 className="h-4 w-4 mr-1" />
+          Excluir
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
@@ -143,7 +200,11 @@ const columnHelper = createColumnHelper<typeof features, Specimen>();
 const columns = columnHelper.columns([
   columnHelper.accessor("id", {
     header: "ID",
-    cell: (ctx) => <span className="text-muted-foreground">#{ctx.getValue()}</span>,
+    cell: (ctx) => (
+      <LockedCell>
+        <span>#{ctx.getValue()}</span>
+      </LockedCell>
+    ),
   }),
   columnHelper.display({
     id: "code",
@@ -181,23 +242,17 @@ const columns = columnHelper.columns([
       />
     ),
   }),
-  columnHelper.accessor("linkedSpeciesId", {
-    header: "Espécie vinculada",
-    cell: (ctx) => {
-      const v = ctx.getValue();
-      return v ? (
-        <span className="text-sm">Espécie #{v}</span>
-      ) : (
-        <span className="text-muted-foreground">—</span>
-      );
-    },
+  columnHelper.display({
+    id: "linkedSpecies",
+    header: "Espécies vinculadas",
+    cell: (ctx) => <LinkedSpeciesCell specimen={ctx.row.original} />,
   }),
   columnHelper.accessor("createdAt", {
     header: "Criado em",
     cell: (ctx) => {
       const v = ctx.getValue();
-      if (!v) return <span className="text-muted-foreground">—</span>;
-      return new Date(v).toLocaleDateString("pt-BR");
+      if (!v) return <LockedCell>—</LockedCell>;
+      return <LockedCell>{new Date(v).toLocaleDateString("pt-BR")}</LockedCell>;
     },
   }),
   columnHelper.display({
@@ -211,8 +266,19 @@ const columns = columnHelper.columns([
 // Table component
 // ────────────────────────────────────────────────────────────────────
 
-export function SpecimenTable() {
+type SpecimenTableProps = {
+  selectedSpecimenId?: number;
+};
+
+export function SpecimenTable({ selectedSpecimenId }: SpecimenTableProps) {
   const { data: specimens = [], isLoading, isError } = useSpecimenList();
+  const selectedRowRef = useRef<HTMLTableRowElement | null>(null);
+
+  useEffect(() => {
+    if (selectedSpecimenId != null && selectedRowRef.current) {
+      selectedRowRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [selectedSpecimenId, specimens]);
 
   const table = useTable({ features, data: specimens, columns });
 
@@ -254,15 +320,24 @@ export function SpecimenTable() {
               </TableCell>
             </TableRow>
           ) : (
-            table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
-                {row.getAllCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    <table.FlexRender cell={cell} />
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
+            table.getRowModel().rows.map((row) => {
+              const isSelected = row.original.id === selectedSpecimenId;
+              return (
+                <TableRow
+                  key={row.id}
+                  ref={isSelected ? selectedRowRef : undefined}
+                  className={cn(
+                    isSelected && "bg-primary/10 ring-1 ring-inset ring-primary",
+                  )}
+                >
+                  {row.getAllCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      <table.FlexRender cell={cell} />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              );
+            })
           )}
         </TableBody>
       </Table>

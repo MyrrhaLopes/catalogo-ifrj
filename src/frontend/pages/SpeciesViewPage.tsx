@@ -13,7 +13,7 @@ import {
   type DragOverEvent,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import { GripVertical, Pencil } from "lucide-react";
+import { FlaskConical, GripVertical, Pencil } from "lucide-react";
 import { rootRoute } from "../rootRoute";
 import { useGetSpeciesDetails } from "../features/species/hooks/useGetSpeciesDetails";
 import { CatalogHeader } from "../components/CatalogHeader";
@@ -196,21 +196,37 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
             <p className="text-lg text-neutral-600 mt-1">{popularName}</p>
           )}
           {isAdmin && !isEditMode && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="mt-4 self-start bg-white/80 hover:bg-white"
-              onClick={() =>
-                void navigate({
-                  to: "/especies/$id",
-                  params: { id },
-                  search: { editArticle: true },
-                })
-              }
-            >
-              <Pencil className="h-3 w-3 mr-1" />
-              Editar Artigo
-            </Button>
+            <div className="flex gap-2 mt-4 self-start">
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-white/80 hover:bg-white"
+                onClick={() =>
+                  void navigate({
+                    to: "/especies/$id",
+                    params: { id },
+                    search: { editArticle: true },
+                  })
+                }
+              >
+                <Pencil className="h-3 w-3 mr-1" />
+                Editar Artigo
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-white/80 hover:bg-white"
+                onClick={() =>
+                  void navigate({
+                    to: "/admin",
+                    search: { section: "species" as const, selectedSpeciesId: Number(id) },
+                  })
+                }
+              >
+                <FlaskConical className="h-3 w-3 mr-1" />
+                Editar Espécime
+              </Button>
+            </div>
           )}
         </div>
 

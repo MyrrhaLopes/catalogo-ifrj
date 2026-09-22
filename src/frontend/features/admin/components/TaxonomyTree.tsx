@@ -56,6 +56,20 @@ function buildTree(nodes: TaxonomyNode[]): TreeNode[] {
   return roots;
 }
 
+function getAncestors(nodeId: number, nodeList: TaxonomyNode[]): Set<number> {
+  const map = new Map(nodeList.map((n) => [n.id, n]));
+  const result = new Set<number>();
+  const visited = new Set<number>();
+  let cur = map.get(nodeId);
+  while (cur && !visited.has(cur.id)) {
+    visited.add(cur.id);
+    result.add(cur.id);
+    if (cur.parent === cur.id) break;
+    cur = map.get(cur.parent);
+  }
+  return result;
+}
+
 // zoneId uniquely identifies each insert zone:
 //   "top"         → before all roots
 //   "parent-{id}" → between node {id} and its children
@@ -301,11 +315,13 @@ type ManageTreeNodeProps = {
   onToggle: (id: number) => void;
   activeId: number | null;
   ctx: InsertZoneContext;
+  highlightedNodeId?: number;
 };
 
-function ManageTreeNode({ node, expandedIds, onToggle, activeId, ctx }: ManageTreeNodeProps) {
+function ManageTreeNode({ node, expandedIds, onToggle, activeId, ctx, highlightedNodeId }: ManageTreeNodeProps) {
   const isExpanded = expandedIds.has(node.id);
   const hasChildren = node.children.length > 0;
+  const isHighlighted = node.id === highlightedNodeId;
 
   const [editState, setEditState] = useState<{ label: string; labelValue: string } | null>(null);
   const [deletePhase, setDeletePhase] = useState<DeletePhase>(null);
@@ -338,6 +354,7 @@ function ManageTreeNode({ node, expandedIds, onToggle, activeId, ctx }: ManageTr
           "flex items-center gap-1 px-2 py-1 rounded text-sm group",
           isDragging && "opacity-40",
           isOver && activeId !== node.id && "bg-primary/10 ring-1 ring-primary",
+          isHighlighted && "bg-primary/10 ring-1 ring-inset ring-primary font-medium",
         )}
       >
         <span
@@ -476,6 +493,7 @@ function ManageTreeNode({ node, expandedIds, onToggle, activeId, ctx }: ManageTr
               onToggle={onToggle}
               activeId={activeId}
               ctx={ctx}
+              highlightedNodeId={highlightedNodeId}
             />
           ))}
         </div>
@@ -499,7 +517,7 @@ export type TaxonomyTreeProps =
     }
   | {
       variant: "manage";
-      selectedNodeId?: undefined;
+      selectedNodeId?: number;
       onSelect?: undefined;
       onDraftNodesChange?: undefined;
     };
@@ -537,6 +555,13 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
       props.onDraftNodesChange(draftNodes);
     }
   }, [draftNodes]);
+
+  useEffect(() => {
+    if (props.variant === "manage" && props.selectedNodeId != null && nodes.length > 0) {
+      const ancestors = getAncestors(props.selectedNodeId, nodes);
+      setExpandedIds((prev) => new Set([...prev, ...ancestors]));
+    }
+  }, [props.variant === "manage" ? props.selectedNodeId : undefined, nodes]);
 
   function toggleExpand(id: number) {
     setExpandedIds((prev) => {
@@ -717,6 +742,7 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
               onToggle={toggleExpand}
               activeId={activeId}
               ctx={ctx}
+              highlightedNodeId={props.selectedNodeId}
             />
           ))}
           <InsertZone zoneId="bottom" parentId={0} ctx={ctx} />

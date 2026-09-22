@@ -1,5 +1,5 @@
 import { db } from "@/backend/db/drizzle";
-import { specimenTable, speciesTable, type SpecimenTableInsert } from "@/backend/db/schema";
+import { specimenTable, speciesSpecimenPivot, type SpecimenTableInsert } from "@/backend/db/schema";
 import { eq, ilike } from "drizzle-orm";
 
 export const SPECIMEN_SERVICE = {
@@ -16,16 +16,35 @@ export const SPECIMEN_SERVICE = {
         lot: specimenTable.lot,
         shelf: specimenTable.shelf,
         createdAt: specimenTable.createdAt,
-        linkedSpeciesId: speciesTable.id,
+        linkedSpeciesId: speciesSpecimenPivot.speciesId,
       })
       .from(specimenTable)
-      .leftJoin(speciesTable, eq(speciesTable.specimen, specimenTable.id));
+      .leftJoin(speciesSpecimenPivot, eq(speciesSpecimenPivot.specimenId, specimenTable.id));
 
-    return rows.map((r) => ({
-      ...r,
-      createdAt: r.createdAt?.toISOString() ?? null,
-      linkedSpeciesId: r.linkedSpeciesId ?? null,
-    }));
+    const map = new Map<number, {
+      id: number;
+      code: string;
+      lot: number | null;
+      shelf: number | null;
+      createdAt: string | null;
+      linkedSpeciesIds: number[];
+    }>();
+
+    for (const row of rows) {
+      if (!map.has(row.id)) {
+        map.set(row.id, {
+          id: row.id,
+          code: row.code,
+          lot: row.lot,
+          shelf: row.shelf,
+          createdAt: row.createdAt?.toISOString() ?? null,
+          linkedSpeciesIds: [],
+        });
+      }
+      if (row.linkedSpeciesId != null) map.get(row.id)!.linkedSpeciesIds.push(row.linkedSpeciesId);
+    }
+
+    return [...map.values()];
   },
 
   searchSpecimens: async (q: string) => {
@@ -36,38 +55,67 @@ export const SPECIMEN_SERVICE = {
         lot: specimenTable.lot,
         shelf: specimenTable.shelf,
         createdAt: specimenTable.createdAt,
-        linkedSpeciesId: speciesTable.id,
+        linkedSpeciesId: speciesSpecimenPivot.speciesId,
       })
       .from(specimenTable)
-      .leftJoin(speciesTable, eq(speciesTable.specimen, specimenTable.id))
+      .leftJoin(speciesSpecimenPivot, eq(speciesSpecimenPivot.specimenId, specimenTable.id))
       .where(ilike(specimenTable.code, `%${q}%`));
 
-    return rows.map((r) => ({
-      ...r,
-      createdAt: r.createdAt?.toISOString() ?? null,
-      linkedSpeciesId: r.linkedSpeciesId ?? null,
-    }));
+    const map = new Map<number, {
+      id: number;
+      code: string;
+      lot: number | null;
+      shelf: number | null;
+      createdAt: string | null;
+      linkedSpeciesIds: number[];
+    }>();
+
+    for (const row of rows) {
+      if (!map.has(row.id)) {
+        map.set(row.id, {
+          id: row.id,
+          code: row.code,
+          lot: row.lot,
+          shelf: row.shelf,
+          createdAt: row.createdAt?.toISOString() ?? null,
+          linkedSpeciesIds: [],
+        });
+      }
+      if (row.linkedSpeciesId != null) map.get(row.id)!.linkedSpeciesIds.push(row.linkedSpeciesId);
+    }
+
+    return [...map.values()];
   },
 
   getSpecimenById: async (id: number) => {
-    const [row] = await db
+    const rows = await db
       .select({
         id: specimenTable.id,
         code: specimenTable.code,
         lot: specimenTable.lot,
         shelf: specimenTable.shelf,
         createdAt: specimenTable.createdAt,
-        linkedSpeciesId: speciesTable.id,
+        linkedSpeciesId: speciesSpecimenPivot.speciesId,
       })
       .from(specimenTable)
-      .leftJoin(speciesTable, eq(speciesTable.specimen, specimenTable.id))
+      .leftJoin(speciesSpecimenPivot, eq(speciesSpecimenPivot.specimenId, specimenTable.id))
       .where(eq(specimenTable.id, id));
 
-    if (!row) return null;
+    if (rows.length === 0) return null;
+
+    const linkedSpeciesIds: number[] = [];
+    for (const row of rows) {
+      if (row.linkedSpeciesId != null) linkedSpeciesIds.push(row.linkedSpeciesId);
+    }
+
+    const first = rows[0];
     return {
-      ...row,
-      createdAt: row.createdAt?.toISOString() ?? null,
-      linkedSpeciesId: row.linkedSpeciesId ?? null,
+      id: first.id,
+      code: first.code,
+      lot: first.lot,
+      shelf: first.shelf,
+      createdAt: first.createdAt?.toISOString() ?? null,
+      linkedSpeciesIds,
     };
   },
 

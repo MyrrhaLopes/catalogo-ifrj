@@ -1,5 +1,6 @@
+import { useEffect, useRef } from "react";
 import { tableFeatures, createColumnHelper, useTable } from "@tanstack/react-table";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Table,
   TableBody,
@@ -20,8 +21,10 @@ import {
   AlertDialogTrigger,
 } from "@/frontend/components/ui/alert-dialog";
 import { Button } from "@/frontend/components/ui/button";
-import { Loader2, Pencil, Trash2 } from "lucide-react";
+import { BookOpen, Loader2, Trash2, X } from "lucide-react";
 import { useSpeciesList, useDeleteSpecies } from "../hooks/useAdminSpecies";
+import { useUnlinkSpecimen } from "@/frontend/features/specimens/hooks/useAdminSpecimen";
+import { cn } from "@/frontend/shared/utils";
 import type { SpeciesSearchResult } from "@/backend/http/features/species/species.schema";
 
 const features = tableFeatures({});
@@ -36,14 +39,103 @@ function getScientificName(taxonomyPath: SpeciesSearchResult["taxonomyPath"]): s
   return last?.labelValue ?? "—";
 }
 
+function buildTaxonomyBreadcrumb(taxonomyPath: SpeciesSearchResult["taxonomyPath"]): string {
+  return taxonomyPath.map((n) => n.labelValue).join(" > ") || "—";
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Cell sub-components (must be React components to use hooks)
+// ────────────────────────────────────────────────────────────────────
+
+function TaxonomyCell({ species }: { species: SpeciesSearchResult }) {
+  const navigate = useNavigate();
+  const path = buildTaxonomyBreadcrumb(species.taxonomyPath);
+
+  return (
+    <button
+      className="text-left text-xs text-muted-foreground hover:text-foreground hover:underline max-w-[200px] truncate block"
+      title={path}
+      onClick={() =>
+        void navigate({
+          to: "/admin",
+          search: (prev) => ({
+            ...prev,
+            section: "taxonomy" as const,
+            selectedNodeId: species.speciesRoot,
+          }),
+        })
+      }
+    >
+      {path}
+    </button>
+  );
+}
+
+function SpecimenChip({
+  speciesId,
+  specimen,
+}: {
+  speciesId: number;
+  specimen: { id: number; code: string };
+}) {
+  const navigate = useNavigate();
+  const unlinkMutation = useUnlinkSpecimen();
+
+  return (
+    <span className="inline-flex items-center gap-0.5 rounded border px-1.5 py-0.5 text-xs bg-muted">
+      <button
+        className="hover:underline"
+        onClick={() =>
+          void navigate({
+            to: "/admin",
+            search: (prev) => ({
+              ...prev,
+              section: "specimen" as const,
+              selectedSpecimenId: specimen.id,
+            }),
+          })
+        }
+      >
+        {specimen.code}
+      </button>
+      <button
+        className="text-muted-foreground hover:text-destructive ml-0.5"
+        title="Desvincular"
+        onClick={() => unlinkMutation.mutate({ speciesId, specimenId: specimen.id })}
+        disabled={unlinkMutation.isPending}
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </span>
+  );
+}
+
+function SpecimensCell({ species }: { species: SpeciesSearchResult }) {
+  if (species.specimens.length === 0) {
+    return <span className="text-muted-foreground text-xs">—</span>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1">
+      {species.specimens.map((sp) => (
+        <SpecimenChip key={sp.id} speciesId={species.id} specimen={sp} />
+      ))}
+    </div>
+  );
+}
+
 function DeleteCell({ species }: { species: SpeciesSearchResult }) {
   const deleteMutation = useDeleteSpecies();
 
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-          <Trash2 className="h-4 w-4" />
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-destructive border-destructive/40 hover:bg-red-500 hover:text-white hover:border-red-500"
+        >
+          <Trash2 className="h-4 w-4 mr-1" />
+          Excluir
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
@@ -99,12 +191,15 @@ const columns = columnHelper.columns([
       <span className="italic">{getScientificName(ctx.row.original.taxonomyPath)}</span>
     ),
   }),
-  columnHelper.accessor("specimen", {
-    header: "Espécime",
-    cell: (ctx) => {
-      const v = ctx.getValue();
-      return v ? <span>#{v}</span> : <span className="text-muted-foreground">—</span>;
-    },
+  columnHelper.display({
+    id: "taxonomyPath",
+    header: "Taxonomia",
+    cell: (ctx) => <TaxonomyCell species={ctx.row.original} />,
+  }),
+  columnHelper.display({
+    id: "specimens",
+    header: "Espécimes",
+    cell: (ctx) => <SpecimensCell species={ctx.row.original} />,
   }),
   columnHelper.accessor("createdAt", {
     header: "Criado em",
@@ -119,9 +214,10 @@ const columns = columnHelper.columns([
     header: "",
     cell: (ctx) => (
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="sm" asChild>
+        <Button variant="outline" size="sm" asChild>
           <Link to="/especies/$id" params={{ id: String(ctx.row.original.id) }}>
-            <Pencil className="h-4 w-4" />
+            <BookOpen className="h-4 w-4 mr-1" />
+            Ver artigo
           </Link>
         </Button>
         <DeleteCell species={ctx.row.original} />
@@ -130,8 +226,23 @@ const columns = columnHelper.columns([
   }),
 ]);
 
-export function SpeciesTable() {
+// ────────────────────────────────────────────────────────────────────
+// Table component
+// ────────────────────────────────────────────────────────────────────
+
+type SpeciesTableProps = {
+  selectedSpeciesId?: number;
+};
+
+export function SpeciesTable({ selectedSpeciesId }: SpeciesTableProps) {
   const { data: species = [], isLoading, isError } = useSpeciesList();
+  const selectedRowRef = useRef<HTMLTableRowElement | null>(null);
+
+  useEffect(() => {
+    if (selectedSpeciesId != null && selectedRowRef.current) {
+      selectedRowRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [selectedSpeciesId, species]);
 
   const table = useTable({
     features,
@@ -174,15 +285,24 @@ export function SpeciesTable() {
               </TableCell>
             </TableRow>
           ) : (
-            table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
-                {row.getAllCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    <table.FlexRender cell={cell} />
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
+            table.getRowModel().rows.map((row) => {
+              const isSelected = row.original.id === selectedSpeciesId;
+              return (
+                <TableRow
+                  key={row.id}
+                  ref={isSelected ? selectedRowRef : undefined}
+                  className={cn(
+                    isSelected && "bg-primary/10 ring-1 ring-inset ring-primary",
+                  )}
+                >
+                  {row.getAllCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      <table.FlexRender cell={cell} />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              );
+            })
           )}
         </TableBody>
       </Table>

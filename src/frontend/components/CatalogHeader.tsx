@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/frontend/components/ui/input";
 import { cn } from "@/frontend/shared/utils";
 import { searchSpecies } from "@/frontend/features/species/species.api";
+import useAuth from "@/frontend/shared/hooks/useAuth";
 
 type CatalogHeaderProps = {
   className?: string;
@@ -12,6 +13,7 @@ type CatalogHeaderProps = {
 
 export function CatalogHeader({ className }: CatalogHeaderProps) {
   const navigate = useNavigate();
+  const { data: user } = useAuth();
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -57,7 +59,7 @@ export function CatalogHeader({ className }: CatalogHeaderProps) {
   return (
     <header
       className={cn(
-        "flex items-center gap-6 border-b border-[#aaba20] bg-[#c5d831] px-6 py-2",
+        "flex items-center gap-6 border-b border-[#aaba20] bg-[#8aba6d] px-6 py-2",
         className,
       )}
     >
@@ -73,17 +75,19 @@ export function CatalogHeader({ className }: CatalogHeaderProps) {
       <nav className="flex flex-1 items-center gap-6">
         <span className="text-xl font-bold text-green-950">Catálogo IFRJ</span>
         <Link
-          to="/species/search"
+          to="/especies/buscar"
           className="text-sm text-green-950 transition-colors hover:underline"
         >
           Espécies
         </Link>
-        <a
-          href="/admin"
-          className="text-sm text-green-950 transition-colors hover:underline"
-        >
-          Admin
-        </a>
+        {user?.isAdmin && (
+          <Link
+            to="/admin"
+            className="text-sm text-green-950 transition-colors hover:underline"
+          >
+            Admin
+          </Link>
+        )}
       </nav>
 
       <div ref={containerRef} className="relative shrink-0" onBlur={handleBlur}>

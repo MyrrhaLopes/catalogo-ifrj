@@ -5,6 +5,8 @@ import {
   usersTable,
   taxonomyTable,
   speciesTable,
+  specimenTable,
+  speciesSpecimenPivot,
   articleTable,
   popularNameTable,
   speciesPopularNamePivot,
@@ -265,8 +267,25 @@ async function seed() {
     { species: species2.id, attribute: templateHabitat.id, value: "8" },
   ]);
 
+  // 8. Espécimes e vínculos N:N
+  const [specimen1] = await db
+    .insert(specimenTable)
+    .values({ code: "IFRJ-001", lot: 1, shelf: 3, createdBy: user.id })
+    .returning();
+
+  const [specimen2] = await db
+    .insert(specimenTable)
+    .values({ code: "IFRJ-002", lot: 1, shelf: 4, createdBy: user.id })
+    .returning();
+
+  await db.insert(speciesSpecimenPivot).values([
+    { speciesId: species1.id, specimenId: specimen1.id },
+    { speciesId: species2.id, specimenId: specimen1.id },
+    { speciesId: species2.id, specimenId: specimen2.id },
+  ]);
+
   console.log(
-    `Seed OK — species1.id=${species1.id} (simples), species2.id=${species2.id} (completa, article=${article2.id}, 4 imagens), user=${user.email}`,
+    `Seed OK — species1.id=${species1.id} (simples), species2.id=${species2.id} (completa, article=${article2.id}, 4 imagens), specimens=[${specimen1.id},${specimen2.id}], user=${user.email}`,
   );
 }
 

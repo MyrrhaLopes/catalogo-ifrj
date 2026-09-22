@@ -18,7 +18,7 @@ export const specimenSchema = z.object({
   lot: z.number().nullable(),
   shelf: z.number().nullable(),
   createdAt: z.string().nullable(),
-  linkedSpeciesId: z.number().nullable(),
+  linkedSpeciesIds: z.array(z.number()),
 });
 export type Specimen = z.infer<typeof specimenSchema>;
 

@@ -22,14 +22,24 @@ export const speciesAttributeSchema = z.object({
 });
 export type SpeciesAttribute = z.infer<typeof speciesAttributeSchema>;
 
+export const linkedSpecimenSchema = z.object({
+  id: z.number(),
+  code: z.string(),
+});
+export type LinkedSpecimen = z.infer<typeof linkedSpecimenSchema>;
+
 export const speciesBaseSchema = z.object({
   id: z.number(),
   speciesRoot: z.number(),
-  specimen: z.number().nullable(),
+  specimens: z.array(linkedSpecimenSchema),
   createdAt: z.string().nullable(),
   createdBy: z.string(),
 });
 export type SpeciesBase = z.infer<typeof speciesBaseSchema>;
+
+export const specimenIdParamSchema = z.object({
+  specimenId: z.coerce.number().int().positive(),
+});
 
 export const speciesWithTaxonomySchema = speciesBaseSchema.extend({
   taxonomyPath: z.array(taxonomyNodeSchema),
@@ -53,7 +63,6 @@ export const idParamSchema = z.object({
 
 export const createSpeciesSchema = z.object({
   speciesRoot: z.number().int().positive(),
-  specimen: z.number().int().positive().optional(),
 });
 
 export const addPopularNameSchema = z.object({

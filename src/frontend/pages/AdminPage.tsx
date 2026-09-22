@@ -1,6 +1,8 @@
-import { createRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { createRoute, redirect, useNavigate } from "@tanstack/react-router";
+import type { UserInsert } from "@/backend/db/schema";
 import { rootRoute } from "../rootRoute";
+import { z } from "zod";
 import { CatalogHeader } from "../components/CatalogHeader";
 import { Button } from "../components/ui/button";
 import { cn } from "../shared/utils";
@@ -12,9 +14,25 @@ import { SpecimenTable } from "../features/admin/components/SpecimenTable";
 import { CreateSpecimenModal } from "../features/admin/components/CreateSpecimenModal";
 import { Plus } from "lucide-react";
 
+const adminSearchSchema = z.object({
+  section: z.enum(["species", "specimen", "users", "taxonomy"]).optional().default("species"),
+  selectedNodeId: z.coerce.number().int().positive().optional(),
+  selectedSpeciesId: z.coerce.number().int().positive().optional(),
+  selectedSpecimenId: z.coerce.number().int().positive().optional(),
+});
+
+export type AdminSearch = z.infer<typeof adminSearchSchema>;
+
 export const adminRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin",
+  beforeLoad: async () => {
+    const res = await fetch("/api/v1/sessions/", { credentials: "include" });
+    if (res.status === 401) throw redirect({ to: "/login" });
+    const user = (await res.json()) as UserInsert;
+    if (!user.isAdmin) throw redirect({ to: "/" });
+  },
+  validateSearch: (search: Record<string, unknown>) => adminSearchSchema.parse(search),
   component: AdminPage,
 });
 
@@ -28,9 +46,15 @@ const sidebarItems: { id: Section; label: string }[] = [
 ];
 
 function AdminPage() {
-  const [section, setSection] = useState<Section>("species");
+  const { section, selectedNodeId, selectedSpeciesId, selectedSpecimenId } =
+    adminRoute.useSearch();
+  const navigate = useNavigate();
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createSpecimenModalOpen, setCreateSpecimenModalOpen] = useState(false);
+
+  function setSection(s: Section) {
+    void navigate({ to: "/admin", search: (prev) => ({ ...prev, section: s }) });
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -65,7 +89,7 @@ function AdminPage() {
                   Criar espécie
                 </Button>
               </div>
-              <SpeciesTable />
+              <SpeciesTable selectedSpeciesId={selectedSpeciesId} />
               <CreateSpeciesModal
                 open={createModalOpen}
                 onOpenChange={setCreateModalOpen}
@@ -82,7 +106,7 @@ function AdminPage() {
                   Adicionar espécime
                 </Button>
               </div>
-              <SpecimenTable />
+              <SpecimenTable selectedSpecimenId={selectedSpecimenId} />
               <CreateSpecimenModal
                 open={createSpecimenModalOpen}
                 onOpenChange={setCreateSpecimenModalOpen}
@@ -105,7 +129,7 @@ function AdminPage() {
                 <span className="font-medium text-foreground">Árvore taxonômica</span> ou abaixo de qualquer nível existente — uma linha verde com um{" "}
                 <span className="font-medium text-green-600">+</span> vai aparecer para inserir.
               </p>
-              <TaxonomyTree variant="manage" />
+              <TaxonomyTree variant="manage" selectedNodeId={selectedNodeId} />
             </>
           )}
         </main>

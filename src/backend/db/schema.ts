@@ -12,7 +12,6 @@ import {
   primaryKey,
   boolean,
 } from "drizzle-orm/pg-core";
-import { AlignVerticalDistributeStart } from "lucide-react";
 
 export const taxonomyTable = pgTable("taxonomies", {
   id: serial("id").primaryKey(),
@@ -45,9 +44,6 @@ export const speciesTable = pgTable("species", {
       onDelete: "cascade",
     })
     .notNull(),
-  specimen: integer("specimen").references(() => specimenTable.id, {
-    onDelete: "set null",
-  }), //permitir criar espécies e seus artigos por mais que não haja um espécime físico no catálogo
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   createdBy: uuid("created_by")
     .references(() => usersTable.id)
@@ -55,6 +51,19 @@ export const speciesTable = pgTable("species", {
 });
 export type SpeciesTableInsert = typeof speciesTable.$inferInsert;
 export type SpeciesTableSelect = typeof speciesTable.$inferSelect;
+
+export const speciesSpecimenPivot = pgTable(
+  "species_specimen_pivot",
+  {
+    speciesId: integer("species_id")
+      .references(() => speciesTable.id, { onDelete: "cascade" })
+      .notNull(),
+    specimenId: integer("specimen_id")
+      .references(() => specimenTable.id, { onDelete: "cascade" })
+      .notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.speciesId, table.specimenId] })],
+);
 
 export const popularNameTable = pgTable("popular_names", {
   id: serial("id").primaryKey(),

@@ -7,16 +7,16 @@ import {
   addPopularNameSchema,
   speciesQuerySchema,
   speciesListQuerySchema,
+  specimenIdParamSchema,
 } from "./species.schema";
 
 export const speciesRouter = Router();
 
 speciesRouter.post("/species/", authorizeUser, async (req, res, next) => {
   try {
-    const { speciesRoot, specimen } = createSpeciesSchema.parse(req.body);
+    const { speciesRoot } = createSpeciesSchema.parse(req.body);
     const species = await SPECIES_SERVICE.registerSpecie({
       speciesRoot,
-      specimen,
       createdBy: req.user!.id,
     });
     return res.status(201).json({ species });
@@ -83,6 +83,28 @@ speciesRouter.post("/species/:id/popular-names", authorizeUser, async (req, res,
     const { name, origin } = addPopularNameSchema.parse(req.body);
     const popularName = await SPECIES_SERVICE.addPopularName(id, name, origin);
     return res.status(201).json({ popularName });
+  } catch (err) {
+    next(err);
+  }
+});
+
+speciesRouter.post("/species/:id/specimens/:specimenId", authorizeUser, async (req, res, next) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+    const { specimenId } = specimenIdParamSchema.parse(req.params);
+    await SPECIES_SERVICE.linkSpecimen(id, specimenId);
+    return res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+});
+
+speciesRouter.delete("/species/:id/specimens/:specimenId", authorizeUser, async (req, res, next) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+    const { specimenId } = specimenIdParamSchema.parse(req.params);
+    await SPECIES_SERVICE.unlinkSpecimen(id, specimenId);
+    return res.status(204).send();
   } catch (err) {
     next(err);
   }
