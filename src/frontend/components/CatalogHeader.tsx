@@ -78,6 +78,12 @@ export function CatalogHeader({ className }: CatalogHeaderProps) {
         >
           Espécies
         </a>
+        <a
+          href="/admin"
+          className="text-sm text-green-950 transition-colors hover:underline"
+        >
+          Admin
+        </a>
       </nav>
 
       <div ref={containerRef} className="relative shrink-0" onBlur={handleBlur}>

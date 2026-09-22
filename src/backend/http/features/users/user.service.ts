@@ -45,7 +45,18 @@ export const USER_SERVICE = {
     await db.delete(sessionsTable).where(eq(sessionsTable.id, sessionId));
   },
 
-  deleteUser: async (userId: number) => {
+  deleteUser: async (userId: string) => {
     await db.delete(usersTable).where(eq(usersTable.id, userId));
+  },
+
+  getUsers: async () => {
+    return await db
+      .select({
+        id: usersTable.id,
+        name: usersTable.name,
+        email: usersTable.email,
+        createdAt: usersTable.createdAt,
+      })
+      .from(usersTable);
   },
 };

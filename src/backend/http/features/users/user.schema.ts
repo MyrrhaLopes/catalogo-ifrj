@@ -14,3 +14,15 @@ export const userRegisterSchema = z.object({
 
 export type UserRegisterInput = z.infer<typeof userRegisterSchema>;
 export type UserLoginInput = z.infer<typeof userRegisterSchema>;
+
+export const userListItemSchema = z.object({
+  id: z.uuid(),
+  name: z.string().nullable(),
+  email: z.string(),
+  createdAt: z.string().nullable(),
+});
+export type UserListItem = z.infer<typeof userListItemSchema>;
+
+export const userListResponseSchema = z.object({
+  users: z.array(userListItemSchema),
+});

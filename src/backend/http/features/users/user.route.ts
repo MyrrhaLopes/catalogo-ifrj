@@ -72,3 +72,12 @@ userRouter.delete("/users/", authorizeUser, async (req, res, next) => {
     next(err);
   }
 });
+
+userRouter.get("/users/", authorizeUser, async (_req, res, next) => {
+  try {
+    const users = await USER_SERVICE.getUsers();
+    return res.status(200).json({ users });
+  } catch (err) {
+    next(err);
+  }
+});
