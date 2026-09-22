@@ -10,6 +10,7 @@ import {
   type AnyPgColumn,
   jsonb,
   primaryKey,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { AlignVerticalDistributeStart } from "lucide-react";
 
@@ -151,6 +152,7 @@ export const usersTable = pgTable("users", {
   name: text("name"),
   email: text("email").notNull().unique(), // unicidade garantida pelo banco
   passwordHash: text("password_hash").notNull(),
+  isAdmin: boolean("is_admin").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
