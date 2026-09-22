@@ -133,7 +133,7 @@ export function CreateSpeciesModal({ open, onOpenChange }: CreateSpeciesModalPro
           {/* key forces remount on open/close, discarding all draft state */}
           <TaxonomyTree
             key={open ? "open" : "closed"}
-            variant="insert"
+            variant="new"
             selectedNodeId={selectedNode?.id}
             onSelect={setSelectedNode}
             onDraftNodesChange={setDraftNodes}

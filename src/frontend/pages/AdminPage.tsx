@@ -7,6 +7,7 @@ import { cn } from "../shared/utils";
 import { SpeciesTable } from "../features/admin/components/SpeciesTable";
 import { UsersTable } from "../features/admin/components/UsersTable";
 import { CreateSpeciesModal } from "../features/admin/components/CreateSpeciesModal";
+import { TaxonomyTree } from "../features/admin/components/TaxonomyTree";
 import { Plus } from "lucide-react";
 
 export const adminRoute = createRoute({
@@ -15,12 +16,13 @@ export const adminRoute = createRoute({
   component: AdminPage,
 });
 
-type Section = "species" | "specimen" | "users";
+type Section = "species" | "specimen" | "users" | "taxonomy";
 
 const sidebarItems: { id: Section; label: string }[] = [
   { id: "species", label: "Gerenciar espécies" },
   { id: "specimen", label: "Gerenciar espécime" },
   { id: "users", label: "Gerenciar usuários" },
+  { id: "taxonomy", label: "Árvore taxonômica" },
 ];
 
 function AdminPage() {
@@ -78,6 +80,18 @@ function AdminPage() {
             <>
               <h2 className="text-lg font-semibold">Usuários cadastrados</h2>
               <UsersTable />
+            </>
+          )}
+
+          {section === "taxonomy" && (
+            <>
+              <h2 className="text-lg font-semibold">Árvore taxonômica</h2>
+              <p className="text-sm text-muted-foreground">
+                Para criar um novo nível, passe o mouse abaixo do label{" "}
+                <span className="font-medium text-foreground">Árvore taxonômica</span> ou abaixo de qualquer nível existente — uma linha verde com um{" "}
+                <span className="font-medium text-green-600">+</span> vai aparecer para inserir.
+              </p>
+              <TaxonomyTree variant="manage" />
             </>
           )}
         </main>

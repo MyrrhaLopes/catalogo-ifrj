@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createTaxonomyNode, updateTaxonomyNodeParent } from "../admin.api";
+import { createTaxonomyNode, updateTaxonomyNodeParent, updateTaxonomyNodeLabel, deleteTaxonomyNode } from "../admin.api";
 
 export function useCreateTaxonomyNode() {
   const queryClient = useQueryClient();
@@ -11,8 +11,29 @@ export function useCreateTaxonomyNode() {
     }: {
       label: string;
       labelValue: string;
-      parentId: number;
+      parentId: number | null;
     }) => createTaxonomyNode(label, labelValue, parentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["taxonomy"] });
+    },
+  });
+}
+
+export function useUpdateTaxonomyNodeLabel() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ nodeId, label, labelValue }: { nodeId: number; label: string; labelValue: string }) =>
+      updateTaxonomyNodeLabel(nodeId, label, labelValue),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["taxonomy"] });
+    },
+  });
+}
+
+export function useDeleteTaxonomyNode() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (nodeId: number) => deleteTaxonomyNode(nodeId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["taxonomy"] });
     },

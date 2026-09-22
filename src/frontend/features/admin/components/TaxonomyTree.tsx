@@ -12,12 +12,21 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronRight, ChevronDown, Plus, GripVertical, Loader2, Check, X } from "lucide-react";
+import { ChevronRight, ChevronDown, Plus, GripVertical, Loader2, Check, X, Pencil, Trash2, AlertCircle } from "lucide-react";
 import { Button } from "@/frontend/components/ui/button";
 import { Input } from "@/frontend/components/ui/input";
 import { Label } from "@/frontend/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/frontend/components/ui/dialog";
 import { useTaxonomy } from "@/frontend/features/species/hooks/useTaxonomy";
-import { useUpdateTaxonomyNodeParent } from "../hooks/useAdminTaxonomy";
+import { useUpdateTaxonomyNodeParent, useCreateTaxonomyNode, useUpdateTaxonomyNodeLabel, useDeleteTaxonomyNode } from "../hooks/useAdminTaxonomy";
+import { getTaxonomyAffectedSpecies, type AffectedSpeciesItem } from "../admin.api";
 import type { TaxonomyNode } from "@/backend/http/features/taxonomy/taxonomy.schema";
 import { cn } from "@/frontend/shared/utils";
 
@@ -106,12 +115,7 @@ function InsertZone({
           </div>
         </div>
         <div className="flex gap-1 justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={ctx.onCancel}
-            className="h-6 px-2"
-          >
+          <Button variant="ghost" size="sm" onClick={ctx.onCancel} className="h-6 px-2">
             <X className="h-3 w-3" />
           </Button>
           <Button
@@ -127,7 +131,6 @@ function InsertZone({
     );
   }
 
-  // Thin invisible zone — only reveals itself (green line + icon) on hover
   return (
     <div
       className="group relative h-2 cursor-pointer flex items-center"
@@ -148,28 +151,18 @@ type InsertTreeNodeProps = {
   ctx: InsertZoneContext;
 };
 
-function InsertTreeNode({
-  node,
-  selectedId,
-  expandedIds,
-  onToggle,
-  onSelect,
-  ctx,
-}: InsertTreeNodeProps) {
+function InsertTreeNode({ node, selectedId, expandedIds, onToggle, onSelect, ctx }: InsertTreeNodeProps) {
   const isExpanded = expandedIds.has(node.id);
   const hasChildren = node.children.length > 0;
   const isSelected = node.id === selectedId;
   const isCreated = node.id === ctx.createdNodeId;
   const isDraft = ctx.draftIds.has(node.id);
-  // Draft nodes without children are still expandable so the insert zone is accessible
   const isExpandable = hasChildren || isDraft;
 
-  // Always call hooks unconditionally; disabled flag controls behavior
   const { attributes, listeners, setNodeRef: setDragRef, transform, isDragging } = useDraggable({
     id: node.id,
     disabled: !isCreated,
   });
-
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: `insert-drop-${node.id}`,
     disabled: isCreated,
@@ -205,11 +198,7 @@ function InsertTreeNode({
         )}
         <span className="p-0 w-4 h-4 flex items-center justify-center shrink-0">
           {isExpandable ? (
-            isExpanded ? (
-              <ChevronDown className="h-3 w-3" />
-            ) : (
-              <ChevronRight className="h-3 w-3" />
-            )
+            isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />
           ) : (
             <span className="w-3" />
           )}
@@ -218,9 +207,7 @@ function InsertTreeNode({
           {node.label}
         </span>
         <span className={cn(isDraft && "italic")}>{node.labelValue}</span>
-        {isDraft && (
-          <span className="ml-1 text-[10px] text-green-600 font-medium">novo</span>
-        )}
+        {isDraft && <span className="ml-1 text-[10px] text-green-600 font-medium">novo</span>}
       </div>
       {isExpanded && isExpandable && (
         <div className="ml-4 border-l pl-2">
@@ -253,10 +240,7 @@ function DraggableNode({ node, expandedIds, onToggle, activeId }: DraggableNodeP
   const isExpanded = expandedIds.has(node.id);
   const hasChildren = node.children.length > 0;
 
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: node.id,
-  });
-
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: node.id });
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: `drop-${node.id}` });
 
   const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined;
@@ -272,11 +256,7 @@ function DraggableNode({ node, expandedIds, onToggle, activeId }: DraggableNodeP
           isOver && activeId !== node.id && "bg-primary/10 ring-1 ring-primary",
         )}
       >
-        <span
-          {...attributes}
-          {...listeners}
-          className="cursor-grab text-muted-foreground hover:text-foreground p-0.5"
-        >
+        <span {...attributes} {...listeners} className="cursor-grab text-muted-foreground hover:text-foreground p-0.5">
           <GripVertical className="h-3 w-3" />
         </span>
         <button
@@ -309,15 +289,216 @@ function DraggableNode({ node, expandedIds, onToggle, activeId }: DraggableNodeP
   );
 }
 
+type DeletePhase =
+  | null
+  | "loading"
+  | "inline"
+  | { affectedSpecies: AffectedSpeciesItem[] };
+
+type ManageTreeNodeProps = {
+  node: TreeNode;
+  expandedIds: Set<number>;
+  onToggle: (id: number) => void;
+  activeId: number | null;
+  ctx: InsertZoneContext;
+};
+
+function ManageTreeNode({ node, expandedIds, onToggle, activeId, ctx }: ManageTreeNodeProps) {
+  const isExpanded = expandedIds.has(node.id);
+  const hasChildren = node.children.length > 0;
+
+  const [editState, setEditState] = useState<{ label: string; labelValue: string } | null>(null);
+  const [deletePhase, setDeletePhase] = useState<DeletePhase>(null);
+
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: node.id });
+  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: `drop-${node.id}` });
+  const updateLabel = useUpdateTaxonomyNodeLabel();
+  const deleteNode = useDeleteTaxonomyNode();
+
+  const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined;
+
+  async function handleTrashClick() {
+    setDeletePhase("loading");
+    try {
+      const species = await getTaxonomyAffectedSpecies(node.id);
+      setDeletePhase(species.length > 0 ? { affectedSpecies: species } : "inline");
+    } catch {
+      setDeletePhase("inline");
+    }
+  }
+
+  const isModalOpen = typeof deletePhase === "object" && deletePhase !== null;
+
+  return (
+    <div ref={setDropRef}>
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={cn(
+          "flex items-center gap-1 px-2 py-1 rounded text-sm group",
+          isDragging && "opacity-40",
+          isOver && activeId !== node.id && "bg-primary/10 ring-1 ring-primary",
+        )}
+      >
+        <span
+          {...attributes}
+          {...listeners}
+          className="cursor-grab text-muted-foreground hover:text-foreground p-0.5 shrink-0"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="h-3 w-3" />
+        </span>
+        <button
+          className="p-0 w-4 h-4 flex items-center justify-center shrink-0"
+          onClick={() => onToggle(node.id)}
+        >
+          {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        </button>
+
+        {editState ? (
+          <>
+            <Input
+              value={editState.label}
+              onChange={(e) => setEditState({ ...editState, label: e.target.value })}
+              className="h-6 text-xs flex-1 min-w-0"
+              autoFocus
+            />
+            <Input
+              value={editState.labelValue}
+              onChange={(e) => setEditState({ ...editState, labelValue: e.target.value })}
+              className="h-6 text-xs flex-1 min-w-0"
+            />
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6 shrink-0"
+              disabled={!editState.label || !editState.labelValue || updateLabel.isPending}
+              onClick={async () => {
+                await updateLabel.mutateAsync({ nodeId: node.id, label: editState.label, labelValue: editState.labelValue });
+                setEditState(null);
+              }}
+            >
+              <Check className="h-3 w-3" />
+            </Button>
+            <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" onClick={() => setEditState(null)}>
+              <X className="h-3 w-3" />
+            </Button>
+          </>
+        ) : (
+          <>
+            <span className="text-xs text-muted-foreground mr-0.5 shrink-0">{node.label}:</span>
+            <span className="flex-1 truncate">{node.labelValue}</span>
+
+            {deletePhase === "loading" ? (
+              <Loader2 className="h-3 w-3 animate-spin ml-1 shrink-0 text-muted-foreground" />
+            ) : deletePhase === "inline" ? (
+              <div className="flex items-center gap-1 ml-1 shrink-0">
+                <span className="text-xs text-destructive font-medium">Excluir?</span>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="h-5 px-2 text-[10px]"
+                  disabled={deleteNode.isPending}
+                  onClick={() => void deleteNode.mutateAsync(node.id).catch(() => setDeletePhase(null))}
+                >
+                  Sim
+                </Button>
+                <Button size="sm" variant="ghost" className="h-5 px-2 text-[10px]" onClick={() => setDeletePhase(null)}>
+                  Não
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover:opacity-100 shrink-0">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-5 w-5"
+                  onClick={() => { setEditState({ label: node.label, labelValue: node.labelValue }); }}
+                >
+                  <Pencil className="h-2.5 w-2.5" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-5 w-5 text-destructive hover:text-destructive"
+                  onClick={() => void handleTrashClick()}
+                >
+                  <Trash2 className="h-2.5 w-2.5" />
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Modal de confirmação quando há espécies afetadas */}
+      <Dialog open={isModalOpen} onOpenChange={(open) => !open && setDeletePhase(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar exclusão</DialogTitle>
+            <DialogDescription>
+              {isModalOpen && `Excluir "${node.labelValue}" também apagará ${(deletePhase as { affectedSpecies: AffectedSpeciesItem[] }).affectedSpecies.length} espécie(s) vinculada(s):`}
+            </DialogDescription>
+          </DialogHeader>
+          {isModalOpen && (
+            <ul className="text-sm space-y-1 max-h-48 overflow-y-auto border rounded-md p-2">
+              {(deletePhase as { affectedSpecies: AffectedSpeciesItem[] }).affectedSpecies.map((sp) => (
+                <li key={sp.id} className="flex items-center gap-2 py-0.5">
+                  <span className="text-muted-foreground text-xs shrink-0">#{sp.id}</span>
+                  <span className="italic">{sp.speciesName}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeletePhase(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteNode.isPending}
+              onClick={() => void deleteNode.mutateAsync(node.id).catch(() => setDeletePhase(null))}
+            >
+              Excluir mesmo assim
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {isExpanded && (
+        <div className="ml-4 border-l pl-2">
+          <InsertZone zoneId={`parent-${node.id}`} parentId={node.id} ctx={ctx} />
+          {hasChildren && node.children.map((child) => (
+            <ManageTreeNode
+              key={child.id}
+              node={child}
+              expandedIds={expandedIds}
+              onToggle={onToggle}
+              activeId={activeId}
+              ctx={ctx}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export type TaxonomyTreeProps =
   | {
-      variant: "insert";
+      variant: "new";
       selectedNodeId?: number;
       onSelect: (node: { id: number; label: string; labelValue: string }) => void;
       onDraftNodesChange: (nodes: DraftTaxonomyNode[]) => void;
     }
   | {
-      variant: "edit";
+      variant: "reorder";
+      selectedNodeId?: undefined;
+      onSelect?: undefined;
+      onDraftNodesChange?: undefined;
+    }
+  | {
+      variant: "manage";
       selectedNodeId?: undefined;
       onSelect?: undefined;
       onDraftNodesChange?: undefined;
@@ -333,13 +514,14 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
   const [insertActiveId, setInsertActiveId] = useState<number | null>(null);
   const [createdNodeId, setCreatedNodeId] = useState<number | null>(null);
   const [draftNodes, setDraftNodes] = useState<DraftTaxonomyNode[]>([]);
+  const [reorderError, setReorderError] = useState<string | null>(null);
   const nextTempId = useRef(-1);
 
   const updateParent = useUpdateTaxonomyNodeParent();
+  const createNode = useCreateTaxonomyNode();
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-  // Merge real nodes and draft nodes for the tree
   const draftAsNodes: TaxonomyNode[] = draftNodes.map((d) => ({
     id: d.tempId,
     label: d.label,
@@ -350,9 +532,8 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
   const tree = buildTree(allNodes);
   const draftIds = new Set(draftNodes.map((d) => d.tempId));
 
-  // Notify parent whenever draft nodes change
   useEffect(() => {
-    if (props.variant === "insert") {
+    if (props.variant === "new") {
       props.onDraftNodesChange(draftNodes);
     }
   }, [draftNodes]);
@@ -380,12 +561,25 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
     if (!isRoot) {
       setExpandedIds((prev) => new Set([...prev, activeInsert.parentId]));
     }
-    if (props.variant === "insert") {
+    if (props.variant === "new") {
       props.onSelect({ id: newTempId, label: insertLabel, labelValue: insertLabelValue });
     }
     setActiveInsert(null);
     setInsertLabel("");
     setInsertLabelValue("");
+  }
+
+  async function handleManageInsert() {
+    if (!activeInsert) return;
+    const isRoot = activeInsert.parentId === 0;
+    setActiveInsert(null);
+    setInsertLabel("");
+    setInsertLabelValue("");
+    await createNode.mutateAsync({
+      label: insertLabel,
+      labelValue: insertLabelValue,
+      parentId: isRoot ? null : activeInsert.parentId,
+    });
   }
 
   async function handleDragEnd(event: DragEndEvent) {
@@ -397,7 +591,13 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
     if (!overDropId.startsWith("drop-")) return;
     const targetId = Number(overDropId.replace("drop-", ""));
     if (draggedId === targetId) return;
-    await updateParent.mutateAsync({ nodeId: draggedId, newParentId: targetId });
+    try {
+      await updateParent.mutateAsync({ nodeId: draggedId, newParentId: targetId });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao mover nó";
+      setReorderError(msg);
+      setTimeout(() => setReorderError(null), 4000);
+    }
   }
 
   function handleInsertDragEnd(event: DragEndEvent) {
@@ -423,7 +623,7 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
     );
   }
 
-  if (props.variant === "insert") {
+  if (props.variant === "new") {
     const ctx: InsertZoneContext = {
       activeInsert,
       insertLabel,
@@ -476,6 +676,65 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
     );
   }
 
+  if (props.variant === "manage") {
+    const ctx: InsertZoneContext = {
+      activeInsert,
+      insertLabel,
+      insertLabelValue,
+      onLabelChange: setInsertLabel,
+      onLabelValueChange: setInsertLabelValue,
+      onActivate: (zoneId, parentId) => setActiveInsert({ zoneId, parentId }),
+      onCancel: () => setActiveInsert(null),
+      onConfirm: () => void handleManageInsert(),
+      createdNodeId: null,
+      draftIds: new Set(),
+    };
+
+    const activeNode = activeId ? nodes.find((n) => n.id === activeId) : null;
+
+    return (
+      <DndContext
+        sensors={sensors}
+        collisionDetection={pointerWithin}
+        measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+        onDragStart={(e) => setActiveId(e.active.id as number)}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="border rounded-md p-2 overflow-y-auto">
+          <p className="text-xs font-medium text-muted-foreground mb-1 px-1">Árvore taxonômica</p>
+          {reorderError && (
+            <p className="text-xs text-destructive flex items-center gap-1 mb-1 px-1">
+              <AlertCircle className="h-3 w-3 shrink-0" />
+              {reorderError}
+            </p>
+          )}
+          <InsertZone zoneId="top" parentId={0} ctx={ctx} />
+          {tree.map((root) => (
+            <ManageTreeNode
+              key={root.id}
+              node={root}
+              expandedIds={expandedIds}
+              onToggle={toggleExpand}
+              activeId={activeId}
+              ctx={ctx}
+            />
+          ))}
+          <InsertZone zoneId="bottom" parentId={0} ctx={ctx} />
+        </div>
+        <DragOverlay>
+          {activeNode && (
+            <div className="flex items-center gap-1 px-2 py-1 rounded text-sm bg-background border shadow-md">
+              <GripVertical className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">{activeNode.label}:</span>
+              <span>{activeNode.labelValue}</span>
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
+    );
+  }
+
+  // reorder variant
   const activeNode = activeId ? nodes.find((n) => n.id === activeId) : null;
 
   return (
@@ -488,6 +747,12 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
     >
       <div className="border rounded-md p-2 overflow-y-auto">
         <p className="text-xs font-medium text-muted-foreground mb-1 px-1">Árvore taxonômica</p>
+        {reorderError && (
+          <p className="text-xs text-destructive flex items-center gap-1 mb-1 px-1">
+            <AlertCircle className="h-3 w-3 shrink-0" />
+            {reorderError}
+          </p>
+        )}
         {tree.map((root) => (
           <DraggableNode
             key={root.id}

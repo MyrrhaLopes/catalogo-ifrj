@@ -1,10 +1,12 @@
 import type { SpeciesBase } from "@/backend/http/features/species/species.schema";
-import type { TaxonomyNode } from "@/backend/http/features/taxonomy/taxonomy.schema";
+import type { TaxonomyNode, AffectedSpeciesItem } from "@/backend/http/features/taxonomy/taxonomy.schema";
 import type { UserListItem } from "@/backend/http/features/users/user.schema";
 import { speciesBaseSchema } from "@/backend/http/features/species/species.schema";
-import { taxonomyNodeSchema } from "@/backend/http/features/taxonomy/taxonomy.schema";
+import { taxonomyNodeSchema, affectedSpeciesItemSchema } from "@/backend/http/features/taxonomy/taxonomy.schema";
 import { userListItemSchema } from "@/backend/http/features/users/user.schema";
 import { z } from "zod";
+
+export type { AffectedSpeciesItem };
 
 export type { UserListItem };
 
@@ -38,7 +40,7 @@ export async function deleteSpecies(id: number): Promise<void> {
 export async function createTaxonomyNode(
   label: string,
   labelValue: string,
-  parentId: number,
+  parentId: number | null,
 ): Promise<TaxonomyNode> {
   const res = await fetch("/api/v1/taxonomy/", {
     method: "POST",
@@ -64,4 +66,37 @@ export async function updateTaxonomyNodeParent(
   if (!res.ok) throw new Error("Erro ao mover nó taxonômico");
   const { node } = z.object({ node: taxonomyNodeSchema }).parse(await res.json());
   return node;
+}
+
+export async function updateTaxonomyNodeLabel(
+  nodeId: number,
+  label: string,
+  labelValue: string,
+): Promise<TaxonomyNode> {
+  const res = await fetch(`/api/v1/taxonomy/${nodeId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ label, labelValue }),
+  });
+  if (!res.ok) throw new Error("Erro ao editar nó taxonômico");
+  const { node } = z.object({ node: taxonomyNodeSchema }).parse(await res.json());
+  return node;
+}
+
+export async function deleteTaxonomyNode(nodeId: number): Promise<void> {
+  const res = await fetch(`/api/v1/taxonomy/${nodeId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Erro ao excluir nó taxonômico");
+}
+
+export async function getTaxonomyAffectedSpecies(nodeId: number): Promise<AffectedSpeciesItem[]> {
+  const res = await fetch(`/api/v1/taxonomy/${nodeId}/affected-species`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Erro ao verificar espécies afetadas");
+  const { species } = z.object({ species: z.array(affectedSpeciesItemSchema) }).parse(await res.json());
+  return species;
 }
