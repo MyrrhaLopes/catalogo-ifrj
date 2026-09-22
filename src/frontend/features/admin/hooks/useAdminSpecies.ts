@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getSpeciesList } from "@/frontend/features/species/species.api";
+import { searchSpecies } from "@/frontend/features/species/species.api";
 import { createSpecies, deleteSpecies } from "../admin.api";
 
 export function useSpeciesList() {
   return useQuery({
     queryKey: ["species", "list"],
-    queryFn: getSpeciesList,
+    queryFn: () => searchSpecies({ page: 1, pageSize: 100 }).then((r) => r.species),
   });
 }
 

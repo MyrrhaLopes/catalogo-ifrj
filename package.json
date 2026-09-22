@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "dev-backend": "tsx watch --env-file=.env src/backend/server.ts",
     "db:seed": "tsx --env-file=.env src/backend/db/seed.ts",
+    "db:create-admin": "tsx --env-file=.env src/backend/db/create-admin.ts",
     "db:reset": "tsx --env-file=.env src/backend/db/reset.ts && npm run db:seed",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",

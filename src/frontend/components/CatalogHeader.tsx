@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Search } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/frontend/components/ui/input";
 import { cn } from "@/frontend/shared/utils";
@@ -72,12 +72,12 @@ export function CatalogHeader({ className }: CatalogHeaderProps) {
 
       <nav className="flex flex-1 items-center gap-6">
         <span className="text-xl font-bold text-green-950">Catálogo IFRJ</span>
-        <a
-          href="/especies"
+        <Link
+          to="/species/search"
           className="text-sm text-green-950 transition-colors hover:underline"
         >
           Espécies
-        </a>
+        </Link>
         <a
           href="/admin"
           className="text-sm text-green-950 transition-colors hover:underline"

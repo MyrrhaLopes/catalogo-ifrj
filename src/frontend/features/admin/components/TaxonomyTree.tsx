@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DndContext,
   type DragEndEvent,
   useDraggable,
   useDroppable,
   DragOverlay,
+  MeasuringStrategy,
+  pointerWithin,
   PointerSensor,
   useSensor,
   useSensors,
@@ -15,9 +17,16 @@ import { Button } from "@/frontend/components/ui/button";
 import { Input } from "@/frontend/components/ui/input";
 import { Label } from "@/frontend/components/ui/label";
 import { useTaxonomy } from "@/frontend/features/species/hooks/useTaxonomy";
-import { useCreateTaxonomyNode, useUpdateTaxonomyNodeParent } from "../hooks/useAdminTaxonomy";
+import { useUpdateTaxonomyNodeParent } from "../hooks/useAdminTaxonomy";
 import type { TaxonomyNode } from "@/backend/http/features/taxonomy/taxonomy.schema";
 import { cn } from "@/frontend/shared/utils";
+
+export type DraftTaxonomyNode = {
+  tempId: number;     // always negative
+  label: string;
+  labelValue: string;
+  parentId: number;   // positive = real node ID; negative = another draft's tempId; === tempId means root
+};
 
 type TreeNode = TaxonomyNode & { children: TreeNode[] };
 
@@ -38,119 +47,193 @@ function buildTree(nodes: TaxonomyNode[]): TreeNode[] {
   return roots;
 }
 
-function getPath(nodes: TaxonomyNode[], targetId: number): TaxonomyNode[] {
-  const map = new Map<number, TaxonomyNode>();
-  nodes.forEach((n) => map.set(n.id, n));
-
-  const path: TaxonomyNode[] = [];
-  let current = map.get(targetId);
-  while (current) {
-    path.unshift(current);
-    if (current.parent === current.id) break;
-    current = map.get(current.parent);
-  }
-  return path;
-}
-
-type InsertFormProps = {
+// zoneId uniquely identifies each insert zone:
+//   "top"         → before all roots
+//   "parent-{id}" → between node {id} and its children
+//   "bottom"      → after all roots
+// parentId === 0 signals "create as root"
+type ActiveInsert = {
+  zoneId: string;
   parentId: number;
-  childId: number;
-  onConfirm: (label: string, labelValue: string) => void;
-  onCancel: () => void;
-  isPending: boolean;
 };
 
-function InsertForm({ parentId: _parentId, childId: _childId, onConfirm, onCancel, isPending }: InsertFormProps) {
-  const [label, setLabel] = useState("");
-  const [labelValue, setLabelValue] = useState("");
+type InsertZoneContext = {
+  activeInsert: ActiveInsert | null;
+  insertLabel: string;
+  insertLabelValue: string;
+  onLabelChange: (v: string) => void;
+  onLabelValueChange: (v: string) => void;
+  onActivate: (zoneId: string, parentId: number) => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+  createdNodeId: number | null;
+  draftIds: Set<number>;
+};
 
+function InsertZone({
+  zoneId,
+  parentId,
+  ctx,
+}: {
+  zoneId: string;
+  parentId: number;
+  ctx: InsertZoneContext;
+}) {
+  const isActive = ctx.activeInsert?.zoneId === zoneId;
+
+  if (isActive) {
+    return (
+      <div className="my-1 p-2 border border-dashed border-green-500 rounded-md bg-background flex flex-col gap-2 text-sm">
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <Label className="text-xs">Nível (ex: Subclasse)</Label>
+            <Input
+              value={ctx.insertLabel}
+              onChange={(e) => ctx.onLabelChange(e.target.value)}
+              placeholder="ex: Subclasse"
+              className="h-7 text-xs"
+              autoFocus
+            />
+          </div>
+          <div className="flex-1">
+            <Label className="text-xs">Valor (ex: teleostei)</Label>
+            <Input
+              value={ctx.insertLabelValue}
+              onChange={(e) => ctx.onLabelValueChange(e.target.value)}
+              placeholder="ex: teleostei"
+              className="h-7 text-xs"
+            />
+          </div>
+        </div>
+        <div className="flex gap-1 justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={ctx.onCancel}
+            className="h-6 px-2"
+          >
+            <X className="h-3 w-3" />
+          </Button>
+          <Button
+            size="sm"
+            onClick={ctx.onConfirm}
+            disabled={!ctx.insertLabel || !ctx.insertLabelValue}
+            className="h-6 px-2"
+          >
+            <Check className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Thin invisible zone — only reveals itself (green line + icon) on hover
   return (
-    <div className="my-1 mx-2 p-2 border border-dashed rounded-md bg-background flex flex-col gap-2 text-sm">
-      <div className="flex gap-2">
-        <div className="flex-1">
-          <Label className="text-xs">Nível (ex: Subclasse)</Label>
-          <Input
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="ex: Subclasse"
-            className="h-7 text-xs"
-          />
-        </div>
-        <div className="flex-1">
-          <Label className="text-xs">Valor (ex: teleostei)</Label>
-          <Input
-            value={labelValue}
-            onChange={(e) => setLabelValue(e.target.value)}
-            placeholder="ex: teleostei"
-            className="h-7 text-xs"
-          />
-        </div>
-      </div>
-      <div className="flex gap-1 justify-end">
-        <Button variant="ghost" size="sm" onClick={onCancel} disabled={isPending} className="h-6 px-2">
-          <X className="h-3 w-3" />
-        </Button>
-        <Button
-          size="sm"
-          onClick={() => onConfirm(label, labelValue)}
-          disabled={!label || !labelValue || isPending}
-          className="h-6 px-2"
-        >
-          {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-        </Button>
-      </div>
+    <div
+      className="group relative h-2 cursor-pointer flex items-center"
+      onClick={() => ctx.onActivate(zoneId, parentId)}
+    >
+      <div className="absolute inset-x-0 h-0.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 bg-green-500 transition-opacity rounded-full" />
+      <Plus className="absolute right-0.5 top-1/2 -translate-y-1/2 h-3 w-3 text-white bg-green-500 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity z-10" />
     </div>
   );
 }
 
-type SelectTreeNodeProps = {
+type InsertTreeNodeProps = {
   node: TreeNode;
   selectedId?: number;
   expandedIds: Set<number>;
   onToggle: (id: number) => void;
-  onSelect: (node: TaxonomyNode) => void;
+  onSelect: (node: { id: number; label: string; labelValue: string }) => void;
+  ctx: InsertZoneContext;
 };
 
-function SelectTreeNode({ node, selectedId, expandedIds, onToggle, onSelect }: SelectTreeNodeProps) {
+function InsertTreeNode({
+  node,
+  selectedId,
+  expandedIds,
+  onToggle,
+  onSelect,
+  ctx,
+}: InsertTreeNodeProps) {
   const isExpanded = expandedIds.has(node.id);
   const hasChildren = node.children.length > 0;
   const isSelected = node.id === selectedId;
+  const isCreated = node.id === ctx.createdNodeId;
+  const isDraft = ctx.draftIds.has(node.id);
+  // Draft nodes without children are still expandable so the insert zone is accessible
+  const isExpandable = hasChildren || isDraft;
+
+  // Always call hooks unconditionally; disabled flag controls behavior
+  const { attributes, listeners, setNodeRef: setDragRef, transform, isDragging } = useDraggable({
+    id: node.id,
+    disabled: !isCreated,
+  });
+
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
+    id: `insert-drop-${node.id}`,
+    disabled: isCreated,
+  });
+
+  const style = isCreated && transform ? { transform: CSS.Translate.toString(transform) } : undefined;
 
   return (
-    <div>
+    <div ref={setDropRef}>
       <div
+        ref={setDragRef}
+        style={style}
         className={cn(
           "flex items-center gap-1 px-2 py-1 rounded cursor-pointer hover:bg-muted/60 text-sm",
           isSelected && "bg-primary/10 font-medium text-primary",
+          isDragging && "opacity-40",
+          isOver && !isCreated && "bg-primary/10 ring-1 ring-primary",
         )}
-        onClick={() => onSelect(node)}
+        onClick={() => {
+          onSelect({ id: node.id, label: node.label, labelValue: node.labelValue });
+          if (isExpandable) onToggle(node.id);
+        }}
       >
-        <button
-          className="p-0 w-4 h-4 flex items-center justify-center shrink-0"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (hasChildren) onToggle(node.id);
-          }}
-        >
-          {hasChildren ? (
-            isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />
+        {isCreated && (
+          <span
+            {...attributes}
+            {...listeners}
+            className="cursor-grab text-muted-foreground hover:text-foreground p-0.5 shrink-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="h-3 w-3" />
+          </span>
+        )}
+        <span className="p-0 w-4 h-4 flex items-center justify-center shrink-0">
+          {isExpandable ? (
+            isExpanded ? (
+              <ChevronDown className="h-3 w-3" />
+            ) : (
+              <ChevronRight className="h-3 w-3" />
+            )
           ) : (
             <span className="w-3" />
           )}
-        </button>
-        <span className="text-xs text-muted-foreground mr-1">{node.label}</span>
-        <span>{node.labelValue}</span>
+        </span>
+        <span className={cn("text-xs mr-1", isDraft ? "text-green-600" : "text-muted-foreground")}>
+          {node.label}
+        </span>
+        <span className={cn(isDraft && "italic")}>{node.labelValue}</span>
+        {isDraft && (
+          <span className="ml-1 text-[10px] text-green-600 font-medium">novo</span>
+        )}
       </div>
-      {isExpanded && hasChildren && (
+      {isExpanded && isExpandable && (
         <div className="ml-4 border-l pl-2">
+          <InsertZone zoneId={`parent-${node.id}`} parentId={node.id} ctx={ctx} />
           {node.children.map((child) => (
-            <SelectTreeNode
+            <InsertTreeNode
               key={child.id}
               node={child}
               selectedId={selectedId}
               expandedIds={expandedIds}
               onToggle={onToggle}
               onSelect={onSelect}
+              ctx={ctx}
             />
           ))}
         </div>
@@ -228,32 +311,51 @@ function DraggableNode({ node, expandedIds, onToggle, activeId }: DraggableNodeP
 
 export type TaxonomyTreeProps =
   | {
-      variant: "select";
+      variant: "insert";
       selectedNodeId?: number;
-      onSelect: (node: TaxonomyNode) => void;
+      onSelect: (node: { id: number; label: string; labelValue: string }) => void;
+      onDraftNodesChange: (nodes: DraftTaxonomyNode[]) => void;
     }
   | {
       variant: "edit";
       selectedNodeId?: undefined;
       onSelect?: undefined;
+      onDraftNodesChange?: undefined;
     };
 
 export function TaxonomyTree(props: TaxonomyTreeProps) {
   const { data: nodes = [], isLoading } = useTaxonomy();
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
-  const [insertingBetween, setInsertingBetween] = useState<{ parentId: number; childId: number } | null>(null);
+  const [activeInsert, setActiveInsert] = useState<ActiveInsert | null>(null);
+  const [insertLabel, setInsertLabel] = useState("");
+  const [insertLabelValue, setInsertLabelValue] = useState("");
   const [activeId, setActiveId] = useState<number | null>(null);
+  const [insertActiveId, setInsertActiveId] = useState<number | null>(null);
+  const [createdNodeId, setCreatedNodeId] = useState<number | null>(null);
+  const [draftNodes, setDraftNodes] = useState<DraftTaxonomyNode[]>([]);
+  const nextTempId = useRef(-1);
 
-  const createNode = useCreateTaxonomyNode();
   const updateParent = useUpdateTaxonomyNodeParent();
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-  const tree = buildTree(nodes);
-  const path =
-    props.variant === "select" && props.selectedNodeId !== undefined
-      ? getPath(nodes, props.selectedNodeId)
-      : [];
+  // Merge real nodes and draft nodes for the tree
+  const draftAsNodes: TaxonomyNode[] = draftNodes.map((d) => ({
+    id: d.tempId,
+    label: d.label,
+    labelValue: d.labelValue,
+    parent: d.parentId,
+  }));
+  const allNodes = [...nodes, ...draftAsNodes];
+  const tree = buildTree(allNodes);
+  const draftIds = new Set(draftNodes.map((d) => d.tempId));
+
+  // Notify parent whenever draft nodes change
+  useEffect(() => {
+    if (props.variant === "insert") {
+      props.onDraftNodesChange(draftNodes);
+    }
+  }, [draftNodes]);
 
   function toggleExpand(id: number) {
     setExpandedIds((prev) => {
@@ -263,16 +365,27 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
     });
   }
 
-  async function handleInsertBetween(label: string, labelValue: string) {
-    if (!insertingBetween) return;
-    const { parentId, childId } = insertingBetween;
-    try {
-      const newNode = await createNode.mutateAsync({ label, labelValue, parentId });
-      await updateParent.mutateAsync({ nodeId: childId, newParentId: newNode.id });
-      setInsertingBetween(null);
-    } catch {
-      // errors surfaced via mutation state
+  function handleInsert() {
+    if (!activeInsert) return;
+    const newTempId = nextTempId.current--;
+    const isRoot = activeInsert.parentId === 0;
+    const newDraft: DraftTaxonomyNode = {
+      tempId: newTempId,
+      label: insertLabel,
+      labelValue: insertLabelValue,
+      parentId: isRoot ? newTempId : activeInsert.parentId,
+    };
+    setDraftNodes((prev) => [...prev, newDraft]);
+    setCreatedNodeId(newTempId);
+    if (!isRoot) {
+      setExpandedIds((prev) => new Set([...prev, activeInsert.parentId]));
     }
+    if (props.variant === "insert") {
+      props.onSelect({ id: newTempId, label: insertLabel, labelValue: insertLabelValue });
+    }
+    setActiveInsert(null);
+    setInsertLabel("");
+    setInsertLabelValue("");
   }
 
   async function handleDragEnd(event: DragEndEvent) {
@@ -287,6 +400,20 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
     await updateParent.mutateAsync({ nodeId: draggedId, newParentId: targetId });
   }
 
+  function handleInsertDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    setInsertActiveId(null);
+    if (!over) return;
+    const draggedId = active.id as number;
+    const overDropId = String(over.id);
+    if (!overDropId.startsWith("insert-drop-")) return;
+    const targetId = Number(overDropId.replace("insert-drop-", ""));
+    if (draggedId === targetId) return;
+    setDraftNodes((prev) =>
+      prev.map((d) => (d.tempId === draggedId ? { ...d, parentId: targetId } : d)),
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-32 text-muted-foreground">
@@ -296,65 +423,56 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
     );
   }
 
-  if (props.variant === "select") {
-    return (
-      <div className="flex flex-col gap-2">
-        {path.length > 0 && (
-          <div className="flex flex-col gap-0.5">
-            <p className="text-xs font-medium text-muted-foreground mb-1">Caminho selecionado</p>
-            {path.map((node, idx) => (
-              <div key={node.id}>
-                <div className="flex items-center gap-1 text-sm bg-muted/40 rounded px-2 py-1">
-                  <span className="text-xs text-muted-foreground">{node.label}:</span>
-                  <span className="font-medium">{node.labelValue}</span>
-                </div>
-                {idx < path.length - 1 && (
-                  <>
-                    {insertingBetween?.parentId === node.id &&
-                    insertingBetween?.childId === path[idx + 1].id ? (
-                      <InsertForm
-                        parentId={node.id}
-                        childId={path[idx + 1].id}
-                        onConfirm={handleInsertBetween}
-                        onCancel={() => setInsertingBetween(null)}
-                        isPending={createNode.isPending || updateParent.isPending}
-                      />
-                    ) : (
-                      <div className="flex justify-center my-0.5">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-5 px-2 text-xs text-muted-foreground hover:text-primary"
-                          onClick={() =>
-                            setInsertingBetween({ parentId: node.id, childId: path[idx + 1].id })
-                          }
-                        >
-                          <Plus className="h-3 w-3 mr-1" />
-                          inserir nível
-                        </Button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+  if (props.variant === "insert") {
+    const ctx: InsertZoneContext = {
+      activeInsert,
+      insertLabel,
+      insertLabelValue,
+      onLabelChange: setInsertLabel,
+      onLabelValueChange: setInsertLabelValue,
+      onActivate: (zoneId, parentId) => setActiveInsert({ zoneId, parentId }),
+      onCancel: () => setActiveInsert(null),
+      onConfirm: handleInsert,
+      createdNodeId,
+      draftIds,
+    };
 
+    const insertDragOverlayNode = insertActiveId ? allNodes.find((n) => n.id === insertActiveId) : null;
+
+    return (
+      <DndContext
+        sensors={sensors}
+        collisionDetection={pointerWithin}
+        measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+        onDragStart={(e) => setInsertActiveId(e.active.id as number)}
+        onDragEnd={handleInsertDragEnd}
+      >
         <div className="border rounded-md p-2 max-h-64 overflow-y-auto">
           <p className="text-xs font-medium text-muted-foreground mb-1 px-1">Árvore taxonômica</p>
+          <InsertZone zoneId="top" parentId={0} ctx={ctx} />
           {tree.map((root) => (
-            <SelectTreeNode
+            <InsertTreeNode
               key={root.id}
               node={root}
               selectedId={props.selectedNodeId}
               expandedIds={expandedIds}
               onToggle={toggleExpand}
               onSelect={props.onSelect}
+              ctx={ctx}
             />
           ))}
+          <InsertZone zoneId="bottom" parentId={0} ctx={ctx} />
         </div>
-      </div>
+        <DragOverlay>
+          {insertDragOverlayNode && (
+            <div className="flex items-center gap-1 px-2 py-1 rounded text-sm bg-background border shadow-md">
+              <GripVertical className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs text-green-600">{insertDragOverlayNode.label}:</span>
+              <span className="italic">{insertDragOverlayNode.labelValue}</span>
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
     );
   }
 
@@ -363,6 +481,8 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
   return (
     <DndContext
       sensors={sensors}
+      collisionDetection={pointerWithin}
+      measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
       onDragStart={(e) => setActiveId(e.active.id as number)}
       onDragEnd={handleDragEnd}
     >

@@ -3,8 +3,10 @@ import { rootRoute } from "./rootRoute";
 import { speciesViewRoute } from "./pages/SpeciesViewPage";
 import { speciesSearchRoute } from "./pages/SpeciesSearchPage";
 import { adminRoute } from "./pages/AdminPage";
+import { loginRoute } from "./pages/LoginPage";
+import { registerRoute } from "./pages/RegisterPage";
 
-const routeTree = rootRoute.addChildren([speciesSearchRoute, speciesViewRoute, adminRoute]);
+const routeTree = rootRoute.addChildren([speciesSearchRoute, speciesViewRoute, adminRoute, loginRoute, registerRoute]);
 
 export const router = createRouter({ routeTree });
 

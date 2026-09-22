@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/frontend/components/ui/card";
-import { useRegisterUser } from "@/frontend/hooks/useRegisterUser";
+import { useRegisterUser } from "@/frontend/shared/hooks/useRegisterUser";
 
 export const registerRoute = createRoute({
   getParentRoute: () => rootRoute,

@@ -1,4 +1,5 @@
 import { tableFeatures, createColumnHelper, useTable } from "@tanstack/react-table";
+import { Link } from "@tanstack/react-router";
 import {
   Table,
   TableBody,
@@ -19,14 +20,23 @@ import {
   AlertDialogTrigger,
 } from "@/frontend/components/ui/alert-dialog";
 import { Button } from "@/frontend/components/ui/button";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Trash2 } from "lucide-react";
 import { useSpeciesList, useDeleteSpecies } from "../hooks/useAdminSpecies";
-import type { SpeciesBase } from "@/backend/http/features/species/species.schema";
+import type { SpeciesSearchResult } from "@/backend/http/features/species/species.schema";
 
 const features = tableFeatures({});
-const columnHelper = createColumnHelper<typeof features, SpeciesBase>();
+const columnHelper = createColumnHelper<typeof features, SpeciesSearchResult>();
 
-function DeleteCell({ species }: { species: SpeciesBase }) {
+function getScientificName(taxonomyPath: SpeciesSearchResult["taxonomyPath"]): string {
+  const last = taxonomyPath.at(-1);
+  const secondLast = taxonomyPath.at(-2);
+  if (last?.label === "Espécie" && secondLast) {
+    return `${secondLast.labelValue} ${last.labelValue}`;
+  }
+  return last?.labelValue ?? "—";
+}
+
+function DeleteCell({ species }: { species: SpeciesSearchResult }) {
   const deleteMutation = useDeleteSpecies();
 
   return (
@@ -64,14 +74,29 @@ function DeleteCell({ species }: { species: SpeciesBase }) {
 }
 
 const columns = columnHelper.columns([
+  columnHelper.display({
+    id: "thumbnail",
+    header: "",
+    cell: (ctx) => {
+      const src = ctx.row.original.thumbnail;
+      return src ? (
+        <img src={src} alt="" className="h-10 w-10 object-cover rounded" />
+      ) : (
+        <div className="h-10 w-10 rounded bg-muted flex items-center justify-center text-[10px] text-muted-foreground">
+          Sem img
+        </div>
+      );
+    },
+  }),
   columnHelper.accessor("id", {
     header: "ID",
     cell: (ctx) => ctx.getValue(),
   }),
-  columnHelper.accessor("speciesRoot", {
-    header: "Nó taxonômico",
+  columnHelper.display({
+    id: "scientificName",
+    header: "Nome científico",
     cell: (ctx) => (
-      <span className="text-muted-foreground">#{ctx.getValue()}</span>
+      <span className="italic">{getScientificName(ctx.row.original.taxonomyPath)}</span>
     ),
   }),
   columnHelper.accessor("specimen", {
@@ -92,7 +117,16 @@ const columns = columnHelper.columns([
   columnHelper.display({
     id: "actions",
     header: "",
-    cell: (ctx) => <DeleteCell species={ctx.row.original} />,
+    cell: (ctx) => (
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/especies/$id" params={{ id: String(ctx.row.original.id) }}>
+            <Pencil className="h-4 w-4" />
+          </Link>
+        </Button>
+        <DeleteCell species={ctx.row.original} />
+      </div>
+    ),
   }),
 ]);
 

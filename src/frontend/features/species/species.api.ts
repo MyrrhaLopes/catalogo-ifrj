@@ -1,5 +1,4 @@
 import {
-  speciesListResponseSchema,
   speciesResponseSchema,
   searchResponseSchema,
 } from "@/backend/http/features/species/species.schema";
@@ -46,13 +45,6 @@ export async function getSpeciesDetails(id: number): Promise<SpeciesDetails> {
     await articleRes.json(),
   );
   return { ...species, article, images };
-}
-
-export async function getSpeciesList(): Promise<SpeciesBase[]> {
-  const res = await fetch("/api/v1/species/");
-  if (!res.ok) throw new Error("Erro ao buscar espécies");
-  const { species } = speciesListResponseSchema.parse(await res.json());
-  return species;
 }
 
 export type SearchParams = {
