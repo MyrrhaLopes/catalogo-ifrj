@@ -4,23 +4,29 @@ import { useAttributeTemplates } from "@/frontend/features/species/hooks/useAttr
 import {
   toBaseUnit,
   getDisplayUnits,
+  getDefaultDisplayUnit,
   type DisplayUnit,
 } from "../utils/unitConversion";
 import { unitLabels } from "../utils/unitLabels";
 import type { AttributeTemplate } from "@/frontend/features/species/species.api";
 import { Input } from "@/frontend/components/ui/input";
 
+export type AttrOperator = "=" | ">" | "<";
+
 export type ActiveAttrFilter = {
   templateId: number;
   template: AttributeTemplate;
   displayValue: string;
   displayUnit: DisplayUnit;
+  operator: AttrOperator;
 };
 
 type FilterListProps = {
   filters: ActiveAttrFilter[];
   onChange: (filters: ActiveAttrFilter[]) => void;
-  onSearchChange: (attrs: Array<{ templateId: number; valueInBaseUnit: number }>) => void;
+  onSearchChange: (
+    attrs: Array<{ templateId: number; valueInBaseUnit: number; operator: AttrOperator; displayUnit: string }>,
+  ) => void;
 };
 
 /** Renders the active attribute filter rows inside a card. No add button — use AddAttributeButton for that. */
@@ -33,7 +39,7 @@ export function AttributeFilters({ filters, onChange, onSearchChange }: FilterLi
 
   function updateFilter(
     templateId: number,
-    patch: Partial<Pick<ActiveAttrFilter, "displayValue" | "displayUnit">>,
+    patch: Partial<Pick<ActiveAttrFilter, "displayValue" | "displayUnit" | "operator">>,
   ) {
     const next = filters.map((f) => (f.templateId === templateId ? { ...f, ...patch } : f));
     onChange(next);
@@ -46,6 +52,8 @@ export function AttributeFilters({ filters, onChange, onSearchChange }: FilterLi
       .map((f) => ({
         templateId: f.templateId,
         valueInBaseUnit: toBaseUnit(Number(f.displayValue), f.displayUnit, f.template.unit),
+        operator: f.operator,
+        displayUnit: f.displayUnit,
       }));
     onSearchChange(attrs);
   }
@@ -53,16 +61,33 @@ export function AttributeFilters({ filters, onChange, onSearchChange }: FilterLi
   if (filters.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4">
-      <div className="space-y-3">
-        {filters.map((f) => (
-          <div key={f.templateId} className="flex items-center gap-2">
-            <span className="min-w-0 flex-1 truncate text-sm text-neutral-700">
-              {f.template.label}
-            </span>
+    <div className="space-y-2">
+      {filters.map((f) => (
+        <div key={f.templateId} className="rounded-xl border border-neutral-200 bg-white p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-sm font-medium text-neutral-700">{f.template.label}</span>
+            <button
+              onClick={() => removeFilter(f.templateId)}
+              className="shrink-0 text-neutral-400 transition-colors hover:text-red-500"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              className="rounded-md border border-neutral-200 px-2 py-1 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-green-500"
+              value={f.operator}
+              onChange={(e) =>
+                updateFilter(f.templateId, { operator: e.target.value as AttrOperator })
+              }
+            >
+              <option value="=">=</option>
+              <option value=">">&gt;</option>
+              <option value="<">&lt;</option>
+            </select>
             <Input
               type="number"
-              className="w-16 px-2 py-1 text-sm"
+              className="min-w-0 flex-1 px-2 py-1 text-sm"
               value={f.displayValue}
               onChange={(e) => updateFilter(f.templateId, { displayValue: e.target.value })}
               placeholder="0"
@@ -80,15 +105,9 @@ export function AttributeFilters({ filters, onChange, onSearchChange }: FilterLi
                 </option>
               ))}
             </select>
-            <button
-              onClick={() => removeFilter(f.templateId)}
-              className="shrink-0 text-neutral-400 transition-colors hover:text-red-500"
-            >
-              <Trash2 size={16} />
-            </button>
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -111,9 +130,13 @@ export function AddAttributeButton({ activeFilters, onAdd }: AddButtonProps) {
   if (available.length === 0) return null;
 
   function handleAdd(template: AttributeTemplate) {
-    const units = getDisplayUnits(template.unit);
-    const defaultUnit = units[1] as DisplayUnit;
-    onAdd({ templateId: template.id, template, displayValue: "", displayUnit: defaultUnit });
+    onAdd({
+      templateId: template.id,
+      template,
+      displayValue: "",
+      displayUnit: getDefaultDisplayUnit(template.unit),
+      operator: "=",
+    });
     setOpen(false);
   }
 

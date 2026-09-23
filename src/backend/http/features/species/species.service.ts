@@ -167,7 +167,7 @@ export const SPECIES_SERVICE = {
     page: number;
     pageSize: number;
     taxNodes?: number[];
-    attrs?: Array<{ templateId: number; valueInBaseUnit: number }>;
+    attrs?: Array<{ templateId: number; valueInBaseUnit: number; operator?: "=" | ">" | "<" }>;
   }): Promise<{ species: SpeciesSearchResult[]; total: number; page: number; pageSize: number }> => {
     const { q, page, pageSize, taxNodes, attrs } = params;
     const offset = (page - 1) * pageSize;
@@ -203,12 +203,29 @@ export const SPECIES_SERVICE = {
     }
 
     for (const attr of attrs ?? []) {
-      conditions.push(sql`EXISTS (
-        SELECT 1 FROM attributes attr_f
-        WHERE attr_f.species = s.id
-          AND attr_f.attribute = ${attr.templateId}
-          AND CAST(attr_f.value AS NUMERIC) = ${attr.valueInBaseUnit}
-      )`);
+      const op = attr.operator ?? "=";
+      if (op === ">") {
+        conditions.push(sql`EXISTS (
+          SELECT 1 FROM attributes attr_f
+          WHERE attr_f.species = s.id
+            AND attr_f.attribute = ${attr.templateId}
+            AND CAST(attr_f.value AS NUMERIC) > ${attr.valueInBaseUnit}
+        )`);
+      } else if (op === "<") {
+        conditions.push(sql`EXISTS (
+          SELECT 1 FROM attributes attr_f
+          WHERE attr_f.species = s.id
+            AND attr_f.attribute = ${attr.templateId}
+            AND CAST(attr_f.value AS NUMERIC) < ${attr.valueInBaseUnit}
+        )`);
+      } else {
+        conditions.push(sql`EXISTS (
+          SELECT 1 FROM attributes attr_f
+          WHERE attr_f.species = s.id
+            AND attr_f.attribute = ${attr.templateId}
+            AND CAST(attr_f.value AS NUMERIC) = ${attr.valueInBaseUnit}
+        )`);
+      }
     }
 
     const whereClause =

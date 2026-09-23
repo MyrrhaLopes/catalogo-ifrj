@@ -1,10 +1,11 @@
 import { createRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { rootRoute } from "../rootRoute";
 import { CatalogHeader } from "../components/CatalogHeader";
 import { useSearchSpecies } from "../features/species/hooks/useSearchSpecies";
 import { useSearchSpecimens } from "../features/specimens/hooks/useSearchSpecimens";
+import { useAttributeTemplates } from "../features/species/hooks/useAttributeTemplates";
 import { SpeciesSearchResultCard } from "../features/search/components/SpeciesSearchResultCard";
 import { SpecimenSearchResultCard } from "../features/search/components/SpecimenSearchResultCard";
 import { TaxonomyFilters } from "../features/search/components/TaxonomyFilters";
@@ -12,7 +13,9 @@ import {
   AttributeFilters,
   AddAttributeButton,
   type ActiveAttrFilter,
+  type AttrOperator,
 } from "../features/search/components/AttributeFilters";
+import { fromBaseUnit, getDefaultDisplayUnit } from "../features/search/utils/unitConversion";
 import { Search } from "lucide-react";
 import { Input } from "../components/ui/input";
 import { cn } from "../shared/utils";
@@ -27,6 +30,7 @@ const searchParamsSchema = z.object({
         tid: z.number(),
         val: z.number(),
         displayUnit: z.string(),
+        op: z.enum(["=", ">", "<"]).catch("="),
       }),
     )
     .optional(),
@@ -60,8 +64,31 @@ function SpeciesSearchPage() {
   const [activeFilters, setActiveFilters] = useState<ActiveAttrFilter[]>([]);
   const [inputValue, setInputValue] = useState(q);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didInitFromUrl = useRef(false);
 
-  const attrs = urlAttrs.map((a) => ({ templateId: a.tid, valueInBaseUnit: a.val }));
+  const { data: templates = [] } = useAttributeTemplates();
+
+  useEffect(() => {
+    if (didInitFromUrl.current) return;
+    if (urlAttrs.length === 0) return;
+    if (templates.length === 0) return;
+
+    didInitFromUrl.current = true;
+    const filters: ActiveAttrFilter[] = urlAttrs.flatMap((a) => {
+      const template = templates.find((t) => t.id === a.tid);
+      if (!template) return [];
+      const displayUnit = a.displayUnit || getDefaultDisplayUnit(template.unit);
+      const displayValue = fromBaseUnit(a.val, displayUnit, template.unit).toString();
+      return [{ templateId: a.tid, template, displayValue, displayUnit, operator: a.op as AttrOperator }];
+    });
+    setActiveFilters(filters);
+  }, [templates]);
+
+  const attrs = urlAttrs.map((a) => ({
+    templateId: a.tid,
+    valueInBaseUnit: a.val,
+    operator: a.op as AttrOperator,
+  }));
 
   const includesSpecies = searchIn === "species" || searchIn === "both";
   const includesSpecimen = searchIn === "specimen" || searchIn === "both";
@@ -107,7 +134,7 @@ function SpeciesSearchPage() {
   }
 
   function handleAttrsSearchChange(
-    searchAttrs: Array<{ templateId: number; valueInBaseUnit: number }>,
+    searchAttrs: Array<{ templateId: number; valueInBaseUnit: number; operator: AttrOperator; displayUnit: string }>,
   ) {
     navigate({
       to: ROUTE,
@@ -120,7 +147,8 @@ function SpeciesSearchPage() {
             ? searchAttrs.map((a) => ({
                 tid: a.templateId,
                 val: a.valueInBaseUnit,
-                displayUnit: "",
+                displayUnit: a.displayUnit,
+                op: a.operator,
               }))
             : undefined,
       }),

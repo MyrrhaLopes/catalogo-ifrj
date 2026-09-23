@@ -136,6 +136,7 @@ export const speciesListQuerySchema = z.object({
         z.object({
           templateId: z.number().int().positive(),
           valueInBaseUnit: z.number(),
+          operator: z.enum(["=", ">", "<"]).catch("="),
         }),
       )
       .optional(),

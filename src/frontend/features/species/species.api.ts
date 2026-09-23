@@ -54,7 +54,7 @@ export type SearchParams = {
   page?: number;
   pageSize?: number;
   taxNodes?: number[];
-  attrs?: Array<{ templateId: number; valueInBaseUnit: number }>;
+  attrs?: Array<{ templateId: number; valueInBaseUnit: number; operator?: "=" | ">" | "<" }>;
 };
 
 export async function searchSpecies(params: SearchParams): Promise<SearchResponse> {

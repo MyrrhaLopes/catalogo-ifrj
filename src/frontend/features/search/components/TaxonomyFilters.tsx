@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import { useTaxonomy } from "@/frontend/features/species/hooks/useTaxonomy";
 import type { TaxonomyNode } from "@/frontend/features/species/species.api";
 
@@ -92,7 +93,18 @@ export function TaxonomyFilters({ selectedIds, onChange }: Props) {
 
           return (
             <div key={label} className={isChild ? "pl-3" : ""}>
-              <p className="mb-1.5 text-sm text-neutral-600">{label}</p>
+              <div className="mb-1.5 flex items-center justify-between">
+                <p className="text-sm text-neutral-600">{label}</p>
+                {selected !== null && (
+                  <button
+                    onClick={() => handleSelect(label, "")}
+                    className="text-neutral-400 transition-colors hover:text-red-500"
+                    title={`Limpar ${label.toLowerCase()}`}
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
               <select
                 className="w-full appearance-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-green-500"
                 value={selected ?? ""}
