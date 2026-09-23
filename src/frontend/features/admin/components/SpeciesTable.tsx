@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { tableFeatures, createColumnHelper, useTable } from "@tanstack/react-table";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -21,11 +21,13 @@ import {
   AlertDialogTrigger,
 } from "@/frontend/components/ui/alert-dialog";
 import { Button } from "@/frontend/components/ui/button";
-import { BookOpen, Loader2, Lock, Trash2, X } from "lucide-react";
-import { useSpeciesList, useDeleteSpecies } from "../hooks/useAdminSpecies";
+import { BookOpen, Loader2, Lock, Pencil, Trash2, X } from "lucide-react";
+import { useSpeciesList, useDeleteSpecies, useUpdateSpeciesAttributes } from "../hooks/useAdminSpecies";
 import { useUpdateSpecimen } from "../hooks/useAdminSpecimen";
+import { useAttributeTemplates } from "@/frontend/features/species/hooks/useAttributeTemplates";
 import { cn } from "@/frontend/shared/utils";
 import type { SpeciesSearchResult } from "@/backend/http/features/species/species.schema";
+import { EditSpeciesAttributesModal } from "./EditSpeciesAttributesModal";
 
 const features = tableFeatures({});
 const columnHelper = createColumnHelper<typeof features, SpeciesSearchResult>();
@@ -91,7 +93,7 @@ function SpecimenChip({
   return (
     <span className="inline-flex items-center gap-0.5 rounded border px-1.5 py-0.5 text-xs bg-muted">
       <button
-        className="hover:underline"
+        className="text-primary hover:underline"
         onClick={() =>
           void navigate({
             to: "/admin",
@@ -127,6 +129,68 @@ function SpecimensCell({ species }: { species: SpeciesSearchResult }) {
         <SpecimenChip key={sp.id} specimen={sp} />
       ))}
     </div>
+  );
+}
+
+function AttributesEditCell({ species }: { species: SpeciesSearchResult }) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const { data: templates = [] } = useAttributeTemplates();
+  const updateMutation = useUpdateSpeciesAttributes();
+
+  function handleRemove(label: string, value: string) {
+    const remaining = species.attributes
+      .filter((a) => !(a.label === label && a.value === value))
+      .flatMap((a) => {
+        const tmpl = templates.find((t) => t.label === a.label);
+        if (!tmpl) return [];
+        return [{ templateId: tmpl.id, value: a.value }];
+      });
+    updateMutation.mutate({ speciesId: species.id, attributes: remaining });
+  }
+
+  return (
+    <>
+      <div
+        className="cursor-pointer rounded border border-input px-1.5 py-1 flex items-start gap-1 min-w-[120px] hover:bg-muted/40 transition-colors"
+        onClick={() => setModalOpen(true)}
+        title="Clique para editar atributos"
+      >
+        <div className="flex flex-wrap gap-1 flex-1">
+          {species.attributes.length === 0 ? (
+            <span className="text-muted-foreground text-xs">—</span>
+          ) : (
+            species.attributes.map((a) => (
+              <span
+                key={`${a.label}-${a.value}`}
+                className="inline-flex items-center gap-0.5 rounded border px-1.5 py-0.5 text-xs bg-muted"
+              >
+                <span title={`${a.label}: ${a.value} ${a.unit}`}>
+                  {a.label}: {a.value} {a.unit}
+                </span>
+                <button
+                  className="text-muted-foreground hover:text-destructive ml-0.5"
+                  title="Remover atributo"
+                  disabled={updateMutation.isPending}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemove(a.label, a.value);
+                  }}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))
+          )}
+        </div>
+        <Pencil className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
+      </div>
+
+      <EditSpeciesAttributesModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        species={species}
+      />
+    </>
   );
 }
 
@@ -207,6 +271,11 @@ const columns = columnHelper.columns([
     id: "specimens",
     header: "Espécimes",
     cell: (ctx) => <SpecimensCell species={ctx.row.original} />,
+  }),
+  columnHelper.display({
+    id: "attributes",
+    header: "Atributos",
+    cell: (ctx) => <AttributesEditCell species={ctx.row.original} />,
   }),
   columnHelper.accessor("createdAt", {
     header: "Criado em",
@@ -322,9 +391,7 @@ export function SpeciesTable({ selectedSpeciesId }: SpeciesTableProps) {
                 <TableRow
                   key={row.id}
                   ref={isSelected ? selectedRowRef : undefined}
-                  className={cn(
-                    isSelected && "bg-primary/10 ring-1 ring-inset ring-primary",
-                  )}
+                  className={cn(isSelected && "bg-primary/10 ring-1 ring-inset ring-primary")}
                 >
                   {row.getAllCells().map((cell) => (
                     <TableCell key={cell.id}>

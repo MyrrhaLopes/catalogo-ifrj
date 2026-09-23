@@ -7,6 +7,7 @@ import {
   addPopularNameSchema,
   speciesQuerySchema,
   speciesListQuerySchema,
+  setSpeciesAttributesSchema,
 } from "./species.schema";
 
 export const speciesRouter = Router();
@@ -45,15 +46,6 @@ speciesRouter.get("/species/", async (req, res, next) => {
   }
 });
 
-speciesRouter.get("/species/attribute-templates", async (_req, res, next) => {
-  try {
-    const templates = await SPECIES_SERVICE.getAttributeTemplates();
-    return res.status(200).json({ templates });
-  } catch (err) {
-    next(err);
-  }
-});
-
 speciesRouter.get("/species/:id", async (req, res, next) => {
   try {
     const { id } = idParamSchema.parse(req.params);
@@ -70,6 +62,17 @@ speciesRouter.delete("/species/:id", authorizeUser, async (req, res, next) => {
   try {
     const { id } = idParamSchema.parse(req.params);
     await SPECIES_SERVICE.deleteSpecie(id);
+    return res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+});
+
+speciesRouter.put("/species/:id/attributes", authorizeUser, async (req, res, next) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+    const { attributes } = setSpeciesAttributesSchema.parse(req.body);
+    await SPECIES_SERVICE.setSpeciesAttributes(id, attributes);
     return res.status(204).send();
   } catch (err) {
     next(err);

@@ -1,6 +1,7 @@
 import {
   speciesResponseSchema,
   searchResponseSchema,
+  attributeTemplateSchema,
 } from "@/backend/http/features/species/species.schema";
 import type {
   SpeciesBase,
@@ -9,6 +10,7 @@ import type {
   SpeciesSearchResult,
   AttributeTemplate,
 } from "@/backend/http/features/species/species.schema";
+import { z } from "zod";
 import { taxonomyListResponseSchema } from "@/backend/http/features/taxonomy/taxonomy.schema";
 import type { TaxonomyNode } from "@/backend/http/features/taxonomy/taxonomy.schema";
 import { articleWithImagesSchema } from "@/backend/http/features/article/article.schema";
@@ -77,8 +79,8 @@ export async function getTaxonomy(): Promise<TaxonomyNode[]> {
 }
 
 export async function getAttributeTemplates(): Promise<AttributeTemplate[]> {
-  const res = await fetch("/api/v1/species/attribute-templates");
+  const res = await fetch("/api/v1/attribute-templates");
   if (!res.ok) throw new Error("Erro ao buscar templates de atributos");
-  const data = await res.json();
-  return data.templates as AttributeTemplate[];
+  const { templates } = z.object({ templates: z.array(attributeTemplateSchema) }).parse(await res.json());
+  return templates;
 }

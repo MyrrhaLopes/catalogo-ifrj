@@ -22,7 +22,7 @@ import {
 } from "@/frontend/components/ui/alert-dialog";
 import { Button } from "@/frontend/components/ui/button";
 import { Input } from "@/frontend/components/ui/input";
-import { Loader2, Lock, Trash2 } from "lucide-react";
+import { Loader2, Lock, Pencil, Trash2 } from "lucide-react";
 import { useSpecimenList, useUpdateSpecimen, useDeleteSpecimen } from "../hooks/useAdminSpecimen";
 import { cn } from "@/frontend/shared/utils";
 import type { Specimen } from "@/frontend/features/specimens/specimen.api";
@@ -123,35 +123,33 @@ function LinkedSpeciesCell({ specimen }: { specimen: Specimen }) {
   return (
     <>
       <div
-        className={cn(
-          "cursor-pointer rounded",
-          sid != null && "border border-input px-1.5 py-0.5",
-        )}
+        className="cursor-pointer rounded border border-input px-1.5 py-1 flex items-center gap-1 min-w-[120px] hover:bg-muted/40 transition-colors"
         onClick={() => setModalOpen(true)}
-        title={sid != null ? "Clique fora do link para alterar a espécie vinculada" : undefined}
+        title="Clique para alterar a espécie vinculada"
       >
-        {sid != null ? (
-          <button
-            className="text-xs text-primary hover:underline"
-            onClick={(e) => {
-              e.stopPropagation();
-              void navigate({
-                to: "/admin",
-                search: (prev) => ({
-                  ...prev,
-                  section: "species" as const,
-                  selectedSpeciesId: sid,
-                }),
-              });
-            }}
-          >
-            Espécie #{sid}
-          </button>
-        ) : (
-          <Button variant="outline" size="sm" className="h-7 text-xs">
-            Selecionar espécie
-          </Button>
-        )}
+        <span className="flex-1 text-xs">
+          {sid != null ? (
+            <button
+              className="text-primary hover:underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                void navigate({
+                  to: "/admin",
+                  search: (prev) => ({
+                    ...prev,
+                    section: "species" as const,
+                    selectedSpeciesId: sid,
+                  }),
+                });
+              }}
+            >
+              Espécie #{sid}
+            </button>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
+        </span>
+        <Pencil className="h-3 w-3 text-muted-foreground shrink-0" />
       </div>
       <SelectSpeciesModal
         open={modalOpen}

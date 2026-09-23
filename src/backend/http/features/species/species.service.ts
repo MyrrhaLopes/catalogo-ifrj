@@ -144,14 +144,22 @@ export const SPECIES_SERVICE = {
     return popularName;
   },
 
-  getAttributeTemplates: async () => {
-    return await db
-      .select({
-        id: attributeTemplateTable.id,
-        label: attributeTemplateTable.label,
-        unit: attributeTemplateTable.unit,
-      })
-      .from(attributeTemplateTable);
+  setSpeciesAttributes: async (
+    speciesId: number,
+    attrs: Array<{ templateId: number; value: string }>,
+  ) => {
+    await db.transaction(async (tx) => {
+      await tx.delete(attributeTable).where(eq(attributeTable.species, speciesId));
+      if (attrs.length > 0) {
+        await tx.insert(attributeTable).values(
+          attrs.map((a) => ({
+            species: speciesId,
+            attribute: a.templateId,
+            value: a.value,
+          })),
+        );
+      }
+    });
   },
 
   searchSpecies: async (params: {
@@ -388,7 +396,7 @@ export const SPECIES_SERVICE = {
       attributes: (attrBySpecies.get(sid) ?? []).map((a) => ({
         label: a.label,
         value: a.value,
-        unit: a.unit as "meter" | "minute",
+        unit: a.unit,
       })),
       thumbnail: articleBySpecies.get(sid)?.thumbnail ?? null,
       excerpt: articleBySpecies.get(sid)?.excerpt ?? null,

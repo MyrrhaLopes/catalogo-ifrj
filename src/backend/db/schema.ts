@@ -5,7 +5,6 @@ import {
   text,
   timestamp,
   uuid,
-  pgEnum,
   integer,
   type AnyPgColumn,
   jsonb,
@@ -98,12 +97,10 @@ export const articleRecordTable = pgTable("article_records", {
     .notNull(),
 });
 
-export const unitsEnums = pgEnum("units", ["meter", "minute"]);
-
 export const attributeTemplateTable = pgTable("attributes_templates", {
   id: serial("id").primaryKey(),
   label: text("label").notNull(),
-  unit: unitsEnums("unit").notNull(),
+  unit: text("unit").notNull(),
   source: integer("source").references(() => sourceTable.id),
 });
 

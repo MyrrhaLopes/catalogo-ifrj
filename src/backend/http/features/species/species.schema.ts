@@ -18,7 +18,7 @@ export type PopularName = z.infer<typeof popularNameSchema>;
 export const speciesAttributeSchema = z.object({
   label: z.string(),
   value: z.string(),
-  unit: z.enum(["meter", "minute"]),
+  unit: z.string(),
 });
 export type SpeciesAttribute = z.infer<typeof speciesAttributeSchema>;
 
@@ -78,7 +78,7 @@ export const speciesQuerySchema = z.object({
 export const attributeTemplateSchema = z.object({
   id: z.number(),
   label: z.string(),
-  unit: z.enum(["meter", "minute"]),
+  unit: z.string(),
 });
 export type AttributeTemplate = z.infer<typeof attributeTemplateSchema>;
 
@@ -114,6 +114,15 @@ const parseAttrs = (val: unknown) => {
     return undefined;
   }
 };
+
+export const setSpeciesAttributesSchema = z.object({
+  attributes: z.array(
+    z.object({
+      templateId: z.number().int().positive(),
+      value: z.string().min(1),
+    }),
+  ),
+});
 
 export const speciesListQuerySchema = z.object({
   q: z.string().optional(),

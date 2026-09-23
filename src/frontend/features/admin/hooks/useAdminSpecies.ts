@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { searchSpecies } from "@/frontend/features/species/species.api";
-import { createSpecies, deleteSpecies } from "../admin.api";
+import { createSpecies, deleteSpecies, updateSpeciesAttributes } from "../admin.api";
 
 export function useSpeciesList() {
   return useQuery({
@@ -32,6 +32,22 @@ export function useDeleteSpecies() {
     mutationFn: (id: number) => deleteSpecies(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["species"] });
+    },
+  });
+}
+
+export function useUpdateSpeciesAttributes() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      speciesId,
+      attributes,
+    }: {
+      speciesId: number;
+      attributes: Array<{ templateId: number; value: string }>;
+    }) => updateSpeciesAttributes(speciesId, attributes),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["species"] });
     },
   });
 }

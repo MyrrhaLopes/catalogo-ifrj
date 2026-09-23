@@ -15,6 +15,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { ChevronRight, ChevronDown, Plus, GripVertical, Loader2, Check, X, Pencil, Trash2, AlertCircle } from "lucide-react";
 import { Button } from "@/frontend/components/ui/button";
 import { Input } from "@/frontend/components/ui/input";
+import { SearchableField } from "./SearchableField";
 import { Label } from "@/frontend/components/ui/label";
 import {
   Dialog,
@@ -91,6 +92,7 @@ type InsertZoneContext = {
   onConfirm: () => void;
   createdNodeId: number | null;
   draftIds: Set<number>;
+  availableLabels: string[];
 };
 
 function InsertZone({
@@ -110,12 +112,15 @@ function InsertZone({
         <div className="flex gap-2">
           <div className="flex-1">
             <Label className="text-xs">Nível (ex: Subclasse)</Label>
-            <Input
+            <SearchableField
               value={ctx.insertLabel}
-              onChange={(e) => ctx.onLabelChange(e.target.value)}
+              onChange={ctx.onLabelChange}
+              onSelect={ctx.onLabelChange}
+              options={ctx.availableLabels}
               placeholder="ex: Subclasse"
-              className="h-7 text-xs"
+              inputClassName="h-7 text-xs"
               autoFocus
+              onKeyDown={(e) => { if (e.key === "Enter" && ctx.insertLabel && ctx.insertLabelValue) ctx.onConfirm(); }}
             />
           </div>
           <div className="flex-1">
@@ -125,6 +130,7 @@ function InsertZone({
               onChange={(e) => ctx.onLabelValueChange(e.target.value)}
               placeholder="ex: teleostei"
               className="h-7 text-xs"
+              onKeyDown={(e) => { if (e.key === "Enter" && ctx.insertLabel && ctx.insertLabelValue) ctx.onConfirm(); }}
             />
           </div>
         </div>
@@ -316,9 +322,10 @@ type ManageTreeNodeProps = {
   activeId: number | null;
   ctx: InsertZoneContext;
   highlightedNodeId?: number;
+  availableLabels: string[];
 };
 
-function ManageTreeNode({ node, expandedIds, onToggle, activeId, ctx, highlightedNodeId }: ManageTreeNodeProps) {
+function ManageTreeNode({ node, expandedIds, onToggle, activeId, ctx, highlightedNodeId, availableLabels }: ManageTreeNodeProps) {
   const isExpanded = expandedIds.has(node.id);
   const hasChildren = node.children.length > 0;
   const isHighlighted = node.id === highlightedNodeId;
@@ -374,16 +381,32 @@ function ManageTreeNode({ node, expandedIds, onToggle, activeId, ctx, highlighte
 
         {editState ? (
           <>
-            <Input
+            <SearchableField
               value={editState.label}
-              onChange={(e) => setEditState({ ...editState, label: e.target.value })}
-              className="h-6 text-xs flex-1 min-w-0"
+              onChange={(v) => setEditState({ ...editState, label: v })}
+              onSelect={(v) => setEditState({ ...editState, label: v })}
+              options={availableLabels}
+              inputClassName="h-6 text-xs flex-1 min-w-0"
               autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && editState.label && editState.labelValue) {
+                  e.preventDefault();
+                  void updateLabel.mutateAsync({ nodeId: node.id, label: editState.label, labelValue: editState.labelValue }).then(() => setEditState(null));
+                }
+                if (e.key === "Escape") { e.preventDefault(); setEditState(null); }
+              }}
             />
             <Input
               value={editState.labelValue}
               onChange={(e) => setEditState({ ...editState, labelValue: e.target.value })}
               className="h-6 text-xs flex-1 min-w-0"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && editState.label && editState.labelValue) {
+                  e.preventDefault();
+                  void updateLabel.mutateAsync({ nodeId: node.id, label: editState.label, labelValue: editState.labelValue }).then(() => setEditState(null));
+                }
+                if (e.key === "Escape") { e.preventDefault(); setEditState(null); }
+              }}
             />
             <Button
               size="icon"
@@ -494,6 +517,7 @@ function ManageTreeNode({ node, expandedIds, onToggle, activeId, ctx, highlighte
               activeId={activeId}
               ctx={ctx}
               highlightedNodeId={highlightedNodeId}
+              availableLabels={availableLabels}
             />
           ))}
         </div>
@@ -660,6 +684,7 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
       onConfirm: handleInsert,
       createdNodeId,
       draftIds,
+      availableLabels: [...new Set(nodes.map((n) => n.label))].sort(),
     };
 
     const insertDragOverlayNode = insertActiveId ? allNodes.find((n) => n.id === insertActiveId) : null;
@@ -702,6 +727,8 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
   }
 
   if (props.variant === "manage") {
+    const availableLabels = [...new Set(nodes.map((n) => n.label))].sort();
+
     const ctx: InsertZoneContext = {
       activeInsert,
       insertLabel,
@@ -713,6 +740,7 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
       onConfirm: () => void handleManageInsert(),
       createdNodeId: null,
       draftIds: new Set(),
+      availableLabels,
     };
 
     const activeNode = activeId ? nodes.find((n) => n.id === activeId) : null;
@@ -743,6 +771,7 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
               activeId={activeId}
               ctx={ctx}
               highlightedNodeId={props.selectedNodeId}
+              availableLabels={availableLabels}
             />
           ))}
           <InsertZone zoneId="bottom" parentId={0} ctx={ctx} />

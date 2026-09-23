@@ -100,3 +100,70 @@ export async function getTaxonomyAffectedSpecies(nodeId: number): Promise<Affect
   const { species } = z.object({ species: z.array(affectedSpeciesItemSchema) }).parse(await res.json());
   return species;
 }
+
+export type AttributeTemplateItem = { id: number; label: string; unit: string };
+
+export async function getDistinctUnits(): Promise<string[]> {
+  const res = await fetch("/api/v1/attribute-templates/units");
+  if (!res.ok) throw new Error("Erro ao buscar unidades");
+  const { units } = z.object({ units: z.array(z.string()) }).parse(await res.json());
+  return units;
+}
+
+export async function createAttributeTemplate(
+  data: { label: string; unit: string },
+): Promise<AttributeTemplateItem> {
+  const res = await fetch("/api/v1/attribute-templates", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Erro ao criar template de atributo");
+  const { template } = z
+    .object({ template: z.object({ id: z.number(), label: z.string(), unit: z.string() }) })
+    .parse(await res.json());
+  return template;
+}
+
+export async function deleteAttributeTemplate(id: number): Promise<void> {
+  const res = await fetch(`/api/v1/attribute-templates/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (res.status === 409) {
+    const body = (await res.json()) as { message: string };
+    throw new Error(body.message);
+  }
+  if (!res.ok) throw new Error("Erro ao excluir template de atributo");
+}
+
+export async function updateAttributeTemplate(
+  id: number,
+  patch: { label?: string; unit?: string },
+): Promise<AttributeTemplateItem> {
+  const res = await fetch(`/api/v1/attribute-templates/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) throw new Error("Erro ao editar template de atributo");
+  const { template } = z
+    .object({ template: z.object({ id: z.number(), label: z.string(), unit: z.string() }) })
+    .parse(await res.json());
+  return template;
+}
+
+export async function updateSpeciesAttributes(
+  speciesId: number,
+  attributes: Array<{ templateId: number; value: string }>,
+): Promise<void> {
+  const res = await fetch(`/api/v1/species/${speciesId}/attributes`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ attributes }),
+  });
+  if (!res.ok) throw new Error("Erro ao atualizar atributos da espécie");
+}
