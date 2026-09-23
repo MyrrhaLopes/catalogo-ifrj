@@ -22,10 +22,11 @@ import {
 } from "@/frontend/components/ui/alert-dialog";
 import { Button } from "@/frontend/components/ui/button";
 import { Input } from "@/frontend/components/ui/input";
-import { Loader2, Lock, Pencil, Trash2 } from "lucide-react";
+import { Loader2, Lock, Trash2 } from "lucide-react";
 import { useSpecimenList, useUpdateSpecimen, useDeleteSpecimen } from "../hooks/useAdminSpecimen";
 import { cn } from "@/frontend/shared/utils";
 import type { Specimen } from "@/frontend/features/specimens/specimen.api";
+import { SelectSpeciesModal } from "./SelectSpeciesModal";
 
 // ────────────────────────────────────────────────────────────────────
 // Inline editable cell
@@ -36,9 +37,10 @@ type EditableCellProps = {
   field: "code" | "lot" | "shelf";
   value: string | number | null;
   type?: "text" | "number";
+  className?: string;
 };
 
-function EditableCell({ specimenId, field, value, type = "text" }: EditableCellProps) {
+function EditableCell({ specimenId, field, value, type = "text", className }: EditableCellProps) {
   const updateMutation = useUpdateSpecimen();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<string>("");
@@ -78,21 +80,18 @@ function EditableCell({ specimenId, field, value, type = "text" }: EditableCellP
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={handleKeyDown}
-        className="h-7 w-full px-1 text-sm"
+        className={cn("h-7 px-1 text-sm", className)}
       />
     );
   }
 
   return (
     <span
-      className="group relative block cursor-pointer rounded border border-dashed border-transparent px-1 py-0.5 transition-colors hover:border-muted-foreground/40 hover:bg-muted"
+      className={cn("block cursor-pointer rounded border border-input px-1 py-0.5 transition-colors hover:bg-muted", className)}
       onClick={startEdit}
       title="Clique para editar"
     >
-      <Pencil className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-      <span className="pr-4">
-        {value != null ? String(value) : <span className="text-muted-foreground">—</span>}
-      </span>
+      {value != null ? String(value) : <span className="text-muted-foreground">—</span>}
     </span>
   );
 }
@@ -116,31 +115,48 @@ function LockedCell({ children }: { children: React.ReactNode }) {
 
 function LinkedSpeciesCell({ specimen }: { specimen: Specimen }) {
   const navigate = useNavigate();
-  const ids = specimen.linkedSpeciesIds;
-
-  if (ids.length === 0) return <span className="text-muted-foreground">—</span>;
+  const [modalOpen, setModalOpen] = useState(false);
+  const sid = specimen.linkedSpeciesId;
 
   return (
-    <div className="flex flex-wrap gap-1">
-      {ids.map((sid) => (
-        <button
-          key={sid}
-          className="text-xs text-primary hover:underline"
-          onClick={() =>
-            void navigate({
-              to: "/admin",
-              search: (prev) => ({
-                ...prev,
-                section: "species" as const,
-                selectedSpeciesId: sid,
-              }),
-            })
-          }
-        >
-          Espécie #{sid}
-        </button>
-      ))}
-    </div>
+    <>
+      <div
+        className={cn(
+          "cursor-pointer rounded",
+          sid != null && "border border-input px-1.5 py-0.5",
+        )}
+        onClick={() => setModalOpen(true)}
+        title={sid != null ? "Clique fora do link para alterar a espécie vinculada" : undefined}
+      >
+        {sid != null ? (
+          <button
+            className="text-xs text-primary hover:underline"
+            onClick={(e) => {
+              e.stopPropagation();
+              void navigate({
+                to: "/admin",
+                search: (prev) => ({
+                  ...prev,
+                  section: "species" as const,
+                  selectedSpeciesId: sid,
+                }),
+              });
+            }}
+          >
+            Espécie #{sid}
+          </button>
+        ) : (
+          <Button variant="outline" size="sm" className="h-7 text-xs">
+            Selecionar espécie
+          </Button>
+        )}
+      </div>
+      <SelectSpeciesModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        specimen={specimen}
+      />
+    </>
   );
 }
 
@@ -215,6 +231,7 @@ const columns = columnHelper.columns([
         field="code"
         value={ctx.row.original.code}
         type="text"
+        className="w-28"
       />
     ),
   }),
@@ -227,6 +244,7 @@ const columns = columnHelper.columns([
         field="lot"
         value={ctx.row.original.lot}
         type="number"
+        className="w-16"
       />
     ),
   }),
@@ -239,12 +257,13 @@ const columns = columnHelper.columns([
         field="shelf"
         value={ctx.row.original.shelf}
         type="number"
+        className="w-16"
       />
     ),
   }),
   columnHelper.display({
     id: "linkedSpecies",
-    header: "Espécies vinculadas",
+    header: "Espécie vinculada",
     cell: (ctx) => <LinkedSpeciesCell specimen={ctx.row.original} />,
   }),
   columnHelper.accessor("createdAt", {
@@ -273,12 +292,28 @@ type SpecimenTableProps = {
 export function SpecimenTable({ selectedSpecimenId }: SpecimenTableProps) {
   const { data: specimens = [], isLoading, isError } = useSpecimenList();
   const selectedRowRef = useRef<HTMLTableRowElement | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (selectedSpecimenId != null && selectedRowRef.current) {
       selectedRowRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [selectedSpecimenId, specimens]);
+
+  useEffect(() => {
+    if (selectedSpecimenId == null) return;
+
+    const clear = () =>
+      void navigate({ to: "/admin", search: { section: "specimen" } });
+
+    const timer = setTimeout(clear, 2000);
+    document.addEventListener("click", clear);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("click", clear);
+    };
+  }, [selectedSpecimenId, navigate]);
 
   const table = useTable({ features, data: specimens, columns });
 

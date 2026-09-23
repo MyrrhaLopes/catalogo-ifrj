@@ -106,6 +106,9 @@ function AdminPage() {
                   Adicionar espécime
                 </Button>
               </div>
+              <p className="text-sm text-muted-foreground">
+                Na coluna <span className="font-medium text-foreground">Espécie vinculada</span>, clique na borda ao redor do código da espécie para alterar o vínculo — ou clique diretamente no código para navegar até a espécie.
+              </p>
               <SpecimenTable selectedSpecimenId={selectedSpecimenId} />
               <CreateSpecimenModal
                 open={createSpecimenModalOpen}

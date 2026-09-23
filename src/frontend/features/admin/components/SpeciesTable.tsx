@@ -21,9 +21,9 @@ import {
   AlertDialogTrigger,
 } from "@/frontend/components/ui/alert-dialog";
 import { Button } from "@/frontend/components/ui/button";
-import { BookOpen, Loader2, Trash2, X } from "lucide-react";
+import { BookOpen, Loader2, Lock, Trash2, X } from "lucide-react";
 import { useSpeciesList, useDeleteSpecies } from "../hooks/useAdminSpecies";
-import { useUnlinkSpecimen } from "@/frontend/features/specimens/hooks/useAdminSpecimen";
+import { useUpdateSpecimen } from "../hooks/useAdminSpecimen";
 import { cn } from "@/frontend/shared/utils";
 import type { SpeciesSearchResult } from "@/backend/http/features/species/species.schema";
 
@@ -71,15 +71,22 @@ function TaxonomyCell({ species }: { species: SpeciesSearchResult }) {
   );
 }
 
+function LockedCell({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="flex items-center gap-1 text-muted-foreground">
+      <Lock className="h-3 w-3 shrink-0" />
+      {children}
+    </span>
+  );
+}
+
 function SpecimenChip({
-  speciesId,
   specimen,
 }: {
-  speciesId: number;
   specimen: { id: number; code: string };
 }) {
   const navigate = useNavigate();
-  const unlinkMutation = useUnlinkSpecimen();
+  const updateMutation = useUpdateSpecimen();
 
   return (
     <span className="inline-flex items-center gap-0.5 rounded border px-1.5 py-0.5 text-xs bg-muted">
@@ -101,8 +108,8 @@ function SpecimenChip({
       <button
         className="text-muted-foreground hover:text-destructive ml-0.5"
         title="Desvincular"
-        onClick={() => unlinkMutation.mutate({ speciesId, specimenId: specimen.id })}
-        disabled={unlinkMutation.isPending}
+        onClick={() => updateMutation.mutate({ id: specimen.id, patch: { speciesId: null } })}
+        disabled={updateMutation.isPending}
       >
         <X className="h-3 w-3" />
       </button>
@@ -117,7 +124,7 @@ function SpecimensCell({ species }: { species: SpeciesSearchResult }) {
   return (
     <div className="flex flex-wrap gap-1">
       {species.specimens.map((sp) => (
-        <SpecimenChip key={sp.id} speciesId={species.id} specimen={sp} />
+        <SpecimenChip key={sp.id} specimen={sp} />
       ))}
     </div>
   );
@@ -182,7 +189,7 @@ const columns = columnHelper.columns([
   }),
   columnHelper.accessor("id", {
     header: "ID",
-    cell: (ctx) => ctx.getValue(),
+    cell: (ctx) => <LockedCell>#{ctx.getValue()}</LockedCell>,
   }),
   columnHelper.display({
     id: "scientificName",
@@ -205,8 +212,8 @@ const columns = columnHelper.columns([
     header: "Criado em",
     cell: (ctx) => {
       const v = ctx.getValue();
-      if (!v) return <span className="text-muted-foreground">—</span>;
-      return new Date(v).toLocaleDateString("pt-BR");
+      if (!v) return <LockedCell>—</LockedCell>;
+      return <LockedCell>{new Date(v).toLocaleDateString("pt-BR")}</LockedCell>;
     },
   }),
   columnHelper.display({
@@ -237,12 +244,28 @@ type SpeciesTableProps = {
 export function SpeciesTable({ selectedSpeciesId }: SpeciesTableProps) {
   const { data: species = [], isLoading, isError } = useSpeciesList();
   const selectedRowRef = useRef<HTMLTableRowElement | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (selectedSpeciesId != null && selectedRowRef.current) {
       selectedRowRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [selectedSpeciesId, species]);
+
+  useEffect(() => {
+    if (selectedSpeciesId == null) return;
+
+    const clear = () =>
+      void navigate({ to: "/admin", search: { section: "species" } });
+
+    const timer = setTimeout(clear, 2000);
+    document.addEventListener("click", clear);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("click", clear);
+    };
+  }, [selectedSpeciesId, navigate]);
 
   const table = useTable({
     features,
