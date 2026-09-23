@@ -244,6 +244,7 @@ type SpeciesTableProps = {
 export function SpeciesTable({ selectedSpeciesId }: SpeciesTableProps) {
   const { data: species = [], isLoading, isError } = useSpeciesList();
   const selectedRowRef = useRef<HTMLTableRowElement | null>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -259,11 +260,18 @@ export function SpeciesTable({ selectedSpeciesId }: SpeciesTableProps) {
       void navigate({ to: "/admin", search: { section: "species" } });
 
     const timer = setTimeout(clear, 2000);
-    document.addEventListener("click", clear);
+
+    function handleClick(e: MouseEvent) {
+      if (tableRef.current && !tableRef.current.contains(e.target as Node)) {
+        clear();
+      }
+    }
+
+    document.addEventListener("click", handleClick);
 
     return () => {
       clearTimeout(timer);
-      document.removeEventListener("click", clear);
+      document.removeEventListener("click", handleClick);
     };
   }, [selectedSpeciesId, navigate]);
 
@@ -287,7 +295,7 @@ export function SpeciesTable({ selectedSpeciesId }: SpeciesTableProps) {
   }
 
   return (
-    <div className="rounded-md border">
+    <div ref={tableRef} className="rounded-md border">
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (

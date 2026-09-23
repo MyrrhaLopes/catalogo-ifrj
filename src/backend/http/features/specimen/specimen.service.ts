@@ -1,6 +1,6 @@
 import { db } from "@/backend/db/drizzle";
-import { specimenTable, speciesSpecimenPivot, type SpecimenTableInsert } from "@/backend/db/schema";
-import { eq, ilike } from "drizzle-orm";
+import { specimenTable, type SpecimenTableInsert } from "@/backend/db/schema";
+import { desc, eq, ilike } from "drizzle-orm";
 
 export const SPECIMEN_SERVICE = {
   registerSpecimen: async (values: SpecimenTableInsert) => {
@@ -16,35 +16,19 @@ export const SPECIMEN_SERVICE = {
         lot: specimenTable.lot,
         shelf: specimenTable.shelf,
         createdAt: specimenTable.createdAt,
-        linkedSpeciesId: speciesSpecimenPivot.speciesId,
+        linkedSpeciesId: specimenTable.speciesId,
       })
       .from(specimenTable)
-      .leftJoin(speciesSpecimenPivot, eq(speciesSpecimenPivot.specimenId, specimenTable.id));
+      .orderBy(desc(specimenTable.id));
 
-    const map = new Map<number, {
-      id: number;
-      code: string;
-      lot: number | null;
-      shelf: number | null;
-      createdAt: string | null;
-      linkedSpeciesIds: number[];
-    }>();
-
-    for (const row of rows) {
-      if (!map.has(row.id)) {
-        map.set(row.id, {
-          id: row.id,
-          code: row.code,
-          lot: row.lot,
-          shelf: row.shelf,
-          createdAt: row.createdAt?.toISOString() ?? null,
-          linkedSpeciesIds: [],
-        });
-      }
-      if (row.linkedSpeciesId != null) map.get(row.id)!.linkedSpeciesIds.push(row.linkedSpeciesId);
-    }
-
-    return [...map.values()];
+    return rows.map((row) => ({
+      id: row.id,
+      code: row.code,
+      lot: row.lot,
+      shelf: row.shelf,
+      createdAt: row.createdAt?.toISOString() ?? null,
+      linkedSpeciesId: row.linkedSpeciesId ?? null,
+    }));
   },
 
   searchSpecimens: async (q: string) => {
@@ -55,71 +39,51 @@ export const SPECIMEN_SERVICE = {
         lot: specimenTable.lot,
         shelf: specimenTable.shelf,
         createdAt: specimenTable.createdAt,
-        linkedSpeciesId: speciesSpecimenPivot.speciesId,
+        linkedSpeciesId: specimenTable.speciesId,
       })
       .from(specimenTable)
-      .leftJoin(speciesSpecimenPivot, eq(speciesSpecimenPivot.specimenId, specimenTable.id))
-      .where(ilike(specimenTable.code, `%${q}%`));
+      .where(ilike(specimenTable.code, `%${q}%`))
+      .orderBy(desc(specimenTable.id));
 
-    const map = new Map<number, {
-      id: number;
-      code: string;
-      lot: number | null;
-      shelf: number | null;
-      createdAt: string | null;
-      linkedSpeciesIds: number[];
-    }>();
-
-    for (const row of rows) {
-      if (!map.has(row.id)) {
-        map.set(row.id, {
-          id: row.id,
-          code: row.code,
-          lot: row.lot,
-          shelf: row.shelf,
-          createdAt: row.createdAt?.toISOString() ?? null,
-          linkedSpeciesIds: [],
-        });
-      }
-      if (row.linkedSpeciesId != null) map.get(row.id)!.linkedSpeciesIds.push(row.linkedSpeciesId);
-    }
-
-    return [...map.values()];
+    return rows.map((row) => ({
+      id: row.id,
+      code: row.code,
+      lot: row.lot,
+      shelf: row.shelf,
+      createdAt: row.createdAt?.toISOString() ?? null,
+      linkedSpeciesId: row.linkedSpeciesId ?? null,
+    }));
   },
 
   getSpecimenById: async (id: number) => {
-    const rows = await db
+    const [row] = await db
       .select({
         id: specimenTable.id,
         code: specimenTable.code,
         lot: specimenTable.lot,
         shelf: specimenTable.shelf,
         createdAt: specimenTable.createdAt,
-        linkedSpeciesId: speciesSpecimenPivot.speciesId,
+        linkedSpeciesId: specimenTable.speciesId,
       })
       .from(specimenTable)
-      .leftJoin(speciesSpecimenPivot, eq(speciesSpecimenPivot.specimenId, specimenTable.id))
       .where(eq(specimenTable.id, id));
 
-    if (rows.length === 0) return null;
+    if (!row) return null;
 
-    const linkedSpeciesIds: number[] = [];
-    for (const row of rows) {
-      if (row.linkedSpeciesId != null) linkedSpeciesIds.push(row.linkedSpeciesId);
-    }
-
-    const first = rows[0];
     return {
-      id: first.id,
-      code: first.code,
-      lot: first.lot,
-      shelf: first.shelf,
-      createdAt: first.createdAt?.toISOString() ?? null,
-      linkedSpeciesIds,
+      id: row.id,
+      code: row.code,
+      lot: row.lot,
+      shelf: row.shelf,
+      createdAt: row.createdAt?.toISOString() ?? null,
+      linkedSpeciesId: row.linkedSpeciesId ?? null,
     };
   },
 
-  updateSpecimen: async (id: number, patch: { code?: string; lot?: number | null; shelf?: number | null }) => {
+  updateSpecimen: async (
+    id: number,
+    patch: { code?: string; lot?: number | null; shelf?: number | null; speciesId?: number | null },
+  ) => {
     const [updated] = await db
       .update(specimenTable)
       .set(patch)

@@ -59,6 +59,8 @@ function EditableCell({ specimenId, field, value, type = "text", className }: Ed
     if (type === "number") {
       const parsed = raw === "" ? null : Number(raw);
       if (parsed !== null && !Number.isInteger(parsed)) return;
+      const original = value != null ? Number(value) : null;
+      if (parsed === original) return;
       updateMutation.mutate({ id: specimenId, patch: { [field]: parsed } });
     } else {
       if (raw === "" || raw === String(value)) return;
@@ -292,6 +294,7 @@ type SpecimenTableProps = {
 export function SpecimenTable({ selectedSpecimenId }: SpecimenTableProps) {
   const { data: specimens = [], isLoading, isError } = useSpecimenList();
   const selectedRowRef = useRef<HTMLTableRowElement | null>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -307,11 +310,18 @@ export function SpecimenTable({ selectedSpecimenId }: SpecimenTableProps) {
       void navigate({ to: "/admin", search: { section: "specimen" } });
 
     const timer = setTimeout(clear, 2000);
-    document.addEventListener("click", clear);
+
+    function handleClick(e: MouseEvent) {
+      if (tableRef.current && !tableRef.current.contains(e.target as Node)) {
+        clear();
+      }
+    }
+
+    document.addEventListener("click", handleClick);
 
     return () => {
       clearTimeout(timer);
-      document.removeEventListener("click", clear);
+      document.removeEventListener("click", handleClick);
     };
   }, [selectedSpecimenId, navigate]);
 
@@ -331,7 +341,7 @@ export function SpecimenTable({ selectedSpecimenId }: SpecimenTableProps) {
   }
 
   return (
-    <div className="rounded-md border">
+    <div ref={tableRef} className="rounded-md border">
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
