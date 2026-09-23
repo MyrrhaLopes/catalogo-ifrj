@@ -10,6 +10,7 @@ export const specimenUpdateSchema = z.object({
   code: z.string().min(1).optional(),
   lot: z.number().int().positive().nullable().optional(),
   shelf: z.number().int().positive().nullable().optional(),
+  speciesId: z.number().int().positive().nullable().optional(),
 });
 
 export const specimenSchema = z.object({
@@ -18,7 +19,7 @@ export const specimenSchema = z.object({
   lot: z.number().nullable(),
   shelf: z.number().nullable(),
   createdAt: z.string().nullable(),
-  linkedSpeciesIds: z.array(z.number()),
+  linkedSpeciesId: z.number().nullable(),
 });
 export type Specimen = z.infer<typeof specimenSchema>;
 

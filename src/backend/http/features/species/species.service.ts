@@ -7,10 +7,9 @@ import {
   taxonomyTable,
   attributeTable,
   attributeTemplateTable,
-  speciesSpecimenPivot,
   type SpeciesTableInsert,
 } from "@/backend/db/schema";
-import { and, eq, inArray, sql, type SQL } from "drizzle-orm";
+import { eq, inArray, sql, type SQL } from "drizzle-orm";
 import type { SpeciesSearchResult } from "./species.schema";
 
 export const SPECIES_SERVICE = {
@@ -29,12 +28,11 @@ export const SPECIES_SERVICE = {
         speciesRoot: speciesTable.speciesRoot,
         createdAt: speciesTable.createdAt,
         createdBy: speciesTable.createdBy,
-        specimenId: speciesSpecimenPivot.specimenId,
+        specimenId: specimenTable.id,
         specimenCode: specimenTable.code,
       })
       .from(speciesTable)
-      .leftJoin(speciesSpecimenPivot, eq(speciesSpecimenPivot.speciesId, speciesTable.id))
-      .leftJoin(specimenTable, eq(specimenTable.id, speciesSpecimenPivot.specimenId));
+      .leftJoin(specimenTable, eq(specimenTable.speciesId, speciesTable.id));
 
     const map = new Map<number, {
       id: number;
@@ -75,9 +73,8 @@ export const SPECIES_SERVICE = {
 
     const specimenRows = await db
       .select({ id: specimenTable.id, code: specimenTable.code })
-      .from(speciesSpecimenPivot)
-      .innerJoin(specimenTable, eq(specimenTable.id, speciesSpecimenPivot.specimenId))
-      .where(eq(speciesSpecimenPivot.speciesId, specieId));
+      .from(specimenTable)
+      .where(eq(specimenTable.speciesId, specieId));
 
     if (!options.withTaxonomy) return { ...species, specimens: specimenRows };
 
@@ -155,24 +152,6 @@ export const SPECIES_SERVICE = {
         unit: attributeTemplateTable.unit,
       })
       .from(attributeTemplateTable);
-  },
-
-  linkSpecimen: async (speciesId: number, specimenId: number) => {
-    await db
-      .insert(speciesSpecimenPivot)
-      .values({ speciesId, specimenId })
-      .onConflictDoNothing();
-  },
-
-  unlinkSpecimen: async (speciesId: number, specimenId: number) => {
-    await db
-      .delete(speciesSpecimenPivot)
-      .where(
-        and(
-          eq(speciesSpecimenPivot.speciesId, speciesId),
-          eq(speciesSpecimenPivot.specimenId, specimenId),
-        ),
-      );
   },
 
   searchSpecies: async (params: {
@@ -335,16 +314,15 @@ export const SPECIES_SERVICE = {
       WHERE a.species = ANY(${idsLiteral}::int[])
     `);
 
-    // Batch: specimen pivot (with codes)
+    // Batch: specimens via direct FK
     const pivotRows = await db
       .select({
-        speciesId: speciesSpecimenPivot.speciesId,
-        specimenId: speciesSpecimenPivot.specimenId,
+        speciesId: specimenTable.speciesId,
+        specimenId: specimenTable.id,
         specimenCode: specimenTable.code,
       })
-      .from(speciesSpecimenPivot)
-      .innerJoin(specimenTable, eq(specimenTable.id, speciesSpecimenPivot.specimenId))
-      .where(inArray(speciesSpecimenPivot.speciesId, speciesIds));
+      .from(specimenTable)
+      .where(inArray(specimenTable.speciesId, speciesIds));
 
     // Batch: speciesRoot per species
     const speciesMetaRows = await db
@@ -385,6 +363,7 @@ export const SPECIES_SERVICE = {
 
     const pivotBySpecies = new Map<number, { id: number; code: string }[]>();
     for (const r of pivotRows) {
+      if (r.speciesId == null) continue;
       const list = pivotBySpecies.get(r.speciesId) ?? [];
       list.push({ id: r.specimenId, code: r.specimenCode });
       pivotBySpecies.set(r.speciesId, list);

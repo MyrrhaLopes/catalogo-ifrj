@@ -9,6 +9,13 @@ export function useSpeciesList() {
   });
 }
 
+export function useSpeciesSearch(q: string) {
+  return useQuery({
+    queryKey: ["species", "search", q],
+    queryFn: () => searchSpecies({ q: q || undefined, page: 1, pageSize: 50 }).then((r) => r.species),
+  });
+}
+
 export function useCreateSpecies() {
   const queryClient = useQueryClient();
   return useMutation({

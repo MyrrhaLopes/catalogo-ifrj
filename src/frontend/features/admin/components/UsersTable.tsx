@@ -7,9 +7,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/frontend/components/ui/table";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import { useUsers } from "../hooks/useAdminUsers";
 import type { UserListItem } from "@/backend/http/features/users/user.schema";
+
+function LockedCell({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="flex items-center gap-1 text-muted-foreground">
+      <Lock className="h-3 w-3 shrink-0" />
+      {children}
+    </span>
+  );
+}
 
 const features = tableFeatures({});
 const columnHelper = createColumnHelper<typeof features, UserListItem>();
@@ -18,9 +27,9 @@ const columns = columnHelper.columns([
   columnHelper.accessor("id", {
     header: "ID",
     cell: (ctx) => (
-      <span className="font-mono text-xs text-muted-foreground">
-        {ctx.getValue().slice(0, 8)}…
-      </span>
+      <LockedCell>
+        <span className="font-mono text-xs">{ctx.getValue().slice(0, 8)}…</span>
+      </LockedCell>
     ),
   }),
   columnHelper.accessor("name", {
@@ -38,8 +47,8 @@ const columns = columnHelper.columns([
     header: "Criado em",
     cell: (ctx) => {
       const v = ctx.getValue();
-      if (!v) return <span className="text-muted-foreground">—</span>;
-      return new Date(v).toLocaleDateString("pt-BR");
+      if (!v) return <LockedCell>—</LockedCell>;
+      return <LockedCell>{new Date(v).toLocaleDateString("pt-BR")}</LockedCell>;
     },
   }),
 ]);

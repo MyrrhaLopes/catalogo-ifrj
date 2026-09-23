@@ -40,7 +40,7 @@ export async function createSpecimen(data: {
 
 export async function updateSpecimen(
   id: number,
-  patch: { code?: string; lot?: number | null; shelf?: number | null },
+  patch: { code?: string; lot?: number | null; shelf?: number | null; speciesId?: number | null },
 ): Promise<Specimen> {
   const res = await fetch(`/api/v1/specimens/${id}`, {
     method: "PATCH",
@@ -61,18 +61,3 @@ export async function deleteSpecimen(id: number): Promise<void> {
   if (!res.ok) throw new Error("Erro ao excluir espécime");
 }
 
-export async function linkSpecimenToSpecies(speciesId: number, specimenId: number): Promise<void> {
-  const res = await fetch(`/api/v1/species/${speciesId}/specimens/${specimenId}`, {
-    method: "POST",
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("Erro ao vincular espécime");
-}
-
-export async function unlinkSpecimenFromSpecies(speciesId: number, specimenId: number): Promise<void> {
-  const res = await fetch(`/api/v1/species/${speciesId}/specimens/${specimenId}`, {
-    method: "DELETE",
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("Erro ao desvincular espécime");
-}

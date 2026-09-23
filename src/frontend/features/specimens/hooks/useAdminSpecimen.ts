@@ -4,8 +4,6 @@ import {
   createSpecimen,
   updateSpecimen,
   deleteSpecimen,
-  linkSpecimenToSpecies,
-  unlinkSpecimenFromSpecies,
 } from "@/frontend/features/specimens/specimen.api";
 
 export function useSpecimenList() {
@@ -33,10 +31,11 @@ export function useUpdateSpecimen() {
       patch,
     }: {
       id: number;
-      patch: { code?: string; lot?: number | null; shelf?: number | null };
+      patch: { code?: string; lot?: number | null; shelf?: number | null; speciesId?: number | null };
     }) => updateSpecimen(id, patch),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["specimens"] });
+      queryClient.invalidateQueries({ queryKey: ["species"] });
     },
   });
 }
@@ -46,30 +45,6 @@ export function useDeleteSpecimen() {
   return useMutation({
     mutationFn: (id: number) => deleteSpecimen(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["specimens"] });
-    },
-  });
-}
-
-export function useLinkSpecimen() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ speciesId, specimenId }: { speciesId: number; specimenId: number }) =>
-      linkSpecimenToSpecies(speciesId, specimenId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["species"] });
-      queryClient.invalidateQueries({ queryKey: ["specimens"] });
-    },
-  });
-}
-
-export function useUnlinkSpecimen() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ speciesId, specimenId }: { speciesId: number; specimenId: number }) =>
-      unlinkSpecimenFromSpecies(speciesId, specimenId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["species"] });
       queryClient.invalidateQueries({ queryKey: ["specimens"] });
     },
   });

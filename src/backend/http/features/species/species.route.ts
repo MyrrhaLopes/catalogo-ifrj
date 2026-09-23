@@ -7,7 +7,6 @@ import {
   addPopularNameSchema,
   speciesQuerySchema,
   speciesListQuerySchema,
-  specimenIdParamSchema,
 } from "./species.schema";
 
 export const speciesRouter = Router();
@@ -88,24 +87,3 @@ speciesRouter.post("/species/:id/popular-names", authorizeUser, async (req, res,
   }
 });
 
-speciesRouter.post("/species/:id/specimens/:specimenId", authorizeUser, async (req, res, next) => {
-  try {
-    const { id } = idParamSchema.parse(req.params);
-    const { specimenId } = specimenIdParamSchema.parse(req.params);
-    await SPECIES_SERVICE.linkSpecimen(id, specimenId);
-    return res.status(204).send();
-  } catch (err) {
-    next(err);
-  }
-});
-
-speciesRouter.delete("/species/:id/specimens/:specimenId", authorizeUser, async (req, res, next) => {
-  try {
-    const { id } = idParamSchema.parse(req.params);
-    const { specimenId } = specimenIdParamSchema.parse(req.params);
-    await SPECIES_SERVICE.unlinkSpecimen(id, specimenId);
-    return res.status(204).send();
-  } catch (err) {
-    next(err);
-  }
-});

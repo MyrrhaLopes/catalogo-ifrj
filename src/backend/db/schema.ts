@@ -30,6 +30,9 @@ export const specimenTable = pgTable("specimens", {
   lot: integer("lot"),
   shelf: integer("shelf"),
   code: text("code").notNull(),
+  speciesId: integer("species_id").references((): AnyPgColumn => speciesTable.id, {
+    onDelete: "set null",
+  }),
   createdBy: uuid("created_by")
     .references(() => usersTable.id)
     .notNull(),
@@ -52,18 +55,6 @@ export const speciesTable = pgTable("species", {
 export type SpeciesTableInsert = typeof speciesTable.$inferInsert;
 export type SpeciesTableSelect = typeof speciesTable.$inferSelect;
 
-export const speciesSpecimenPivot = pgTable(
-  "species_specimen_pivot",
-  {
-    speciesId: integer("species_id")
-      .references(() => speciesTable.id, { onDelete: "cascade" })
-      .notNull(),
-    specimenId: integer("specimen_id")
-      .references(() => specimenTable.id, { onDelete: "cascade" })
-      .notNull(),
-  },
-  (table) => [primaryKey({ columns: [table.speciesId, table.specimenId] })],
-);
 
 export const popularNameTable = pgTable("popular_names", {
   id: serial("id").primaryKey(),
