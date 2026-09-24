@@ -30,6 +30,8 @@ export const SPECIES_SERVICE = {
         createdBy: speciesTable.createdBy,
         specimenId: specimenTable.id,
         specimenCode: specimenTable.code,
+        specimenLot: specimenTable.lot,
+        specimenShelf: specimenTable.shelf,
       })
       .from(speciesTable)
       .leftJoin(specimenTable, eq(specimenTable.speciesId, speciesTable.id));
@@ -39,7 +41,7 @@ export const SPECIES_SERVICE = {
       speciesRoot: number;
       createdAt: Date | null;
       createdBy: string;
-      specimens: { id: number; code: string }[];
+      specimens: { id: number; code: string; lot: number | null; shelf: number | null }[];
     }>();
 
     for (const row of rows) {
@@ -53,7 +55,7 @@ export const SPECIES_SERVICE = {
         });
       }
       if (row.specimenId != null && row.specimenCode != null) {
-        map.get(row.id)!.specimens.push({ id: row.specimenId, code: row.specimenCode });
+        map.get(row.id)!.specimens.push({ id: row.specimenId, code: row.specimenCode, lot: row.specimenLot, shelf: row.specimenShelf });
       }
     }
 
@@ -72,7 +74,7 @@ export const SPECIES_SERVICE = {
     if (!species) return null;
 
     const specimenRows = await db
-      .select({ id: specimenTable.id, code: specimenTable.code })
+      .select({ id: specimenTable.id, code: specimenTable.code, lot: specimenTable.lot, shelf: specimenTable.shelf })
       .from(specimenTable)
       .where(eq(specimenTable.speciesId, specieId));
 
@@ -345,6 +347,8 @@ export const SPECIES_SERVICE = {
         speciesId: specimenTable.speciesId,
         specimenId: specimenTable.id,
         specimenCode: specimenTable.code,
+        specimenLot: specimenTable.lot,
+        specimenShelf: specimenTable.shelf,
       })
       .from(specimenTable)
       .where(inArray(specimenTable.speciesId, speciesIds));
@@ -386,11 +390,11 @@ export const SPECIES_SERVICE = {
       articleBySpecies.set(r.species_id, r);
     }
 
-    const pivotBySpecies = new Map<number, { id: number; code: string }[]>();
+    const pivotBySpecies = new Map<number, { id: number; code: string; lot: number | null; shelf: number | null }[]>();
     for (const r of pivotRows) {
       if (r.speciesId == null) continue;
       const list = pivotBySpecies.get(r.speciesId) ?? [];
-      list.push({ id: r.specimenId, code: r.specimenCode });
+      list.push({ id: r.specimenId, code: r.specimenCode, lot: r.specimenLot, shelf: r.specimenShelf });
       pivotBySpecies.set(r.speciesId, list);
     }
 

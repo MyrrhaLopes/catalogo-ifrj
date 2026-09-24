@@ -1,13 +1,8 @@
 
 # TODO:
-1. - [ ] Definir testes de serviços e utils;
-    1. - [ ] Definir testes para parsing de article contents;
-    2. - [ ] Definir testes para construção de nome científico a partir de taxonomy;
-2. - [ ] Segregar componentes React da página de visualização de artigos;
-     1. - [ ] Segregar componentes de Artigo para sua pasta;
-3. - [ ] Definir parsers zod para validar content de artigos;
-4. - [ ] Criar skills para padronizar fluxo de criação de rotas, serviços e páginas;
-
+1. - [ ] Implementar gerenciamento de fontes para atributos e artigos;
+2. - [ ] Implementar gerenciamento de mídias, página de galeria, componente de visualização de imagens de artigo (abstrair de página de galeria);
+3. - [ ] Implementar refatoração de ui para deixar responsivo e modo mobile;
 # Descrição geral
 ## Objetivo do projeto
 

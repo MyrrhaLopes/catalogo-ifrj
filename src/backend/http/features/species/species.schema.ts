@@ -25,6 +25,8 @@ export type SpeciesAttribute = z.infer<typeof speciesAttributeSchema>;
 export const linkedSpecimenSchema = z.object({
   id: z.number(),
   code: z.string(),
+  lot: z.number().nullable(),
+  shelf: z.number().nullable(),
 });
 export type LinkedSpecimen = z.infer<typeof linkedSpecimenSchema>;
 

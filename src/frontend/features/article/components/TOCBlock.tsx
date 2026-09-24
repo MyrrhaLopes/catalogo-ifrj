@@ -8,7 +8,7 @@ export function TOCBlock({ content }: { content: ArticleContent }) {
 
   return (
     <nav>
-      <p className="text-sm font-semibold text-primary mb-3">Tabela de conteúdo</p>
+      <p className="text-md font-semibold text-primary mb-3">Tabela de conteúdo</p>
       <ul className="space-y-1.5 text-sm text-neutral-600">
         {headings.map((h) => (
           <li key={h.id} style={{ paddingLeft: `${(h.level - 1) * 8}px` }}>

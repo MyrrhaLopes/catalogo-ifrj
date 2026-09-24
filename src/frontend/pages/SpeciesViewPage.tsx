@@ -164,8 +164,8 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
 
   const activeItem = activeId
     ? (["left", "center", "right"] as SectionKey[])
-        .flatMap((key) => editor.sections[key])
-        .find((item) => item.id === activeId)
+      .flatMap((key) => editor.sections[key])
+      .find((item) => item.id === activeId)
     : null;
 
   const draftContent = isPreview ? editor.toDraftContent() : null;
@@ -186,8 +186,11 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
       )}
 
       {/* Hero */}
-      <section className="bg-[#e8f2d0] flex overflow-hidden">
-        <div className="flex-1 flex flex-col justify-end px-12 py-10 min-w-0">
+      <section
+        className={`bg-[#e8f2d0] grid h-[420px] overflow-hidden ${thumbnails.length > 0 ? "grid-cols-[1fr_1fr_160px]" : "grid-cols-[1fr_1fr]"
+          }`}
+      >
+        <div className="flex flex-col justify-end px-12 py-10">
           <Breadcrumb nodes={species.taxonomyPath} />
           <h1 className="text-5xl font-bold italic text-neutral-900 mt-6 leading-tight">
             {scientificName}
@@ -200,7 +203,7 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
               <Button
                 size="sm"
                 variant="outline"
-                className="bg-white/80 hover:bg-white"
+                className="bg-white/80 border-neutral-400 hover:bg-white hover:border-neutral-600"
                 onClick={() =>
                   void navigate({
                     to: "/especies/$id",
@@ -215,7 +218,7 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
               <Button
                 size="sm"
                 variant="outline"
-                className="bg-white/80 hover:bg-white"
+                className="bg-white/80 border-neutral-400 hover:bg-white hover:border-neutral-600"
                 onClick={() =>
                   void navigate({
                     to: "/admin",
@@ -224,8 +227,28 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
                 }
               >
                 <FlaskConical className="h-3 w-3 mr-1" />
-                Editar Espécime
+                Editar Espécie
               </Button>
+            </div>
+          )}
+          {species.specimens.length > 0 && (
+            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3">
+              {species.specimens.map((s, i) => (
+                <span key={s.id} className="flex items-center gap-1 text-xs text-neutral-700">
+                  {i > 0 && <span className="text-neutral-400">·</span>}
+                  <span className="font-medium">{s.code}</span>
+                  {(s.shelf != null || s.lot != null) && (
+                    <span className="text-neutral-500">
+                      {[
+                        s.shelf != null ? `Prateleira ${s.shelf}` : null,
+                        s.lot != null ? `Lote ${s.lot}` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" | ")}
+                    </span>
+                  )}
+                </span>
+              ))}
             </div>
           )}
         </div>
@@ -233,7 +256,7 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
         <HeroImage image={heroImage} alt={scientificName} />
 
         {thumbnails.length > 0 && (
-          <div className="flex flex-col w-24 shrink-0">
+          <div className="flex flex-col grid-cols-[1fr]">
             {thumbnails.slice(0, 4).map((img) => (
               <ThumbnailImage key={img.id} image={img} alt={img.alt ?? scientificName} />
             ))}
@@ -245,7 +268,7 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
       {!isEditMode && content && (
         <div className="flex gap-10 px-10 py-10 max-w-screen-xl mx-auto">
           {content.sections.left && (
-            <aside className="w-44 shrink-0">
+            <aside className="w-44 shrink-0 sticky top-6 self-start">
               <ArticleSectionRenderer sectionKey="left" content={content} species={species} />
             </aside>
           )}
@@ -255,7 +278,7 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
             </article>
           )}
           {content.sections.right && (
-            <aside className="w-52 shrink-0">
+            <aside className="w-52 shrink-0 sticky top-6 self-start">
               <ArticleSectionRenderer sectionKey="right" content={content} species={species} />
             </aside>
           )}
@@ -266,7 +289,7 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
       {isEditMode && isPreview && draftContent && (
         <div className="flex gap-10 px-10 py-10 max-w-screen-xl mx-auto">
           {draftContent.sections.left && draftContent.sections.left.length > 0 && (
-            <aside className="w-44 shrink-0">
+            <aside className="w-44 shrink-0 sticky top-6 self-start">
               <ArticleSectionRenderer sectionKey="left" content={draftContent} species={species} />
             </aside>
           )}
@@ -276,7 +299,7 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
             </article>
           )}
           {draftContent.sections.right && draftContent.sections.right.length > 0 && (
-            <aside className="w-52 shrink-0">
+            <aside className="w-52 shrink-0 sticky top-6 self-start">
               <ArticleSectionRenderer sectionKey="right" content={draftContent} species={species} />
             </aside>
           )}
@@ -363,7 +386,7 @@ function Breadcrumb({ nodes }: { nodes: Array<{ id: number; labelValue: string }
 function HeroImage({ image, alt }: { image: ArticleImage | undefined; alt: string }) {
   if (!image) {
     return (
-      <div className="w-[500px] h-[320px] shrink-0 bg-neutral-200 flex items-center justify-center text-neutral-400 text-sm">
+      <div className="bg-neutral-200 flex items-center justify-center text-neutral-400 text-sm">
         Sem imagem
       </div>
     );
@@ -372,7 +395,7 @@ function HeroImage({ image, alt }: { image: ArticleImage | undefined; alt: strin
     <img
       src={image.url}
       alt={image.alt ?? alt}
-      className="w-[500px] h-[320px] shrink-0 object-cover"
+      className="w-full grid-cols-[2fr] h-full"
     />
   );
 }

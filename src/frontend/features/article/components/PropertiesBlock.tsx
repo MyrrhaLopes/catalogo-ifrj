@@ -10,15 +10,11 @@ export function PropertiesBlock({ species }: { species: SpeciesDetails }) {
   return (
     <Card>
       <CardHeader className="p-4 pb-2">
-        <CardTitle className="text-sm font-semibold text-primary">
-          Distribuição de população
+        <CardTitle className="text-md font-semibold text-primary">
+          Atributos da espécie
         </CardTitle>
       </CardHeader>
       <CardContent className="p-4 pt-0">
-        <div className="w-full aspect-square bg-neutral-100 rounded flex items-center justify-center text-neutral-400 text-xs mb-4">
-          Mapa indisponível
-        </div>
-
         {species.attributes.length > 0 && (
           <ul className="space-y-2">
             {species.attributes.map((attr, i) => (

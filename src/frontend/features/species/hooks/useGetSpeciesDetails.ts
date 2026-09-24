@@ -7,6 +7,6 @@ export function useGetSpeciesDetails(id: number) {
     queryFn: () => getSpeciesDetails(id),
     enabled: id > 0,
     retry: false,
-    staleTime:'static'
+    staleTime: Infinity,
   });
 }
