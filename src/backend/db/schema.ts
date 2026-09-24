@@ -5,13 +5,12 @@ import {
   text,
   timestamp,
   uuid,
-  pgEnum,
   integer,
   type AnyPgColumn,
   jsonb,
   primaryKey,
+  boolean,
 } from "drizzle-orm/pg-core";
-import { AlignVerticalDistributeStart } from "lucide-react";
 
 export const taxonomyTable = pgTable("taxonomies", {
   id: serial("id").primaryKey(),
@@ -30,25 +29,31 @@ export const specimenTable = pgTable("specimens", {
   lot: integer("lot"),
   shelf: integer("shelf"),
   code: text("code").notNull(),
+  speciesId: integer("species_id").references((): AnyPgColumn => speciesTable.id, {
+    onDelete: "set null",
+  }),
   createdBy: uuid("created_by")
     .references(() => usersTable.id)
     .notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
+export type SpecimenTableInsert = typeof specimenTable.$inferInsert;
 
 export const speciesTable = pgTable("species", {
   id: serial("id").primaryKey(),
-  speciesRoot: integer("sepecies").references(() => taxonomyTable.id, {
-    onDelete: "cascade",
-  }),
-  specimen: integer("specimen").references(() => specimenTable.id, {
-    onDelete: "set null",
-  }),
+  speciesRoot: integer("sepecies")
+    .references(() => taxonomyTable.id, {
+      onDelete: "cascade",
+    })
+    .notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   createdBy: uuid("created_by")
     .references(() => usersTable.id)
     .notNull(),
 });
+export type SpeciesTableInsert = typeof speciesTable.$inferInsert;
+export type SpeciesTableSelect = typeof speciesTable.$inferSelect;
+
 
 export const popularNameTable = pgTable("popular_names", {
   id: serial("id").primaryKey(),
@@ -92,12 +97,10 @@ export const articleRecordTable = pgTable("article_records", {
     .notNull(),
 });
 
-export const unitsEnums = pgEnum("units", ["meter", "minute"]);
-
 export const attributeTemplateTable = pgTable("attributes_templates", {
   id: serial("id").primaryKey(),
   label: text("label").notNull(),
-  unit: unitsEnums("unit").notNull(),
+  unit: text("unit").notNull(),
   source: integer("source").references(() => sourceTable.id),
 });
 
@@ -146,6 +149,7 @@ export const usersTable = pgTable("users", {
   name: text("name"),
   email: text("email").notNull().unique(), // unicidade garantida pelo banco
   passwordHash: text("password_hash").notNull(),
+  isAdmin: boolean("is_admin").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 

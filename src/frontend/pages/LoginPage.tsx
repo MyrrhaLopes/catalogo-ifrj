@@ -11,9 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/frontend/components/ui/card";
-import useLoginUser from "../hooks/useLoginUser";
+import useLoginUser from "../shared/hooks/useLoginUser";
 import { useQueryClient } from "@tanstack/react-query";
-import useAuth from "../hooks/useAuth";
+import useAuth from "../shared/hooks/useAuth";
 import { useEffect } from "react";
 
 export const loginRoute = createRoute({
@@ -34,7 +34,7 @@ export function LoginPage() {
     }
   }, [user]);
 
-  function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const form = new FormData(e.currentTarget);
     mutate(
@@ -53,7 +53,7 @@ export function LoginPage() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl">Entrar</CardTitle>
           <CardDescription>
-            Acesse sua conta para gerenciar suas tarefas
+            Acesse sua conta para gerenciar o catálogo
           </CardDescription>
         </CardHeader>
 
