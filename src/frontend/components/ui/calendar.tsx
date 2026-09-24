@@ -58,7 +58,7 @@ function Calendar({
       }}
       components={{
         DayButton: CalendarDayButton,
-        Chevron: ({ orientation }) =>
+        Chevron: ({ orientation }: { orientation?: "left" | "right" | "up" | "down" }) =>
           orientation === "left" ? (
             <ChevronLeftIcon className="h-4 w-4 text-neutral-600" />
           ) : (

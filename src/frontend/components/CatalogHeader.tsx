@@ -37,7 +37,7 @@ export function CatalogHeader({ className }: CatalogHeaderProps) {
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter" && query.trim()) {
       setIsOpen(false);
-      navigate({ to: "/species/search", search: { q: query.trim() } });
+      navigate({ to: "/especies/buscar", search: { searchIn: "species", q: query.trim() } });
     }
     if (e.key === "Escape") setIsOpen(false);
   }
@@ -76,6 +76,7 @@ export function CatalogHeader({ className }: CatalogHeaderProps) {
         <span className="text-xl font-bold text-green-950">Catálogo IFRJ</span>
         <Link
           to="/especies/buscar"
+          search={{ searchIn: "species" }}
           className="text-sm text-green-950 transition-colors hover:underline"
         >
           Espécies
@@ -83,6 +84,7 @@ export function CatalogHeader({ className }: CatalogHeaderProps) {
         {user?.isAdmin && (
           <Link
             to="/admin"
+            search={{ section: "species" }}
             className="text-sm text-green-950 transition-colors hover:underline"
           >
             Admin
@@ -131,7 +133,7 @@ export function CatalogHeader({ className }: CatalogHeaderProps) {
                 className="text-xs text-green-700 hover:underline"
                 onMouseDown={() => {
                   setIsOpen(false);
-                  navigate({ to: "/species/search", search: { q: query } });
+                  navigate({ to: "/especies/buscar", search: { searchIn: "species", q: query } });
                 }}
               >
                 Ver todos os resultados para "{query}"

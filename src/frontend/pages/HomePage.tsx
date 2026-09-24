@@ -8,7 +8,7 @@ export const homeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   component: HomePage,
-  beforeLoad: () => { throw redirect({ to: "/especies/buscar" }) }
+  beforeLoad: () => { throw redirect({ to: "/especies/buscar", search: { searchIn: "species" } }) }
 });
 export type HomeSearch = z.infer<typeof homeSearchSchema>;
 
