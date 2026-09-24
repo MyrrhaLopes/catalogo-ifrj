@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import useAuth from "@/frontend/hooks/useAuth";
+import useAuth from "@/frontend/shared/hooks/useAuth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from "@/frontend/components/ui/dialog";
 import { Input } from "@/frontend/components/ui/input";
-import { logoutUser, deleteAccount } from "@/frontend/api/users";
+import { logoutUser, deleteAccount } from "@/frontend/shared/api/users";
 import { router } from "@/frontend/router";
 
 const CONFIRM_PHRASE = "Confirmo que desejo deletar minha conta";
