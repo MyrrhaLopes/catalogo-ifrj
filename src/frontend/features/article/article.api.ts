@@ -4,9 +4,10 @@ import type {
   Article,
   ArticleImage,
   ArticleWithImages,
+  ArticleSource,
 } from "@/backend/http/features/article/article.schema";
 
-export type { ArticleContent, Article, ArticleImage, ArticleWithImages };
+export type { ArticleContent, Article, ArticleImage, ArticleWithImages, ArticleSource };
 
 export async function getArticleBySpecies(speciesId: number): Promise<ArticleWithImages> {
   const res = await fetch(`/api/v1/articles/?speciesId=${speciesId}`);

@@ -7,8 +7,10 @@ import {
   taxonomyTable,
   attributeTable,
   attributeTemplateTable,
+  sourceTable,
   type SpeciesTableInsert,
 } from "@/backend/db/schema";
+import { SOURCES_SERVICE } from "../sources/sources.service";
 import { eq, inArray, sql, type SQL } from "drizzle-orm";
 import type { SpeciesSearchResult } from "./species.schema";
 
@@ -120,15 +122,28 @@ export const SPECIES_SERVICE = {
         label: attributeTemplateTable.label,
         value: attributeTable.value,
         unit: attributeTemplateTable.unit,
+        sourceId: attributeTable.sourceId,
+        sourceUrl: sourceTable.url,
       })
       .from(attributeTable)
       .innerJoin(
         attributeTemplateTable,
         eq(attributeTable.attribute, attributeTemplateTable.id),
       )
+      .leftJoin(sourceTable, eq(attributeTable.sourceId, sourceTable.id))
       .where(eq(attributeTable.species, specieId));
 
-    return { ...species, specimens: specimenRows, taxonomyPath, popularNames, attributes };
+    return {
+      ...species,
+      specimens: specimenRows,
+      taxonomyPath,
+      popularNames,
+      attributes: attributes.map((a) => ({
+        ...a,
+        sourceId: a.sourceId ?? null,
+        sourceUrl: a.sourceUrl ?? null,
+      })),
+    };
   },
 
   deleteSpecie: async (specieId: number) => {
@@ -148,18 +163,23 @@ export const SPECIES_SERVICE = {
 
   setSpeciesAttributes: async (
     speciesId: number,
-    attrs: Array<{ templateId: number; value: string }>,
+    attrs: Array<{ templateId: number; value: string; sourceUrl?: string | null }>,
   ) => {
+    const resolvedAttrs = await Promise.all(
+      attrs.map(async (a) => {
+        let sourceId: number | null = null;
+        if (a.sourceUrl) {
+          const src = await SOURCES_SERVICE.upsertByUrl(a.sourceUrl);
+          sourceId = src.id;
+        }
+        return { species: speciesId, attribute: a.templateId, value: a.value, sourceId };
+      }),
+    );
+
     await db.transaction(async (tx) => {
       await tx.delete(attributeTable).where(eq(attributeTable.species, speciesId));
-      if (attrs.length > 0) {
-        await tx.insert(attributeTable).values(
-          attrs.map((a) => ({
-            species: speciesId,
-            attribute: a.templateId,
-            value: a.value,
-          })),
-        );
+      if (resolvedAttrs.length > 0) {
+        await tx.insert(attributeTable).values(resolvedAttrs);
       }
     });
   },
@@ -305,12 +325,15 @@ export const SPECIES_SERVICE = {
         label: attributeTemplateTable.label,
         value: attributeTable.value,
         unit: attributeTemplateTable.unit,
+        sourceId: attributeTable.sourceId,
+        sourceUrl: sourceTable.url,
       })
       .from(attributeTable)
       .innerJoin(
         attributeTemplateTable,
         eq(attributeTable.attribute, attributeTemplateTable.id),
       )
+      .leftJoin(sourceTable, eq(attributeTable.sourceId, sourceTable.id))
       .where(inArray(attributeTable.species, speciesIds));
 
     // Batch: article thumbnail + excerpt
@@ -418,6 +441,8 @@ export const SPECIES_SERVICE = {
         label: a.label,
         value: a.value,
         unit: a.unit,
+        sourceId: a.sourceId ?? null,
+        sourceUrl: a.sourceUrl ?? null,
       })),
       thumbnail: articleBySpecies.get(sid)?.thumbnail ?? null,
       excerpt: articleBySpecies.get(sid)?.excerpt ?? null,

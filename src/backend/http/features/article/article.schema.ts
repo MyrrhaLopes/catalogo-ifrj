@@ -62,9 +62,16 @@ export const articleSchema = z.object({
 });
 export type Article = z.infer<typeof articleSchema>;
 
+export const articleSourceSchema = z.object({
+  id: z.number(),
+  url: z.string(),
+});
+export type ArticleSource = z.infer<typeof articleSourceSchema>;
+
 export const articleWithImagesSchema = z.object({
   article: articleSchema,
   images: z.array(imageSchema),
+  sources: z.array(articleSourceSchema).default([]),
 });
 export type ArticleWithImages = z.infer<typeof articleWithImagesSchema>;
 

@@ -17,6 +17,7 @@ import { articleWithImagesSchema } from "@/backend/http/features/article/article
 import type {
   Article,
   ArticleImage,
+  ArticleSource,
 } from "@/backend/http/features/article/article.schema";
 
 export type { SpeciesBase, SpeciesWithTaxonomy, SearchResponse, SpeciesSearchResult, AttributeTemplate, TaxonomyNode };
@@ -24,6 +25,7 @@ export type { SpeciesBase, SpeciesWithTaxonomy, SearchResponse, SpeciesSearchRes
 export type SpeciesDetails = SpeciesWithTaxonomy & {
   article: Article | null;
   images: ArticleImage[];
+  sources: ArticleSource[];
 };
 
 export async function getSpeciesDetails(id: number): Promise<SpeciesDetails> {
@@ -40,13 +42,13 @@ export async function getSpeciesDetails(id: number): Promise<SpeciesDetails> {
   const { species } = speciesResponseSchema.parse(await speciesRes.json());
 
   if (articleRes.status === 404) {
-    return { ...species, article: null, images: [] };
+    return { ...species, article: null, images: [], sources: [] };
   }
 
-  const { article, images } = articleWithImagesSchema.parse(
+  const { article, images, sources } = articleWithImagesSchema.parse(
     await articleRes.json(),
   );
-  return { ...species, article, images };
+  return { ...species, article, images, sources };
 }
 
 export type SearchParams = {

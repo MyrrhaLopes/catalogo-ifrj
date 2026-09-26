@@ -10,6 +10,7 @@ import {
   jsonb,
   primaryKey,
   boolean,
+  unique,
 } from "drizzle-orm/pg-core";
 
 export const taxonomyTable = pgTable("taxonomies", {
@@ -101,7 +102,6 @@ export const attributeTemplateTable = pgTable("attributes_templates", {
   id: serial("id").primaryKey(),
   label: text("label").notNull(),
   unit: text("unit").notNull(),
-  source: integer("source").references(() => sourceTable.id),
 });
 
 export const attributeTable = pgTable(
@@ -112,6 +112,7 @@ export const attributeTable = pgTable(
       .notNull(),
     attribute: integer("attribute").references(() => attributeTemplateTable.id),
     value: text("value").notNull(),
+    sourceId: integer("source_id").references(() => sourceTable.id, { onDelete: "set null" }),
   },
   (table) => [
     primaryKey({ columns: [table.species, table.attribute, table.value] }),
@@ -137,10 +138,27 @@ export const imagesArticlePivotTable = pgTable(
   (table) => [primaryKey({ columns: [table.imageId, table.articleId] })],
 );
 
-export const sourceTable = pgTable("sources", {
-  id: serial("id").primaryKey(),
-  url: text("url").notNull(),
-});
+export const sourceTable = pgTable(
+  "sources",
+  {
+    id: serial("id").primaryKey(),
+    url: text("url").notNull(),
+  },
+  (table) => [unique("sources_url_unique").on(table.url)],
+);
+
+export const articleSourcesPivotTable = pgTable(
+  "article_sources_pivot",
+  {
+    articleId: integer("article_id")
+      .references(() => articleTable.id, { onDelete: "cascade" })
+      .notNull(),
+    sourceId: integer("source_id")
+      .references(() => sourceTable.id, { onDelete: "cascade" })
+      .notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.articleId, table.sourceId] })],
+);
 
 // Tabela de usuários. A senha nunca é armazenada em texto puro —
 // apenas o hash bcrypt (campo password_hash).

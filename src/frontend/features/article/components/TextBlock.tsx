@@ -1,19 +1,57 @@
+import type { ReactNode } from "react";
 import { slugify } from "./utils";
 
-export function TextBlock({ content }: { content: string }) {
+const CITE_RE = /\[cite:(\d+)\]/g;
+
+function parseInlineCitations(text: string, sourcesMap?: Map<number, number>): ReactNode[] {
+  if (!sourcesMap) return [text];
+  const parts: ReactNode[] = [];
+  let last = 0;
+  let match: RegExpExecArray | null;
+  CITE_RE.lastIndex = 0;
+  while ((match = CITE_RE.exec(text)) !== null) {
+    if (match.index > last) {
+      parts.push(text.slice(last, match.index));
+    }
+    const id = Number(match[1]);
+    const n = sourcesMap.get(id);
+    if (n !== undefined) {
+      parts.push(
+        <sup key={match.index}>
+          <a href={`#source-${n}`} className="text-primary hover:underline text-[10px] font-medium">
+            {n}
+          </a>
+        </sup>,
+      );
+    }
+    last = match.index + match[0].length;
+  }
+  if (last < text.length) {
+    parts.push(text.slice(last));
+  }
+  return parts.length > 0 ? parts : [text];
+}
+
+type Props = {
+  content: string;
+  sourcesMap?: Map<number, number>;
+};
+
+export function TextBlock({ content, sourcesMap }: Props) {
   const lines = content.split("\n");
-  const elements: React.ReactNode[] = [];
+  const elements: ReactNode[] = [];
   const currentParagraph: string[] = [];
 
   function flushParagraph(key: string) {
-    if (currentParagraph.length > 0) {
-      elements.push(
-        <p key={key} className="text-sm text-neutral-700 leading-relaxed text-justify mb-4">
-          {currentParagraph.join(" ")}
-        </p>,
-      );
-      currentParagraph.length = 0;
-    }
+    if (currentParagraph.length === 0) return;
+    const raw = currentParagraph.join(" ");
+    currentParagraph.length = 0;
+    const nodes = parseInlineCitations(raw, sourcesMap);
+    elements.push(
+      <p key={key} className="text-sm text-neutral-700 leading-relaxed text-justify mb-4">
+        {nodes}
+      </p>,
+    );
   }
 
   lines.forEach((line, i) => {

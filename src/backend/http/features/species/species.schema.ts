@@ -19,6 +19,8 @@ export const speciesAttributeSchema = z.object({
   label: z.string(),
   value: z.string(),
   unit: z.string(),
+  sourceId: z.number().nullable(),
+  sourceUrl: z.string().nullable(),
 });
 export type SpeciesAttribute = z.infer<typeof speciesAttributeSchema>;
 
@@ -122,6 +124,7 @@ export const setSpeciesAttributesSchema = z.object({
     z.object({
       templateId: z.number().int().positive(),
       value: z.string().min(1),
+      sourceUrl: z.string().min(1).nullable().optional(),
     }),
   ),
 });

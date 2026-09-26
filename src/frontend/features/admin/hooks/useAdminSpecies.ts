@@ -44,7 +44,7 @@ export function useUpdateSpeciesAttributes() {
       attributes,
     }: {
       speciesId: number;
-      attributes: Array<{ templateId: number; value: string }>;
+      attributes: Array<{ templateId: number; value: string; sourceUrl?: string | null }>;
     }) => updateSpeciesAttributes(speciesId, attributes),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["species"] });

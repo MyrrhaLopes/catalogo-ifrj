@@ -13,10 +13,10 @@ export const articleRouter = Router();
 articleRouter.get("/articles/", async (req, res, next) => {
   try {
     const { speciesId } = speciesIdQuerySchema.parse(req.query);
-    const { article, images } = await ARTICLE_SERVICE.getBySpecies(speciesId);
+    const { article, images, sources } = await ARTICLE_SERVICE.getBySpecies(speciesId);
     if (!article)
       return res.status(404).json({ message: "artigo não encontrado" });
-    return res.status(200).json({ article, images });
+    return res.status(200).json({ article, images, sources });
   } catch (err) {
     next(err);
   }
@@ -25,10 +25,10 @@ articleRouter.get("/articles/", async (req, res, next) => {
 articleRouter.get("/articles/:articleId", async (req, res, next) => {
   try {
     const { articleId } = articleIdParamSchema.parse(req.params);
-    const { article, images } = await ARTICLE_SERVICE.getById(articleId);
+    const { article, images, sources } = await ARTICLE_SERVICE.getById(articleId);
     if (!article)
       return res.status(404).json({ message: "artigo não encontrado" });
-    return res.status(200).json({ article, images });
+    return res.status(200).json({ article, images, sources });
   } catch (err) {
     next(err);
   }

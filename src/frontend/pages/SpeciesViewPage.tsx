@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { createRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import {
@@ -26,6 +26,7 @@ import { useSaveArticle } from "@/frontend/features/article/hooks/useSaveArticle
 import { ArticleEditorHeader } from "@/frontend/features/article/components/editor/ArticleEditorHeader";
 import { ArticleEditorSection } from "@/frontend/features/article/components/editor/ArticleEditorSection";
 import type { SpeciesDetails } from "@/frontend/features/species/species.api";
+import { computeUnifiedSources, buildSourceMaps } from "@/frontend/features/article/components/utils";
 
 export const speciesViewRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -161,14 +162,33 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
   const popularName = species.popularNames[0]?.name;
   const content = species.article?.content;
   const [heroImage, ...thumbnails] = species.images;
+  const draftContent = isPreview ? editor.toDraftContent() : null;
+
+  const inlineSources = species.sources;
+
+  const attributeSources = useMemo(
+    () =>
+      species.attributes
+        .filter((a) => a.sourceUrl != null)
+        .map((a) => ({ url: a.sourceUrl! })),
+    [species.attributes],
+  );
+
+  const sourceMaps = useMemo(() => {
+    if (!content) return { byId: new Map<number, number>(), byUrl: new Map<string, number>() };
+    return buildSourceMaps(computeUnifiedSources(content, inlineSources, attributeSources));
+  }, [content, inlineSources, attributeSources]);
+
+  const previewSourceMaps = useMemo(() => {
+    if (!draftContent) return { byId: new Map<number, number>(), byUrl: new Map<string, number>() };
+    return buildSourceMaps(computeUnifiedSources(draftContent, inlineSources, attributeSources));
+  }, [draftContent, inlineSources, attributeSources]);
 
   const activeItem = activeId
     ? (["left", "center", "right"] as SectionKey[])
       .flatMap((key) => editor.sections[key])
       .find((item) => item.id === activeId)
     : null;
-
-  const draftContent = isPreview ? editor.toDraftContent() : null;
 
   return (
     <div className="min-h-screen bg-white">
@@ -269,17 +289,17 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
         <div className="flex gap-10 px-10 py-10 max-w-screen-xl mx-auto">
           {content.sections.left && (
             <aside className="w-44 shrink-0 sticky top-6 self-start">
-              <ArticleSectionRenderer sectionKey="left" content={content} species={species} />
+              <ArticleSectionRenderer sectionKey="left" content={content} species={species} sourceMaps={sourceMaps} inlineSources={inlineSources} attributeSources={attributeSources} />
             </aside>
           )}
           {content.sections.center && (
             <article className="flex-1 min-w-0">
-              <ArticleSectionRenderer sectionKey="center" content={content} species={species} />
+              <ArticleSectionRenderer sectionKey="center" content={content} species={species} sourceMaps={sourceMaps} inlineSources={inlineSources} attributeSources={attributeSources} />
             </article>
           )}
           {content.sections.right && (
             <aside className="w-52 shrink-0 sticky top-6 self-start">
-              <ArticleSectionRenderer sectionKey="right" content={content} species={species} />
+              <ArticleSectionRenderer sectionKey="right" content={content} species={species} sourceMaps={sourceMaps} inlineSources={inlineSources} attributeSources={attributeSources} />
             </aside>
           )}
         </div>
@@ -290,17 +310,17 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
         <div className="flex gap-10 px-10 py-10 max-w-screen-xl mx-auto">
           {draftContent.sections.left && draftContent.sections.left.length > 0 && (
             <aside className="w-44 shrink-0 sticky top-6 self-start">
-              <ArticleSectionRenderer sectionKey="left" content={draftContent} species={species} />
+              <ArticleSectionRenderer sectionKey="left" content={draftContent} species={species} sourceMaps={previewSourceMaps} inlineSources={inlineSources} attributeSources={attributeSources} />
             </aside>
           )}
           {draftContent.sections.center && draftContent.sections.center.length > 0 && (
             <article className="flex-1 min-w-0">
-              <ArticleSectionRenderer sectionKey="center" content={draftContent} species={species} />
+              <ArticleSectionRenderer sectionKey="center" content={draftContent} species={species} sourceMaps={previewSourceMaps} inlineSources={inlineSources} attributeSources={attributeSources} />
             </article>
           )}
           {draftContent.sections.right && draftContent.sections.right.length > 0 && (
             <aside className="w-52 shrink-0 sticky top-6 self-start">
-              <ArticleSectionRenderer sectionKey="right" content={draftContent} species={species} />
+              <ArticleSectionRenderer sectionKey="right" content={draftContent} species={species} sourceMaps={previewSourceMaps} inlineSources={inlineSources} attributeSources={attributeSources} />
             </aside>
           )}
         </div>

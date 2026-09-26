@@ -43,20 +43,24 @@ export function EditSpeciesAttributesModal({ open, onOpenChange, species }: Prop
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [values, setValues] = useState<Map<number, string>>(new Map());
+  const [sourceUrls, setSourceUrls] = useState<Map<number, string>>(new Map());
 
   useEffect(() => {
     if (!open || !species) return;
     const initSelected = new Set<number>();
     const initValues = new Map<number, string>();
+    const initSourceUrls = new Map<number, string>();
     for (const attr of species.attributes) {
       const template = templates.find((t) => t.label === attr.label);
       if (template) {
         initSelected.add(template.id);
         initValues.set(template.id, attr.value);
+        if (attr.sourceUrl) initSourceUrls.set(template.id, attr.sourceUrl);
       }
     }
     setSelectedIds(initSelected);
     setValues(initValues);
+    setSourceUrls(initSourceUrls);
   }, [open, species, templates]);
 
   function toggleRow(templateId: number) {
@@ -69,6 +73,11 @@ export function EditSpeciesAttributesModal({ open, onOpenChange, species }: Prop
           nv.delete(templateId);
           return nv;
         });
+        setSourceUrls((s) => {
+          const ns = new Map(s);
+          ns.delete(templateId);
+          return ns;
+        });
       } else {
         next.add(templateId);
       }
@@ -80,16 +89,31 @@ export function EditSpeciesAttributesModal({ open, onOpenChange, species }: Prop
     setValues((prev) => new Map(prev).set(templateId, val));
   }
 
+  function setSourceUrl(templateId: number, val: string) {
+    setSourceUrls((prev) => {
+      const next = new Map(prev);
+      if (val.trim()) {
+        next.set(templateId, val);
+      } else {
+        next.delete(templateId);
+      }
+      return next;
+    });
+  }
+
   function handleClose() {
     onOpenChange(false);
   }
 
   function handleConfirm() {
     if (!species) return;
-    const attributes: Array<{ templateId: number; value: string }> = [];
+    const attributes: Array<{ templateId: number; value: string; sourceUrl?: string | null }> = [];
     for (const id of selectedIds) {
       const val = values.get(id)?.trim();
-      if (val) attributes.push({ templateId: id, value: val });
+      if (val) {
+        const url = sourceUrls.get(id)?.trim() || null;
+        attributes.push({ templateId: id, value: val, sourceUrl: url });
+      }
     }
     updateMutation.mutate(
       { speciesId: species.id, attributes },
@@ -99,16 +123,21 @@ export function EditSpeciesAttributesModal({ open, onOpenChange, species }: Prop
 
   const isDirty = (() => {
     if (!species) return false;
-    const currentByLabel = new Map(species.attributes.map((a) => [a.label, a.value]));
-    const draftAttrs: Array<{ label: string; value: string }> = [];
+    const currentByLabel = new Map(
+      species.attributes.map((a) => [a.label, { value: a.value, sourceUrl: a.sourceUrl ?? null }]),
+    );
+    const draftAttrs: Array<{ label: string; value: string; sourceUrl: string | null }> = [];
     for (const id of selectedIds) {
       const t = templates.find((tmpl) => tmpl.id === id);
       const val = values.get(id)?.trim();
-      if (t && val) draftAttrs.push({ label: t.label, value: val });
+      if (t && val) {
+        draftAttrs.push({ label: t.label, value: val, sourceUrl: sourceUrls.get(id)?.trim() || null });
+      }
     }
     if (draftAttrs.length !== currentByLabel.size) return true;
-    for (const { label, value } of draftAttrs) {
-      if (currentByLabel.get(label) !== value) return true;
+    for (const { label, value, sourceUrl } of draftAttrs) {
+      const cur = currentByLabel.get(label);
+      if (!cur || cur.value !== value || cur.sourceUrl !== sourceUrl) return true;
     }
     return false;
   })();
@@ -122,7 +151,7 @@ export function EditSpeciesAttributesModal({ open, onOpenChange, species }: Prop
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
-      <DialogContent className="max-w-2xl flex flex-col gap-4">
+      <DialogContent className="max-w-3xl flex flex-col gap-4">
         <DialogHeader>
           <DialogTitle>
             Atributos de{" "}
@@ -138,19 +167,20 @@ export function EditSpeciesAttributesModal({ open, onOpenChange, species }: Prop
                 <TableHead>Label</TableHead>
                 <TableHead>Unidade</TableHead>
                 <TableHead>Valor</TableHead>
+                <TableHead>Fonte (URL)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
                     Carregando…
                   </TableCell>
                 </TableRow>
               ) : templates.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
                     Nenhum template cadastrado
                   </TableCell>
                 </TableRow>
@@ -185,6 +215,18 @@ export function EditSpeciesAttributesModal({ open, onOpenChange, species }: Prop
                             value={values.get(t.id) ?? ""}
                             onChange={(e) => setValue(t.id, e.target.value)}
                             autoFocus={false}
+                          />
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        {isSelected ? (
+                          <Input
+                            className="h-7 w-48 text-sm"
+                            placeholder="https://..."
+                            value={sourceUrls.get(t.id) ?? ""}
+                            onChange={(e) => setSourceUrl(t.id, e.target.value)}
                           />
                         ) : (
                           <span className="text-muted-foreground text-sm">—</span>

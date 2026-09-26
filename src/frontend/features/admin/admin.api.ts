@@ -157,7 +157,7 @@ export async function updateAttributeTemplate(
 
 export async function updateSpeciesAttributes(
   speciesId: number,
-  attributes: Array<{ templateId: number; value: string }>,
+  attributes: Array<{ templateId: number; value: string; sourceUrl?: string | null }>,
 ): Promise<void> {
   const res = await fetch(`/api/v1/species/${speciesId}/attributes`, {
     method: "PUT",
