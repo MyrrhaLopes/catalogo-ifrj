@@ -70,7 +70,8 @@ export function TextBlockEditor({ block, onChange }: Props) {
         body: JSON.stringify({ url }),
       });
       if (!res.ok) throw new Error("Falha ao salvar fonte");
-      const { id } = await res.json() as { id: number };
+      const { source } = await res.json() as { source: { id: number } };
+      const { id } = source;
       const marker = `[cite:${id}]`;
       const newContent = block.content.slice(0, pos) + marker + block.content.slice(pos);
       onChange({ type: "text", content: newContent });
