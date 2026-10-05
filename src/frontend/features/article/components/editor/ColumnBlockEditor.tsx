@@ -8,10 +8,11 @@ import { ImageBlockEditor } from "./ImageBlockEditor";
 
 type Props = {
   block: ColumnBlock;
+  speciesId: number;
   onChange: (block: ColumnBlock) => void;
 };
 
-export function ColumnBlockEditor({ block, onChange }: Props) {
+export function ColumnBlockEditor({ block, speciesId, onChange }: Props) {
   function addToColumn(colIndex: number, insertAt: number, item: DraftItem) {
     if (item.kind !== "block" || item.block.type === "column") return;
     const newColumns = block.columns.map((col, i) => {
@@ -60,6 +61,7 @@ export function ColumnBlockEditor({ block, onChange }: Props) {
                   ) : b.type === "image" ? (
                     <ImageBlockEditor
                       block={b}
+                      speciesId={speciesId}
                       onChange={(nb) => updateInColumn(colIndex, blockIndex, nb)}
                     />
                   ) : (

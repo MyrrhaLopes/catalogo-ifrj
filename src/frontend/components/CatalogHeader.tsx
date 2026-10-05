@@ -83,6 +83,7 @@ export function CatalogHeader({ className }: CatalogHeaderProps) {
         </Link>
         <Link
           to="/galeria"
+          search={{ search: "", origin: "all", groupBy: "especie", taxPath: [], thumbSize: "medium" }}
           className="text-sm text-green-950 transition-colors hover:underline"
         >
           Galeria

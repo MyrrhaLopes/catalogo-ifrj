@@ -1,5 +1,5 @@
 import { db } from "@/backend/db/drizzle";
-import { imageTable, articleTable, speciesTable } from "@/backend/db/schema";
+import { imageTable, articleTable } from "@/backend/db/schema";
 import { eq } from "drizzle-orm";
 
 const imageWithSpeciesSelect = {

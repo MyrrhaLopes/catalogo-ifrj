@@ -51,6 +51,11 @@ export const imageSchema = z.object({
   url: z.string(),
   alt: z.string().nullable(),
   article: z.number().nullable(),
+  type: z.enum(["online", "acervo"]).default("online"),
+  source: z.string().nullable(),
+  credit: z.string().nullable(),
+  specimenId: z.number().nullable(),
+  speciesId: z.number().nullable(),
   createdAt: z.string(),
 });
 export type ArticleImage = z.infer<typeof imageSchema>;

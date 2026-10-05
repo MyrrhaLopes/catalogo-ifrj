@@ -79,6 +79,7 @@ export function EditorBlockItem({ item, sectionKey: _sectionKey, speciesId, onRe
           ) : (
             <ColumnBlockEditor
               block={item.block}
+              speciesId={speciesId}
               onChange={onUpdate}
             />
           )}

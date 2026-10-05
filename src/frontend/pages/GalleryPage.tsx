@@ -122,7 +122,7 @@ function GalleryPage() {
   const thumbSize = urlSearch.thumbSize;
 
   function setSearch(value: string) {
-    void navigate({ search: (prev) => ({ ...prev, search: value || undefined }), replace: true });
+    void navigate({ search: (prev) => ({ ...prev, search: value || "" }), replace: true });
   }
   function setOrigin(value: Origin) {
     void navigate({ search: (prev) => ({ ...prev, origin: value }), replace: true });
@@ -131,7 +131,7 @@ function GalleryPage() {
     void navigate({ search: (prev) => ({ ...prev, groupBy: value }), replace: true });
   }
   function setTaxPath(value: string[]) {
-    void navigate({ search: (prev) => ({ ...prev, taxPath: value.length > 0 ? value : undefined }), replace: true });
+    void navigate({ search: (prev) => ({ ...prev, taxPath: value.length > 0 ? value : [] }), replace: true });
   }
   function setThumbSize(value: ThumbSize) {
     void navigate({ search: (prev) => ({ ...prev, thumbSize: value }), replace: true });
