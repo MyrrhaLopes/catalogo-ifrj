@@ -21,13 +21,15 @@ import {
   AlertDialogTrigger,
 } from "@/frontend/components/ui/alert-dialog";
 import { Button } from "@/frontend/components/ui/button";
-import { BookOpen, Loader2, Lock, Pencil, Trash2, X } from "lucide-react";
-import { useSpeciesList, useDeleteSpecies, useUpdateSpeciesAttributes } from "../hooks/useAdminSpecies";
+import { BookOpen, ImageIcon, Loader2, Lock, Pencil, Trash2, X } from "lucide-react";
+import { useSpeciesList, useDeleteSpecies, useUpdateSpeciesAttributes, useSetSpeciesThumbnail } from "../hooks/useAdminSpecies";
 import { useUpdateSpecimen } from "../hooks/useAdminSpecimen";
 import { useAttributeTemplates } from "@/frontend/features/species/hooks/useAttributeTemplates";
 import { cn } from "@/frontend/shared/utils";
 import type { SpeciesSearchResult } from "@/backend/http/features/species/species.schema";
 import { EditSpeciesAttributesModal } from "./EditSpeciesAttributesModal";
+import { ImagePickerModal } from "@/frontend/features/images/components/ImagePickerModal";
+import type { GalleryImage } from "@/frontend/features/images/images.api";
 
 const features = tableFeatures({});
 const columnHelper = createColumnHelper<typeof features, SpeciesSearchResult>();
@@ -48,6 +50,42 @@ function buildTaxonomyBreadcrumb(taxonomyPath: SpeciesSearchResult["taxonomyPath
 // ────────────────────────────────────────────────────────────────────
 // Cell sub-components (must be React components to use hooks)
 // ────────────────────────────────────────────────────────────────────
+
+function ThumbnailCell({ species }: { species: SpeciesSearchResult }) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const setThumbnail = useSetSpeciesThumbnail();
+
+  function handleSelect(image: GalleryImage) {
+    setThumbnail.mutate({ speciesId: species.id, imageId: image.id });
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="h-10 w-10 rounded overflow-hidden border border-input shrink-0">
+        {species.thumbnail ? (
+          <img src={species.thumbnail} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <div className="h-full w-full flex items-center justify-center bg-muted">
+            <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
+          </div>
+        )}
+      </div>
+      <button
+        className="text-muted-foreground hover:text-foreground transition-colors"
+        title="Alterar thumbnail"
+        onClick={() => setPickerOpen(true)}
+      >
+        <Pencil className="h-3 w-3" />
+      </button>
+      <ImagePickerModal
+        speciesId={species.id}
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelect={handleSelect}
+      />
+    </div>
+  );
+}
 
 function TaxonomyCell({ species }: { species: SpeciesSearchResult }) {
   const navigate = useNavigate();
@@ -240,16 +278,7 @@ const columns = columnHelper.columns([
   columnHelper.display({
     id: "thumbnail",
     header: "",
-    cell: (ctx) => {
-      const src = ctx.row.original.thumbnail;
-      return src ? (
-        <img src={src} alt="" className="h-10 w-10 object-cover rounded" />
-      ) : (
-        <div className="h-10 w-10 rounded bg-muted flex items-center justify-center text-[10px] text-muted-foreground">
-          Sem img
-        </div>
-      );
-    },
+    cell: (ctx) => <ThumbnailCell species={ctx.row.original} />,
   }),
   columnHelper.accessor("id", {
     header: "ID",

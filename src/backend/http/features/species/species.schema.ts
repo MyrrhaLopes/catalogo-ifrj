@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { imageSchema } from "@/backend/http/features/article/article.schema";
 
 // Response schemas
 export const taxonomyNodeSchema = z.object({
@@ -49,6 +50,7 @@ export const speciesWithTaxonomySchema = speciesBaseSchema.extend({
   taxonomyPath: z.array(taxonomyNodeSchema),
   popularNames: z.array(popularNameSchema),
   attributes: z.array(speciesAttributeSchema),
+  thumbnailImage: imageSchema.nullable().optional(),
 });
 export type SpeciesWithTaxonomy = z.infer<typeof speciesWithTaxonomySchema>;
 
@@ -118,6 +120,10 @@ const parseAttrs = (val: unknown) => {
     return undefined;
   }
 };
+
+export const setThumbnailSchema = z.object({
+  imageId: z.number().int().positive().nullable(),
+});
 
 export const setSpeciesAttributesSchema = z.object({
   attributes: z.array(

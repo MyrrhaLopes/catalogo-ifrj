@@ -17,7 +17,8 @@ import { FlaskConical, GripVertical, Pencil } from "lucide-react";
 import { rootRoute } from "../rootRoute";
 import { useGetSpeciesDetails } from "../features/species/hooks/useGetSpeciesDetails";
 import { CatalogHeader } from "../components/CatalogHeader";
-import type { ArticleImage } from "../features/article/article.api";
+import type { GalleryImage } from "@/frontend/features/images/images.api";
+import { ImageViewer, type ViewerImage } from "@/frontend/features/images/components/ImageViewer";
 import { ArticleSectionRenderer } from "../features/article/components/ArticleSectionRenderer";
 import useAuth from "@/frontend/shared/hooks/useAuth";
 import { Button } from "@/frontend/components/ui/button";
@@ -153,6 +154,9 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
     void navigate({ to: "/especies/$id", params: { id }, search: {} });
   }
 
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
+
   const lastNode = species.taxonomyPath.at(-1);
   const secondLastNode = species.taxonomyPath.at(-2);
   const scientificName =
@@ -161,7 +165,34 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
       : (lastNode?.labelValue ?? "Espécie");
   const popularName = species.popularNames[0]?.name;
   const content = species.article?.content;
-  const [heroImage, ...thumbnails] = species.images;
+
+  const heroImage = species.thumbnailImage ?? species.images[0];
+  const heroImages: GalleryImage[] = heroImage
+    ? [heroImage, ...species.images.filter((img) => img.id !== heroImage.id)]
+    : species.images;
+  const thumbnails = heroImages.slice(1, 5);
+
+  const viewerImages: ViewerImage[] = heroImages.map((img) => {
+    const specimen = img.specimenId != null
+      ? species.specimens.find((s) => s.id === img.specimenId) ?? null
+      : null;
+    return {
+      ...img,
+      speciesName: scientificName,
+      popularName: popularName ?? null,
+      taxonomyPath: species.taxonomyPath.map((n) => ({ label: n.label, labelValue: n.labelValue })),
+      specimen: specimen
+        ? { code: specimen.code, shelf: specimen.shelf, lot: specimen.lot }
+        : null,
+      speciesThumbnail: species.thumbnailImage?.url ?? null,
+    };
+  });
+
+  function openViewer(index: number) {
+    setViewerIndex(index);
+    setViewerOpen(true);
+  }
+
   const draftContent = isPreview ? editor.toDraftContent() : null;
 
   const inlineSources = species.sources;
@@ -273,16 +304,25 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
           )}
         </div>
 
-        <HeroImage image={heroImage} alt={scientificName} />
+        <HeroImage image={heroImages[0]} alt={scientificName} onClick={() => openViewer(0)} />
 
         {thumbnails.length > 0 && (
           <div className="flex flex-col grid-cols-[1fr]">
-            {thumbnails.slice(0, 4).map((img) => (
-              <ThumbnailImage key={img.id} image={img} alt={img.alt ?? scientificName} />
+            {thumbnails.map((img, i) => (
+              <ThumbnailImage key={img.id} image={img} alt={img.alt ?? scientificName} onClick={() => openViewer(i + 1)} />
             ))}
           </div>
         )}
       </section>
+
+      <ImageViewer
+        images={viewerImages}
+        initialIndex={viewerIndex}
+        currentIndex={viewerIndex}
+        open={viewerOpen}
+        onClose={() => setViewerOpen(false)}
+        onNavigate={setViewerIndex}
+      />
 
       {/* Content — view mode */}
       {!isEditMode && content && (
@@ -341,6 +381,7 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
               <p className="text-xs font-medium text-muted-foreground mb-2">Esquerda</p>
               <ArticleEditorSection
                 sectionKey="left"
+                speciesId={Number(id)}
                 items={editor.sections.left}
                 onAdd={(index, item) => editor.addItem("left", index, item)}
                 onRemove={(itemId) => editor.removeItem("left", itemId)}
@@ -352,6 +393,7 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
               <p className="text-xs font-medium text-muted-foreground mb-2">Centro</p>
               <ArticleEditorSection
                 sectionKey="center"
+                speciesId={Number(id)}
                 items={editor.sections.center}
                 onAdd={(index, item) => editor.addItem("center", index, item)}
                 onRemove={(itemId) => editor.removeItem("center", itemId)}
@@ -363,6 +405,7 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
               <p className="text-xs font-medium text-muted-foreground mb-2">Direita</p>
               <ArticleEditorSection
                 sectionKey="right"
+                speciesId={Number(id)}
                 items={editor.sections.right}
                 onAdd={(index, item) => editor.addItem("right", index, item)}
                 onRemove={(itemId) => editor.removeItem("right", itemId)}
@@ -403,7 +446,7 @@ function Breadcrumb({ nodes }: { nodes: Array<{ id: number; labelValue: string }
   );
 }
 
-function HeroImage({ image, alt }: { image: ArticleImage | undefined; alt: string }) {
+function HeroImage({ image, alt, onClick }: { image: GalleryImage | undefined; alt: string; onClick?: () => void }) {
   if (!image) {
     return (
       <div className="bg-neutral-200 flex items-center justify-center text-neutral-400 text-sm">
@@ -415,14 +458,15 @@ function HeroImage({ image, alt }: { image: ArticleImage | undefined; alt: strin
     <img
       src={image.url}
       alt={image.alt ?? alt}
-      className="w-full grid-cols-[2fr] h-full"
+      className={`w-full grid-cols-[2fr] h-full object-cover ${onClick ? "cursor-pointer" : ""}`}
+      onClick={onClick}
     />
   );
 }
 
-function ThumbnailImage({ image, alt }: { image: ArticleImage; alt: string }) {
+function ThumbnailImage({ image, alt, onClick }: { image: GalleryImage; alt: string; onClick?: () => void }) {
   return (
-    <div className="flex-1 min-h-0 overflow-hidden">
+    <div className={`flex-1 min-h-0 overflow-hidden ${onClick ? "cursor-pointer" : ""}`} onClick={onClick}>
       <img
         src={image.url}
         alt={image.alt ?? alt}

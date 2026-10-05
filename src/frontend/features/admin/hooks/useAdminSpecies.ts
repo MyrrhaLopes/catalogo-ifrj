@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { searchSpecies } from "@/frontend/features/species/species.api";
+import { searchSpecies, setSpeciesThumbnail } from "@/frontend/features/species/species.api";
 import { createSpecies, deleteSpecies, updateSpeciesAttributes } from "../admin.api";
 
 export function useSpeciesList() {
@@ -32,6 +32,18 @@ export function useDeleteSpecies() {
     mutationFn: (id: number) => deleteSpecies(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["species"] });
+    },
+  });
+}
+
+export function useSetSpeciesThumbnail() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ speciesId, imageId }: { speciesId: number; imageId: number | null }) =>
+      setSpeciesThumbnail(speciesId, imageId),
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ["species"] });
+      void queryClient.invalidateQueries({ queryKey: ["species", "details", variables.speciesId] });
     },
   });
 }

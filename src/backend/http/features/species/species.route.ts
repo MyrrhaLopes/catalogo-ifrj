@@ -8,6 +8,7 @@ import {
   speciesQuerySchema,
   speciesListQuerySchema,
   setSpeciesAttributesSchema,
+  setThumbnailSchema,
 } from "./species.schema";
 
 export const speciesRouter = Router();
@@ -73,6 +74,17 @@ speciesRouter.put("/species/:id/attributes", authorizeUser, async (req, res, nex
     const { id } = idParamSchema.parse(req.params);
     const { attributes } = setSpeciesAttributesSchema.parse(req.body);
     await SPECIES_SERVICE.setSpeciesAttributes(id, attributes);
+    return res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+});
+
+speciesRouter.patch("/species/:id/thumbnail", authorizeUser, async (req, res, next) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+    const { imageId } = setThumbnailSchema.parse(req.body);
+    await SPECIES_SERVICE.setThumbnail(id, imageId);
     return res.status(204).send();
   } catch (err) {
     next(err);

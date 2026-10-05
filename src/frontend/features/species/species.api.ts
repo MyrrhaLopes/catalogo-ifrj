@@ -16,22 +16,26 @@ import type { TaxonomyNode } from "@/backend/http/features/taxonomy/taxonomy.sch
 import { articleWithImagesSchema } from "@/backend/http/features/article/article.schema";
 import type {
   Article,
-  ArticleImage,
   ArticleSource,
 } from "@/backend/http/features/article/article.schema";
+import { getImagesBySpecies } from "@/frontend/features/images/images.api";
+import type { GalleryImage } from "@/frontend/features/images/images.api";
 
-export type { SpeciesBase, SpeciesWithTaxonomy, SearchResponse, SpeciesSearchResult, AttributeTemplate, TaxonomyNode };
+export type { SpeciesBase, SpeciesWithTaxonomy, SearchResponse, SpeciesSearchResult, AttributeTemplate, TaxonomyNode, GalleryImage };
+export { setSpeciesThumbnail } from "@/frontend/features/images/images.api";
 
-export type SpeciesDetails = SpeciesWithTaxonomy & {
+export type SpeciesDetails = Omit<SpeciesWithTaxonomy, "thumbnailImage"> & {
   article: Article | null;
-  images: ArticleImage[];
+  images: GalleryImage[];
+  thumbnailImage: GalleryImage | null;
   sources: ArticleSource[];
 };
 
 export async function getSpeciesDetails(id: number): Promise<SpeciesDetails> {
-  const [speciesRes, articleRes] = await Promise.all([
+  const [speciesRes, articleRes, galleryImages] = await Promise.all([
     fetch(`/api/v1/species/${id}?withTaxonomy=true`),
     fetch(`/api/v1/articles/?speciesId=${id}`),
+    getImagesBySpecies(id).catch(() => []),
   ]);
 
   if (speciesRes.status === 404) throw new Error("Espécie não encontrada");
@@ -40,15 +44,14 @@ export async function getSpeciesDetails(id: number): Promise<SpeciesDetails> {
     throw new Error("Erro ao buscar artigo");
 
   const { species } = speciesResponseSchema.parse(await speciesRes.json());
+  const thumbnailImage = species.thumbnailImage ?? null;
 
   if (articleRes.status === 404) {
-    return { ...species, article: null, images: [], sources: [] };
+    return { ...species, article: null, images: galleryImages, thumbnailImage, sources: [] };
   }
 
-  const { article, images, sources } = articleWithImagesSchema.parse(
-    await articleRes.json(),
-  );
-  return { ...species, article, images, sources };
+  const { article, sources } = articleWithImagesSchema.parse(await articleRes.json());
+  return { ...species, article, images: galleryImages, thumbnailImage, sources };
 }
 
 export type SearchParams = {

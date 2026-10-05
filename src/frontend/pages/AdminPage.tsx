@@ -13,10 +13,11 @@ import { TaxonomyTree } from "../features/admin/components/TaxonomyTree";
 import { SpecimenTable } from "../features/admin/components/SpecimenTable";
 import { CreateSpecimenModal } from "../features/admin/components/CreateSpecimenModal";
 import { AttributeTemplatesTable } from "../features/admin/components/AttributeTemplatesTable";
+import { ImagesTable } from "../features/admin/components/ImagesTable";
 import { Plus } from "lucide-react";
 
 const adminSearchSchema = z.object({
-  section: z.enum(["species", "specimen", "users", "taxonomy", "attributes"]).optional().default("species"),
+  section: z.enum(["species", "specimen", "users", "taxonomy", "attributes", "images"]).optional().default("species"),
   selectedNodeId: z.coerce.number().int().positive().optional(),
   selectedSpeciesId: z.coerce.number().int().positive().optional(),
   selectedSpecimenId: z.coerce.number().int().positive().optional(),
@@ -37,12 +38,13 @@ export const adminRoute = createRoute({
   component: AdminPage,
 });
 
-type Section = "species" | "specimen" | "users" | "taxonomy" | "attributes";
+type Section = "species" | "specimen" | "users" | "taxonomy" | "attributes" | "images";
 
 const sidebarItems: { id: Section; label: string }[] = [
   { id: "species", label: "Gerenciar espécies" },
   { id: "specimen", label: "Gerenciar espécime" },
   { id: "attributes", label: "Gerenciar atributos" },
+  { id: "images", label: "Gerenciar imagens" },
   { id: "users", label: "Gerenciar usuários" },
   { id: "taxonomy", label: "Árvore taxonômica" },
 ];
@@ -140,6 +142,10 @@ function AdminPage() {
 
           {section === "attributes" && (
             <AttributeTemplatesTable />
+          )}
+
+          {section === "images" && (
+            <ImagesTable />
           )}
         </main>
       </div>

@@ -9,13 +9,14 @@ import { EditorBlockItem } from "./EditorBlockItem";
 type Props = {
   sectionKey: SectionKey;
   items: DraftItem[];
+  speciesId: number;
   onAdd: (index: number, item: DraftItem) => void;
   onRemove: (id: string) => void;
   onUpdate: (id: string, block: ArticleBlock) => void;
   onToggleDefault: (id: string) => void;
 };
 
-export function ArticleEditorSection({ sectionKey, items, onAdd, onRemove, onUpdate, onToggleDefault }: Props) {
+export function ArticleEditorSection({ sectionKey, items, speciesId, onAdd, onRemove, onUpdate, onToggleDefault }: Props) {
   const { setNodeRef } = useDroppable({ id: sectionKey });
 
   return (
@@ -27,6 +28,7 @@ export function ArticleEditorSection({ sectionKey, items, onAdd, onRemove, onUpd
             <EditorBlockItem
               item={item}
               sectionKey={sectionKey}
+              speciesId={speciesId}
               onRemove={() => onRemove(item.id)}
               onUpdate={(block) => onUpdate(item.id, block)}
               onToggleDefault={() => onToggleDefault(item.id)}

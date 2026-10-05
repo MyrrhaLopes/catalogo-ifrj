@@ -9,6 +9,8 @@ import { taxonomyRouter } from "./http/features/taxonomy/taxonomy.route";
 import { specimenRouter } from "./http/features/specimen/specimen.route";
 import { attributeTemplatesRouter } from "./http/features/attribute_templates/attribute_templates.route";
 import { sourcesRouter } from "./http/features/sources/sources.route";
+import { imagesRouter } from "./http/features/images/images.route";
+import { galleryRouter } from "./http/features/gallery/gallery.route";
 
 const app = express();
 app.use(morgan("dev"));
@@ -22,6 +24,8 @@ app.use("/api/v1/", taxonomyRouter);
 app.use("/api/v1/", specimenRouter);
 app.use("/api/v1/", attributeTemplatesRouter);
 app.use("/api/v1/", sourcesRouter);
+app.use("/api/v1/", imagesRouter);
+app.use("/api/v1/", galleryRouter);
 // error handler global vai no final, depois de todas as rotas
 app.use(errorHandler);
 

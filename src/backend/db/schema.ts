@@ -47,6 +47,10 @@ export const speciesTable = pgTable("species", {
       onDelete: "cascade",
     })
     .notNull(),
+  thumbnailImageId: integer("thumbnail_image_id").references(
+    (): AnyPgColumn => imageTable.id,
+    { onDelete: "set null" },
+  ),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   createdBy: uuid("created_by")
     .references(() => usersTable.id)
@@ -124,6 +128,11 @@ export const imageTable = pgTable("images", {
   url: text("url").notNull(),
   alt: text("alt"),
   article: integer("article").references(() => articleTable.id),
+  // 'online' = referência da internet; 'acervo' = foto física do exemplar
+  type: text("type").$type<"online" | "acervo">().notNull().default("online"),
+  source: text("source"),   // URL do site de origem (ex: commons.wikimedia.org)
+  credit: text("credit"),   // autor/licença da imagem
+  specimenId: integer("specimen_id").references((): AnyPgColumn => specimenTable.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

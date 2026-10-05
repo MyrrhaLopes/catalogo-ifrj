@@ -31,12 +31,13 @@ const DEFAULT_BLOCK_META = {
 type Props = {
   item: DraftItem;
   sectionKey: SectionKey;
+  speciesId: number;
   onRemove: () => void;
   onUpdate: (block: ArticleBlock) => void;
   onToggleDefault: () => void;
 };
 
-export function EditorBlockItem({ item, sectionKey: _sectionKey, onRemove, onUpdate, onToggleDefault }: Props) {
+export function EditorBlockItem({ item, sectionKey: _sectionKey, speciesId, onRemove, onUpdate, onToggleDefault }: Props) {
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const {
@@ -74,7 +75,7 @@ export function EditorBlockItem({ item, sectionKey: _sectionKey, onRemove, onUpd
           ) : item.block.type === "text" ? (
             <TextBlockEditor block={item.block} onChange={onUpdate} />
           ) : item.block.type === "image" ? (
-            <ImageBlockEditor block={item.block} onChange={onUpdate} />
+            <ImageBlockEditor block={item.block} speciesId={speciesId} onChange={onUpdate} />
           ) : (
             <ColumnBlockEditor
               block={item.block}

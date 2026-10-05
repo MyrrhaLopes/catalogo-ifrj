@@ -6,8 +6,9 @@ import { adminRoute } from "./pages/AdminPage";
 import { loginRoute } from "./pages/LoginPage";
 import { registerRoute } from "./pages/RegisterPage";
 import { homeRoute } from "./pages/HomePage";
+import { galleryRoute } from "./pages/GalleryPage";
 
-const routeTree = rootRoute.addChildren([speciesSearchRoute, speciesViewRoute, adminRoute, loginRoute, registerRoute,homeRoute]);
+const routeTree = rootRoute.addChildren([speciesSearchRoute, speciesViewRoute, adminRoute, loginRoute, registerRoute, homeRoute, galleryRoute]);
 
 export const router = createRouter({ routeTree });
 

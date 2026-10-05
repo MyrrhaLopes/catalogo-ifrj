@@ -8,6 +8,7 @@ import {
   attributeTable,
   attributeTemplateTable,
   sourceTable,
+  imageTable,
   type SpeciesTableInsert,
 } from "@/backend/db/schema";
 import { SOURCES_SERVICE } from "../sources/sources.service";
@@ -133,6 +134,15 @@ export const SPECIES_SERVICE = {
       .leftJoin(sourceTable, eq(attributeTable.sourceId, sourceTable.id))
       .where(eq(attributeTable.species, specieId));
 
+    const thumbnailImage = species.thumbnailImageId
+      ? await db
+          .select()
+          .from(imageTable)
+          .where(eq(imageTable.id, species.thumbnailImageId))
+          .limit(1)
+          .then((rows) => rows[0] ?? null)
+      : null;
+
     return {
       ...species,
       specimens: specimenRows,
@@ -143,7 +153,15 @@ export const SPECIES_SERVICE = {
         sourceId: a.sourceId ?? null,
         sourceUrl: a.sourceUrl ?? null,
       })),
+      thumbnailImage,
     };
+  },
+
+  setThumbnail: async (speciesId: number, imageId: number | null) => {
+    await db
+      .update(speciesTable)
+      .set({ thumbnailImageId: imageId })
+      .where(eq(speciesTable.id, speciesId));
   },
 
   deleteSpecie: async (specieId: number) => {

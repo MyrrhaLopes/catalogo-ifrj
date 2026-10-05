@@ -81,6 +81,12 @@ export function CatalogHeader({ className }: CatalogHeaderProps) {
         >
           Espécies
         </Link>
+        <Link
+          to="/galeria"
+          className="text-sm text-green-950 transition-colors hover:underline"
+        >
+          Galeria
+        </Link>
         {user?.isAdmin && (
           <Link
             to="/admin"
