@@ -70,10 +70,12 @@ export const ARTICLE_SERVICE = {
 
     if (!article) return { article: null, images: [], sources: [] };
 
-    const [images, sources] = await Promise.all([
+    const [imageRows, sources] = await Promise.all([
       db.select().from(imageTable).where(eq(imageTable.article, article.id)),
       fetchSources(article.id),
     ]);
+
+    const images = imageRows.map((img) => ({ ...img, speciesId: article.species }));
 
     return { article, images, sources };
   },
@@ -86,10 +88,12 @@ export const ARTICLE_SERVICE = {
 
     if (!article) return { article: null, images: [], sources: [] };
 
-    const [images, sources] = await Promise.all([
+    const [imageRows, sources] = await Promise.all([
       db.select().from(imageTable).where(eq(imageTable.article, article.id)),
       fetchSources(article.id),
     ]);
+
+    const images = imageRows.map((img) => ({ ...img, speciesId: article.species }));
 
     return { article, images, sources };
   },

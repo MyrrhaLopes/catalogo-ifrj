@@ -194,3 +194,16 @@ export const sessionsTable = pgTable("sessions", {
     .notNull()
     .defaultNow(),
 });
+
+export const favoritesTable = pgTable(
+  "favorites",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    speciesId: integer("species_id")
+      .notNull()
+      .references(() => speciesTable.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.speciesId] })],
+);

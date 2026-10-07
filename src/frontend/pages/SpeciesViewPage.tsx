@@ -13,7 +13,10 @@ import {
   type DragOverEvent,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import { FlaskConical, GripVertical, Pencil } from "lucide-react";
+import { FlaskConical, GripVertical, Pencil, Star } from "lucide-react";
+import { cn } from "@/frontend/shared/utils";
+import { useGetFavorites } from "../features/favorite/hooks/useGetFavorites";
+import { useToggleFavorite } from "../features/favorite/hooks/useToggleFavorite";
 import { rootRoute } from "../rootRoute";
 import { useGetSpeciesDetails } from "../features/species/hooks/useGetSpeciesDetails";
 import { CatalogHeader } from "../components/CatalogHeader";
@@ -249,39 +252,42 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
           {popularName && (
             <p className="text-lg text-neutral-600 mt-1">{popularName}</p>
           )}
-          {isAdmin && !isEditMode && (
-            <div className="flex gap-2 mt-4 self-start">
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-white/80 border-neutral-400 hover:bg-white hover:border-neutral-600"
-                onClick={() =>
-                  void navigate({
-                    to: "/especies/$id",
-                    params: { id },
-                    search: { editArticle: true },
-                  })
-                }
-              >
-                <Pencil className="h-3 w-3 mr-1" />
-                Editar Artigo
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-white/80 border-neutral-400 hover:bg-white hover:border-neutral-600"
-                onClick={() =>
-                  void navigate({
-                    to: "/admin",
-                    search: { section: "species" as const, selectedSpeciesId: Number(id) },
-                  })
-                }
-              >
-                <FlaskConical className="h-3 w-3 mr-1" />
-                Editar Espécie
-              </Button>
-            </div>
-          )}
+          <div className="flex gap-2 mt-4 self-start items-center">
+            {isAdmin && !isEditMode && (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="bg-white/80 border-neutral-400 hover:bg-white hover:border-neutral-600"
+                  onClick={() =>
+                    void navigate({
+                      to: "/especies/$id",
+                      params: { id },
+                      search: { editArticle: true },
+                    })
+                  }
+                >
+                  <Pencil className="h-3 w-3 mr-1" />
+                  Editar Artigo
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="bg-white/80 border-neutral-400 hover:bg-white hover:border-neutral-600"
+                  onClick={() =>
+                    void navigate({
+                      to: "/admin",
+                      search: { section: "species" as const, selectedSpeciesId: Number(id) },
+                    })
+                  }
+                >
+                  <FlaskConical className="h-3 w-3 mr-1" />
+                  Editar Espécie
+                </Button>
+              </>
+            )}
+            <StarButton speciesId={Number(id)} />
+          </div>
           {species.specimens.length > 0 && (
             <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3">
               {species.specimens.map((s, i) => (
@@ -473,5 +479,30 @@ function ThumbnailImage({ image, alt, onClick }: { image: GalleryImage; alt: str
         className="w-full h-full object-cover"
       />
     </div>
+  );
+}
+
+function StarButton({ speciesId }: { speciesId: number }) {
+  const { data: user } = useAuth();
+  const { data: favoriteIds = [] } = useGetFavorites(user);
+  const toggleMutation = useToggleFavorite(user);
+  const isFavorited = favoriteIds.includes(speciesId);
+
+  return (
+    <Button
+      size="icon"
+      variant={isFavorited ? "default" : "outline"}
+      onClick={() => toggleMutation.mutate(speciesId)}
+      disabled={toggleMutation.isPending}
+      title={isFavorited ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+      className={cn(
+        "rounded-full h-9 w-9",
+        isFavorited
+          ? "bg-yellow-400 hover:bg-yellow-500 border-yellow-400 text-white"
+          : "bg-white/80 border-neutral-300 hover:bg-white text-neutral-600",
+      )}
+    >
+      <Star className={cn("h-4 w-4", isFavorited && "fill-current")} />
+    </Button>
   );
 }

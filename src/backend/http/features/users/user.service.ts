@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import { db } from "../../../db/drizzle";
 import { sessionsTable, usersTable } from "../../../db/schema";
 import { eq } from "drizzle-orm";
+import type { UpdateUserInput } from "./user.schema";
 
 
 export const USER_SERVICE = {
@@ -58,5 +59,24 @@ export const USER_SERVICE = {
         createdAt: usersTable.createdAt,
       })
       .from(usersTable);
+  },
+
+  updateUser: async (userId: string, data: UpdateUserInput) => {
+    const updates: { name?: string; passwordHash?: string } = {};
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.password !== undefined)
+      updates.passwordHash = await bcrypt.hash(data.password, 10);
+
+    const [updated] = await db
+      .update(usersTable)
+      .set(updates)
+      .where(eq(usersTable.id, userId))
+      .returning({
+        id: usersTable.id,
+        name: usersTable.name,
+        email: usersTable.email,
+      });
+
+    return updated;
   },
 };

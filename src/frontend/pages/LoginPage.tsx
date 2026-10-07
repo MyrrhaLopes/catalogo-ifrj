@@ -15,6 +15,11 @@ import useLoginUser from "../shared/hooks/useLoginUser";
 import { useQueryClient } from "@tanstack/react-query";
 import useAuth from "../shared/hooks/useAuth";
 import { useEffect } from "react";
+import {
+  getLocalFavorites,
+  setLocalFavorites,
+  syncFavoritesApi,
+} from "../features/favorite/favorite.api";
 
 export const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -40,7 +45,12 @@ export function LoginPage() {
     mutate(
       { email: form.get('email') as string, password: form.get('password') as string },
       {
-        onSuccess: () => {
+        onSuccess: async () => {
+          const localFavorites = getLocalFavorites();
+          if (localFavorites.length > 0) {
+            await syncFavoritesApi(localFavorites).catch(() => null);
+            setLocalFavorites([]);
+          }
           queryClient.invalidateQueries({ queryKey: ['auth', 'current_user'] });
         }
       }

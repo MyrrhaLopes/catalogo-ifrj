@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { UserCircle } from "lucide-react";
 import useAuth from "@/frontend/shared/hooks/useAuth";
 import {
   DropdownMenu,
@@ -36,7 +37,7 @@ export function AppHeader() {
     await logoutUser();
     queryClient.setQueryData(["auth", "current_user"], null);
     await router.invalidate();
-    navigate({ to: "/login" });
+    void navigate({ to: "/login" });
   };
 
   const handleDeleteAccount = async () => {
@@ -46,7 +47,7 @@ export function AppHeader() {
       await deleteAccount();
       queryClient.setQueryData(["auth", "current_user"], null);
       await router.invalidate();
-      navigate({ to: "/login" });
+      void navigate({ to: "/login" });
     } finally {
       setIsDeleting(false);
     }
@@ -59,29 +60,53 @@ export function AppHeader() {
 
   return (
     <header className="h-12 bg-neutral-800 flex items-center px-6">
-      <div className="ml-auto">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="text-white underline text-sm hover:text-neutral-300 transition-colors">
-              {user?.email}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onSelect={handleLogout}
-              className="cursor-pointer"
+      <div className="ml-auto flex items-center gap-3">
+        {user ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="text-white hover:text-neutral-300 transition-colors">
+                <UserCircle className="h-6 w-6" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link to="/favoritos">Meus Favoritos</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link to="/editar-usuario">Editar Usuário</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={handleLogout}
+                className="cursor-pointer"
+              >
+                Sair
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={() => setDeleteDialogOpen(true)}
+                className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+              >
+                Apagar conta
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <>
+            <Link
+              to="/login"
+              className="text-sm text-white font-medium rounded-full border border-white/40 px-4 py-1 hover:bg-white/10 transition-colors"
             >
-              Deslogar
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={() => setDeleteDialogOpen(true)}
-              className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+              Entrar
+            </Link>
+            <Link
+              to="/register"
+              className="text-xs text-neutral-400 hover:text-neutral-200 transition-colors"
             >
-              Apagar conta
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              Criar conta
+            </Link>
+          </>
+        )}
       </div>
 
       <Dialog open={deleteDialogOpen} onOpenChange={handleDialogOpenChange}>

@@ -1,7 +1,7 @@
 import { Router } from "express";
 
 export const userRouter = Router();
-import { userRegisterSchema } from "./user.schema";
+import { userRegisterSchema, updateUserSchema } from "./user.schema";
 import { USER_SERVICE } from "./user.service";
 import { authorizeUser } from "../../middleware/authorizeUser";
 
@@ -77,6 +77,16 @@ userRouter.get("/users/", authorizeUser, async (_req, res, next) => {
   try {
     const users = await USER_SERVICE.getUsers();
     return res.status(200).json({ users });
+  } catch (err) {
+    next(err);
+  }
+});
+
+userRouter.patch("/users/", authorizeUser, async (req, res, next) => {
+  try {
+    const data = updateUserSchema.parse(req.body);
+    const user = await USER_SERVICE.updateUser(req.user!.id, data);
+    return res.status(200).json({ user });
   } catch (err) {
     next(err);
   }

@@ -11,6 +11,7 @@ import { attributeTemplatesRouter } from "./http/features/attribute_templates/at
 import { sourcesRouter } from "./http/features/sources/sources.route";
 import { imagesRouter } from "./http/features/images/images.route";
 import { galleryRouter } from "./http/features/gallery/gallery.route";
+import { favoriteRouter } from "./http/features/favorite/favorite.route";
 
 const app = express();
 app.use(morgan("dev"));
@@ -26,6 +27,7 @@ app.use("/api/v1/", attributeTemplatesRouter);
 app.use("/api/v1/", sourcesRouter);
 app.use("/api/v1/", imagesRouter);
 app.use("/api/v1/", galleryRouter);
+app.use("/api/v1/", favoriteRouter);
 // error handler global vai no final, depois de todas as rotas
 app.use(errorHandler);
 

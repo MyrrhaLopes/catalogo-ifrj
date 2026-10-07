@@ -1,6 +1,7 @@
 import type {
   UserLoginInput,
   UserRegisterInput,
+  UpdateUserInput,
 } from "@/backend/http/features/users/user.schema";
 
 export async function registerUser(data: UserRegisterInput): Promise<void> {
@@ -41,4 +42,14 @@ export async function deleteAccount(): Promise<void> {
     credentials: "include",
   });
   if (!res.ok) throw new Error("Erro ao apagar conta");
+}
+
+export async function updateUser(data: UpdateUserInput): Promise<void> {
+  const res = await fetch("/api/v1/users/", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Erro ao atualizar usuário");
 }
