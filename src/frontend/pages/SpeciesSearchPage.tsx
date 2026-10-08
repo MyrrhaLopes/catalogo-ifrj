@@ -2,7 +2,7 @@ import { createRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { rootRoute } from "../rootRoute";
-import { CatalogHeader } from "../components/CatalogHeader";
+import { PageShell } from "../components/layout/PageShell";
 import { useSearchSpecies } from "../features/species/hooks/useSearchSpecies";
 import { useSearchSpecimens } from "../features/specimens/hooks/useSearchSpecimens";
 import { useAttributeTemplates } from "../features/species/hooks/useAttributeTemplates";
@@ -18,7 +18,7 @@ import {
 import { fromBaseUnit, getDefaultDisplayUnit } from "../features/search/utils/unitConversion";
 import { Search } from "lucide-react";
 import { Input } from "../components/ui/input";
-import { cn } from "../shared/utils";
+import { cn } from "@/lib/utils";
 
 const searchParamsSchema = z.object({
   q: z.string().optional(),
@@ -169,9 +169,7 @@ function SpeciesSearchPage() {
   const isLoading = (includesSpecies && speciesLoading) || (includesSpecimen && specimenLoading);
 
   return (
-    <div className="min-h-screen bg-white">
-      <CatalogHeader />
-
+    <PageShell className="bg-white">
       <div className="mx-auto max-w-screen-xl px-6 py-8">
         {/* Search input */}
         <div className="relative mb-6 max-w-md">
@@ -370,6 +368,6 @@ function SpeciesSearchPage() {
           </aside>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

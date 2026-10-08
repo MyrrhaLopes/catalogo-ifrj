@@ -1,7 +1,7 @@
 import { createRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { rootRoute } from "../rootRoute";
-import { CatalogHeader } from "../components/CatalogHeader";
+import { PageShell } from "../components/layout/PageShell";
 import { useGetFavorites } from "../features/favorite/hooks/useGetFavorites";
 import { getSpeciesDetails } from "../features/species/species.api";
 import type { SpeciesDetails } from "../features/species/species.api";
@@ -28,8 +28,7 @@ function FavoritesPage() {
   const isLoading = loadingIds || (favoriteIds.length > 0 && loadingSpecies);
 
   return (
-    <div className="min-h-screen bg-white">
-      <CatalogHeader />
+    <PageShell className="bg-white">
       <main className="max-w-4xl mx-auto px-6 py-10">
         <h1 className="text-3xl font-bold text-neutral-900 mb-8">
           Meus Favoritos
@@ -53,7 +52,7 @@ function FavoritesPage() {
           </ul>
         )}
       </main>
-    </div>
+    </PageShell>
   );
 }
 

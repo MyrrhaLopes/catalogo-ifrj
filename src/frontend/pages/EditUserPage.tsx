@@ -2,12 +2,12 @@ import { useState } from "react";
 import { createRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { rootRoute } from "../rootRoute";
-import { CatalogHeader } from "../components/CatalogHeader";
+import { PageShell } from "../components/layout/PageShell";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Label } from "../components/ui/label";
 import { updateUser } from "../shared/api/users";
-import { useToast } from "../shared/context/ToastContext";
+import { toast } from "sonner";
 import useAuth from "../shared/hooks/useAuth";
 
 export const editUserRoute = createRoute({
@@ -18,7 +18,6 @@ export const editUserRoute = createRoute({
 
 function EditUserPage() {
   const { data: user } = useAuth();
-  const showToast = useToast();
   const queryClient = useQueryClient();
 
   const [name, setName] = useState(user?.name ?? "");
@@ -30,7 +29,7 @@ function EditUserPage() {
     e.preventDefault();
 
     if (password && password !== confirmPassword) {
-      showToast("error", "As senhas não coincidem.");
+      toast.error("As senhas não coincidem.");
       return;
     }
 
@@ -41,7 +40,7 @@ function EditUserPage() {
     if (password) updates.password = password;
 
     if (Object.keys(updates).length === 0) {
-      showToast("warning", "Nenhuma alteração detectada.");
+      toast.warning("Nenhuma alteração detectada.");
       return;
     }
 
@@ -51,22 +50,18 @@ function EditUserPage() {
       await queryClient.invalidateQueries({
         queryKey: ["auth", "current_user"],
       });
-      showToast("success", "Perfil atualizado com sucesso!");
+      toast.success("Perfil atualizado com sucesso!");
       setPassword("");
       setConfirmPassword("");
     } catch (err) {
-      showToast(
-        "error",
-        err instanceof Error ? err.message : "Erro ao atualizar perfil.",
-      );
+      toast.error(err instanceof Error ? err.message : "Erro ao atualizar perfil.");
     } finally {
       setIsSaving(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <CatalogHeader />
+    <PageShell className="bg-white">
       <main className="max-w-md mx-auto px-6 py-10">
         <h1 className="text-3xl font-bold text-neutral-900 mb-8">
           Editar Usuário
@@ -112,6 +107,6 @@ function EditUserPage() {
           </Button>
         </form>
       </main>
-    </div>
+    </PageShell>
   );
 }

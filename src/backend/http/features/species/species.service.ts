@@ -15,6 +15,55 @@ import { SOURCES_SERVICE } from "../sources/sources.service";
 import { eq, inArray, sql, type SQL } from "drizzle-orm";
 import type { SpeciesSearchResult } from "./species.schema";
 
+type SpeciesRow = {
+  id: number;
+  speciesRoot: number;
+  createdAt: Date | null;
+  createdBy: string;
+  specimenId: number | null;
+  specimenCode: string | null;
+  specimenLot: number | null;
+  specimenShelf: number | null;
+};
+
+export function groupSpeciesRows(rows: SpeciesRow[]) {
+  const map = new Map<
+    number,
+    {
+      id: number;
+      speciesRoot: number;
+      createdAt: Date | null;
+      createdBy: string;
+      specimens: { id: number; code: string; lot: number | null; shelf: number | null }[];
+    }
+  >();
+
+  for (const row of rows) {
+    if (!map.has(row.id)) {
+      map.set(row.id, {
+        id: row.id,
+        speciesRoot: row.speciesRoot,
+        createdAt: row.createdAt,
+        createdBy: row.createdBy,
+        specimens: [],
+      });
+    }
+    if (row.specimenId != null && row.specimenCode != null) {
+      map.get(row.id)!.specimens.push({
+        id: row.specimenId,
+        code: row.specimenCode,
+        lot: row.specimenLot,
+        shelf: row.specimenShelf,
+      });
+    }
+  }
+
+  return [...map.values()].map((s) => ({
+    ...s,
+    createdAt: s.createdAt?.toISOString() ?? null,
+  }));
+}
+
 export const SPECIES_SERVICE = {
   registerSpecie: async (values: SpeciesTableInsert) => {
     const [newSpecies] = await db
@@ -39,33 +88,7 @@ export const SPECIES_SERVICE = {
       .from(speciesTable)
       .leftJoin(specimenTable, eq(specimenTable.speciesId, speciesTable.id));
 
-    const map = new Map<number, {
-      id: number;
-      speciesRoot: number;
-      createdAt: Date | null;
-      createdBy: string;
-      specimens: { id: number; code: string; lot: number | null; shelf: number | null }[];
-    }>();
-
-    for (const row of rows) {
-      if (!map.has(row.id)) {
-        map.set(row.id, {
-          id: row.id,
-          speciesRoot: row.speciesRoot,
-          createdAt: row.createdAt,
-          createdBy: row.createdBy,
-          specimens: [],
-        });
-      }
-      if (row.specimenId != null && row.specimenCode != null) {
-        map.get(row.id)!.specimens.push({ id: row.specimenId, code: row.specimenCode, lot: row.specimenLot, shelf: row.specimenShelf });
-      }
-    }
-
-    return [...map.values()].map((s) => ({
-      ...s,
-      createdAt: s.createdAt?.toISOString() ?? null,
-    }));
+    return groupSpeciesRows(rows);
   },
 
   getSpecieById: async (specieId: number, options: { withTaxonomy?: boolean } = {}) => {

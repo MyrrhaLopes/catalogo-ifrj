@@ -23,8 +23,8 @@ import {
 import { Button } from "@/frontend/components/ui/button";
 import { Input } from "@/frontend/components/ui/input";
 import { Loader2, Lock, Pencil, Trash2 } from "lucide-react";
-import { useSpecimenList, useUpdateSpecimen, useDeleteSpecimen } from "../hooks/useAdminSpecimen";
-import { cn } from "@/frontend/shared/utils";
+import { useSpecimenList, useUpdateSpecimen, useDeleteSpecimen } from "@/frontend/features/specimens/hooks/useAdminSpecimen";
+import { cn } from "@/lib/utils";
 import type { Specimen } from "@/frontend/features/specimens/specimen.api";
 import { SelectSpeciesModal } from "./SelectSpeciesModal";
 

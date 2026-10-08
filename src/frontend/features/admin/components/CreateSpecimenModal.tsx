@@ -10,7 +10,7 @@ import { Button } from "@/frontend/components/ui/button";
 import { Input } from "@/frontend/components/ui/input";
 import { Label } from "@/frontend/components/ui/label";
 import { Loader2 } from "lucide-react";
-import { useCreateSpecimen } from "../hooks/useAdminSpecimen";
+import { useCreateSpecimen } from "@/frontend/features/specimens/hooks/useAdminSpecimen";
 
 type Props = {
   open: boolean;

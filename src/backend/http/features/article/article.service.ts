@@ -11,7 +11,7 @@ import type { ArticleContent } from "./article.schema";
 
 const CITE_RE = /\[cite:(\d+)\]/g;
 
-function extractSourceIds(content: ArticleContent): number[] {
+export function extractSourceIds(content: ArticleContent): number[] {
   const seen = new Set<number>();
   const ordered: number[] = [];
   const sections = Object.values(content.sections);

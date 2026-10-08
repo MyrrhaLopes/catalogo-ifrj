@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { apiFetch } from "@/frontend/shared/api/client";
 
 export const galleryImageSchema = z.object({
   id: z.number(),
@@ -19,16 +20,12 @@ const imagesResponseSchema = z.object({
 });
 
 export async function getImagesBySpecies(speciesId: number): Promise<GalleryImage[]> {
-  const res = await fetch(`/api/v1/images?speciesId=${speciesId}`, {
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("Erro ao buscar imagens");
+  const res = await apiFetch(`/api/v1/images?speciesId=${speciesId}`);
   return imagesResponseSchema.parse(await res.json()).images;
 }
 
 export async function getAllImages(): Promise<GalleryImage[]> {
-  const res = await fetch("/api/v1/images", { credentials: "include" });
-  if (!res.ok) throw new Error("Erro ao buscar imagens");
+  const res = await apiFetch("/api/v1/images");
   return imagesResponseSchema.parse(await res.json()).images;
 }
 
@@ -41,13 +38,10 @@ export async function createImage(data: {
   credit?: string;
   specimenId?: number;
 }): Promise<GalleryImage> {
-  const res = await fetch("/api/v1/images", {
+  const res = await apiFetch("/api/v1/images", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Erro ao criar imagem");
   const { image } = (await res.json()) as { image: GalleryImage };
   return image;
 }
@@ -63,34 +57,24 @@ export async function updateImage(
     specimenId?: number | null;
   },
 ): Promise<GalleryImage> {
-  const res = await fetch(`/api/v1/images/${id}`, {
+  const res = await apiFetch(`/api/v1/images/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Erro ao atualizar imagem");
   const { image } = (await res.json()) as { image: GalleryImage };
   return image;
 }
 
 export async function deleteImage(id: number): Promise<void> {
-  const res = await fetch(`/api/v1/images/${id}`, {
-    method: "DELETE",
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("Erro ao deletar imagem");
+  await apiFetch(`/api/v1/images/${id}`, { method: "DELETE" });
 }
 
 export async function setSpeciesThumbnail(
   speciesId: number,
   imageId: number | null,
 ): Promise<void> {
-  const res = await fetch(`/api/v1/species/${speciesId}/thumbnail`, {
+  await apiFetch(`/api/v1/species/${speciesId}/thumbnail`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
     body: JSON.stringify({ imageId }),
   });
-  if (!res.ok) throw new Error("Erro ao definir thumbnail");
 }

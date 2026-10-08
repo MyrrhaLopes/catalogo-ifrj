@@ -1,15 +1,14 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   toggleFavoriteApi,
   getLocalFavorites,
   setLocalFavorites,
 } from "../favorite.api";
-import { useToast } from "@/frontend/shared/context/ToastContext";
 import type { UserInsert } from "@/backend/db/schema";
 
 export function useToggleFavorite(user: UserInsert | null | undefined) {
   const queryClient = useQueryClient();
-  const showToast = useToast();
 
   return useMutation({
     mutationFn: async (speciesId: number) => {
@@ -23,32 +22,22 @@ export function useToggleFavorite(user: UserInsert | null | undefined) {
         : [...current, speciesId];
       setLocalFavorites(next);
       return {
-        action: (isCurrentlyFavorited ? "removed" : "added") as
-          | "added"
-          | "removed",
+        action: (isCurrentlyFavorited ? "removed" : "added") as "added" | "removed",
         speciesId,
       };
     },
     onSuccess: ({ action }) => {
       if (user) {
-        void queryClient.invalidateQueries({
-          queryKey: ["favorites", user.id],
-        });
-        if (action === "added") {
-          showToast("success", "Adicionado aos favoritos!");
-        }
+        void queryClient.invalidateQueries({ queryKey: ["favorites", user.id] });
+        if (action === "added") toast.success("Adicionado aos favoritos!");
       } else {
         void queryClient.invalidateQueries({ queryKey: ["favorites", "local"] });
-        if (action === "added") {
-          showToast(
-            "warning",
-            "Salvo localmente. Crie uma conta para sincronizar entre dispositivos.",
-          );
-        }
+        if (action === "added")
+          toast.warning("Salvo localmente. Crie uma conta para sincronizar entre dispositivos.");
       }
     },
     onError: () => {
-      showToast("error", "Erro ao atualizar favorito. Tente novamente.");
+      toast.error("Erro ao atualizar favorito. Tente novamente.");
     },
   });
 }

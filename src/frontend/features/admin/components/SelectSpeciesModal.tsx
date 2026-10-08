@@ -19,8 +19,8 @@ import {
 } from "@/frontend/components/ui/table";
 import { Loader2, X } from "lucide-react";
 import { useSpeciesSearch } from "../hooks/useAdminSpecies";
-import { useUpdateSpecimen } from "../hooks/useAdminSpecimen";
-import { cn } from "@/frontend/shared/utils";
+import { useUpdateSpecimen } from "@/frontend/features/specimens/hooks/useAdminSpecimen";
+import { cn } from "@/lib/utils";
 import type { Specimen } from "@/frontend/features/specimens/specimen.api";
 import type { SpeciesSearchResult } from "@/backend/http/features/species/species.schema";
 

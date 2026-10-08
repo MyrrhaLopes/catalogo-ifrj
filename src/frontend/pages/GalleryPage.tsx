@@ -3,7 +3,7 @@ import { createRoute, Link, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { Globe, Camera, ChevronRight, ImageIcon, Loader2, Search } from "lucide-react";
 import { rootRoute } from "../rootRoute";
-import { CatalogHeader } from "../components/CatalogHeader";
+import { PageShell } from "../components/layout/PageShell";
 import { useGallery } from "../features/gallery/hooks/useGallery";
 import { ImageViewer } from "../features/images/components/ImageViewer";
 import type { EnrichedImage } from "../features/gallery/gallery.api";
@@ -195,9 +195,7 @@ function GalleryPage() {
   const onlineTotal = allImages.filter((i) => i.type === "online").length;
 
   return (
-    <div className="min-h-screen bg-white">
-      <CatalogHeader />
-
+    <PageShell className="bg-white">
       <main className="max-w-7xl mx-auto px-6 py-10">
         {/* Page header */}
         <div className="mb-6">
@@ -365,7 +363,7 @@ function GalleryPage() {
         onClose={() => setViewerOpen(false)}
         onNavigate={setViewerIndex}
       />
-    </div>
+    </PageShell>
   );
 }
 

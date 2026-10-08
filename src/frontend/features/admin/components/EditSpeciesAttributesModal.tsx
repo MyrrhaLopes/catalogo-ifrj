@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/frontend/components/ui/table";
 import { Loader2 } from "lucide-react";
-import { cn } from "@/frontend/shared/utils";
+import { cn } from "@/lib/utils";
 import { useAttributeTemplates } from "@/frontend/features/species/hooks/useAttributeTemplates";
 import { useUpdateSpeciesAttributes } from "../hooks/useAdminSpecies";
 import type { SpeciesSearchResult } from "@/backend/http/features/species/species.schema";

@@ -29,7 +29,7 @@ import { useTaxonomy } from "@/frontend/features/species/hooks/useTaxonomy";
 import { useUpdateTaxonomyNodeParent, useCreateTaxonomyNode, useUpdateTaxonomyNodeLabel, useDeleteTaxonomyNode } from "../hooks/useAdminTaxonomy";
 import { getTaxonomyAffectedSpecies, type AffectedSpeciesItem } from "../admin.api";
 import type { TaxonomyNode } from "@/backend/http/features/taxonomy/taxonomy.schema";
-import { cn } from "@/frontend/shared/utils";
+import { cn } from "@/lib/utils";
 
 export type DraftTaxonomyNode = {
   tempId: number;     // always negative

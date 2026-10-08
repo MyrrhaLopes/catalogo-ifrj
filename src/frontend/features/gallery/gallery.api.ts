@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { apiFetch } from "@/frontend/shared/api/client";
 
 export const enrichedImageSchema = z.object({
   id: z.number(),
@@ -29,7 +30,6 @@ const galleryResponseSchema = z.object({
 });
 
 export async function getGallery(): Promise<EnrichedImage[]> {
-  const res = await fetch("/api/v1/gallery");
-  if (!res.ok) throw new Error("Erro ao carregar galeria");
+  const res = await apiFetch("/api/v1/gallery");
   return galleryResponseSchema.parse(await res.json()).images;
 }

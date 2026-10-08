@@ -1,7 +1,7 @@
 import { useState, useRef, useId } from "react";
 import { createPortal } from "react-dom";
 import { Plus } from "lucide-react";
-import { cn } from "@/frontend/shared/utils";
+import { cn } from "@/lib/utils";
 
 type Props = {
   id?: string;

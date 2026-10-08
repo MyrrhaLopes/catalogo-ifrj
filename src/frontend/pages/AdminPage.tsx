@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { createRoute, redirect, useNavigate } from "@tanstack/react-router";
-import type { UserInsert } from "@/backend/db/schema";
+import { createRoute, useNavigate } from "@tanstack/react-router";
 import { rootRoute } from "../rootRoute";
 import { z } from "zod";
-import { CatalogHeader } from "../components/CatalogHeader";
+import { PageShell } from "../components/layout/PageShell";
+import { PageLoading } from "../components/layout/PageLoading";
+import { PageError } from "../components/layout/PageError";
 import { Button } from "../components/ui/button";
-import { cn } from "../shared/utils";
+import { cn } from "@/lib/utils";
+import { requireAdmin } from "../shared/auth";
 import { SpeciesTable } from "../features/admin/components/SpeciesTable";
 import { UsersTable } from "../features/admin/components/UsersTable";
 import { CreateSpeciesModal } from "../features/admin/components/CreateSpeciesModal";
@@ -28,14 +30,11 @@ export type AdminSearch = z.infer<typeof adminSearchSchema>;
 export const adminRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin",
-  beforeLoad: async () => {
-    const res = await fetch("/api/v1/sessions/", { credentials: "include" });
-    if (res.status === 401) throw redirect({ to: "/login" });
-    const user = (await res.json()) as UserInsert;
-    if (!user.isAdmin) throw redirect({ to: "/" });
-  },
+  beforeLoad: requireAdmin,
   validateSearch: (search: Record<string, unknown>) => adminSearchSchema.parse(search),
   component: AdminPage,
+  pendingComponent: PageLoading,
+  errorComponent: PageError,
 });
 
 type Section = "species" | "specimen" | "users" | "taxonomy" | "attributes" | "images";
@@ -61,8 +60,7 @@ function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <CatalogHeader />
+    <PageShell>
       <div className="flex flex-1 gap-4 p-4 max-w-screen-xl mx-auto w-full">
         <aside className="w-52 shrink-0">
           <div className="border rounded-lg overflow-hidden">
@@ -149,6 +147,6 @@ function AdminPage() {
           )}
         </main>
       </div>
-    </div>
+    </PageShell>
   );
 }

@@ -15,7 +15,7 @@ import {
   AlertDialogTrigger,
 } from "@/frontend/components/ui/alert-dialog";
 import { buttonVariants } from "@/frontend/components/ui/button";
-import { cn } from "@/frontend/shared/utils";
+import { cn } from "@/lib/utils";
 import type { DraftItem, SectionKey } from "../../hooks/useArticleEditor";
 import type { ArticleBlock } from "../types";
 import { TextBlockEditor } from "./TextBlockEditor";

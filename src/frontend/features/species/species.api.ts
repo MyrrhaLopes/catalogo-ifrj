@@ -20,6 +20,7 @@ import type {
 } from "@/backend/http/features/article/article.schema";
 import { getImagesBySpecies } from "@/frontend/features/images/images.api";
 import type { GalleryImage } from "@/frontend/features/images/images.api";
+import { apiFetch, ApiError } from "@/frontend/shared/api/client";
 
 export type { SpeciesBase, SpeciesWithTaxonomy, SearchResponse, SpeciesSearchResult, AttributeTemplate, TaxonomyNode, GalleryImage };
 export { setSpeciesThumbnail } from "@/frontend/features/images/images.api";
@@ -32,14 +33,17 @@ export type SpeciesDetails = Omit<SpeciesWithTaxonomy, "thumbnailImage"> & {
 };
 
 export async function getSpeciesDetails(id: number): Promise<SpeciesDetails> {
-  const [speciesRes, articleRes, galleryImages] = await Promise.all([
-    fetch(`/api/v1/species/${id}?withTaxonomy=true`),
-    fetch(`/api/v1/articles/?speciesId=${id}`),
-    getImagesBySpecies(id).catch(() => []),
-  ]);
+  let speciesRes: Response;
+  try {
+    speciesRes = await apiFetch(`/api/v1/species/${id}?withTaxonomy=true`);
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) throw new Error("Espécie não encontrada");
+    throw e;
+  }
 
-  if (speciesRes.status === 404) throw new Error("Espécie não encontrada");
-  if (!speciesRes.ok) throw new Error("Erro ao buscar detalhes da espécie");
+  const articleRes = await fetch(`/api/v1/articles/?speciesId=${id}`);
+  const galleryImages = await getImagesBySpecies(id).catch(() => []);
+
   if (!articleRes.ok && articleRes.status !== 404)
     throw new Error("Erro ao buscar artigo");
 
@@ -71,21 +75,18 @@ export async function searchSpecies(params: SearchParams): Promise<SearchRespons
   if (params.taxNodes?.length) url.searchParams.set("taxNodes", params.taxNodes.join(","));
   if (params.attrs?.length) url.searchParams.set("attrs", JSON.stringify(params.attrs));
 
-  const res = await fetch(url.toString());
-  if (!res.ok) throw new Error("Erro ao buscar espécies");
+  const res = await apiFetch(url.toString());
   return searchResponseSchema.parse(await res.json());
 }
 
 export async function getTaxonomy(): Promise<TaxonomyNode[]> {
-  const res = await fetch("/api/v1/taxonomy/");
-  if (!res.ok) throw new Error("Erro ao buscar taxonomia");
+  const res = await apiFetch("/api/v1/taxonomy/");
   const { nodes } = taxonomyListResponseSchema.parse(await res.json());
   return nodes;
 }
 
 export async function getAttributeTemplates(): Promise<AttributeTemplate[]> {
-  const res = await fetch("/api/v1/attribute-templates");
-  if (!res.ok) throw new Error("Erro ao buscar templates de atributos");
+  const res = await apiFetch("/api/v1/attribute-templates");
   const { templates } = z.object({ templates: z.array(attributeTemplateSchema) }).parse(await res.json());
   return templates;
 }

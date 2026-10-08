@@ -3,53 +3,43 @@ import type {
   UserRegisterInput,
   UpdateUserInput,
 } from "@/backend/http/features/users/user.schema";
+import { apiFetch, ApiError } from "@/frontend/shared/api/client";
 
 export async function registerUser(data: UserRegisterInput): Promise<void> {
-  const res = await fetch("/api/v1/users/", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify(data),
-  });
-
-  if (res.status === 409) throw new Error("Email já cadastrado");
-  if (!res.ok) throw new Error("Erro ao criar conta");
+  try {
+    await apiFetch("/api/v1/users/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 409) throw new Error("Email já cadastrado");
+    throw e;
+  }
 }
 
 export async function loginUser(data: UserLoginInput): Promise<void> {
-  const res = await fetch("/api/v1/sessions/", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify(data),
-  });
-
-  if (res.status === 401) throw new Error("Credenciais inválidas");
-  if (!res.ok) throw new Error("Erro ao fazer login");
+  try {
+    await apiFetch("/api/v1/sessions/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 401) throw new Error("Credenciais inválidas");
+    throw e;
+  }
 }
 
 export async function logoutUser(): Promise<void> {
-  const res = await fetch("/api/v1/sessions/", {
-    method: "DELETE",
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("Erro ao deslogar");
+  await apiFetch("/api/v1/sessions/", { method: "DELETE" });
 }
 
 export async function deleteAccount(): Promise<void> {
-  const res = await fetch("/api/v1/users/", {
-    method: "DELETE",
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("Erro ao apagar conta");
+  await apiFetch("/api/v1/users/", { method: "DELETE" });
 }
 
 export async function updateUser(data: UpdateUserInput): Promise<void> {
-  const res = await fetch("/api/v1/users/", {
+  await apiFetch("/api/v1/users/", {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Erro ao atualizar usuário");
 }
