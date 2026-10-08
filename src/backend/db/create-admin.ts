@@ -4,8 +4,13 @@ import { db } from "./drizzle.ts";
 import { usersTable } from "./schema.ts";
 import { eq } from "drizzle-orm";
 
-const EMAIL = "lorenzolopes223@gmail.com";
-const PASSWORD = "Nemtenta223*";
+const EMAIL = process.env.ADMIN_EMAIL;
+const PASSWORD = process.env.ADMIN_PASSWORD;
+
+if (!EMAIL || !PASSWORD) {
+  console.error("Defina ADMIN_EMAIL e ADMIN_PASSWORD antes de rodar este script.");
+  process.exit(1);
+}
 
 async function createAdmin() {
   const passwordHash = await bcrypt.hash(PASSWORD, 10);

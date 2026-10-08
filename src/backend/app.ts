@@ -1,6 +1,8 @@
 import express from "express";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
+import path from "path";
+import { fileURLToPath } from "url";
 import { errorHandler } from "./http/middleware/errorHandler.middleware";
 import { userRouter } from "./http/features/users/user.route";
 import { speciesRouter } from "./http/features/species/species.route";
@@ -28,6 +30,15 @@ app.use("/api/v1/", sourcesRouter);
 app.use("/api/v1/", imagesRouter);
 app.use("/api/v1/", galleryRouter);
 app.use("/api/v1/", favoriteRouter);
+if (process.env.NODE_ENV === "production") {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const distPath = path.resolve(__dirname, "../../dist");
+  app.use(express.static(distPath));
+  app.use((_req, res) => {
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+}
+
 // error handler global vai no final, depois de todas as rotas
 app.use(errorHandler);
 
