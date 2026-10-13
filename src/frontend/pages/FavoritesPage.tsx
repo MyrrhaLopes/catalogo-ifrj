@@ -29,7 +29,7 @@ function FavoritesPage() {
 
   return (
     <PageShell className="bg-white">
-      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 md:py-10 tv:max-w-5xl tv:px-10">
+      <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 md:py-10 tv:max-w-5xl tv:px-10">
         <h1 className="mb-6 text-2xl font-bold text-neutral-900 sm:text-3xl md:mb-8 tv:text-4xl">
           Meus Favoritos
         </h1>

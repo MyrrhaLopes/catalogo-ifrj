@@ -168,7 +168,7 @@ function GalleryPage() {
 
   return (
     <PageShell className="bg-white">
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 md:py-10 tv:max-w-screen-2xl tv:px-10">
+      <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 md:py-10 tv:max-w-screen-2xl tv:px-10">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-green-700 sm:text-3xl tv:text-4xl">Galeria</h1>
           <p className="text-sm text-neutral-600 mt-1 max-w-xl tv:text-base">

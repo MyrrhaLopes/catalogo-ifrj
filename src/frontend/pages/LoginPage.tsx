@@ -1,5 +1,6 @@
 import { createRoute, Link, useNavigate } from "@tanstack/react-router";
 import { rootRoute } from "../rootRoute";
+import { PageShell } from "../components/layout/PageShell";
 import { Button } from "@/frontend/components/ui/button";
 import { Input } from "@/frontend/components/ui/input";
 import { Label } from "@/frontend/components/ui/label";
@@ -58,60 +59,62 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-100 flex items-center justify-center px-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl">Entrar</CardTitle>
-          <CardDescription>
-            Acesse sua conta para gerenciar o catálogo
-          </CardDescription>
-        </CardHeader>
+    <PageShell className="bg-neutral-100">
+      <div className="flex flex-1 items-center justify-center px-4">
+        <Card className="w-full max-w-sm">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl">Entrar</CardTitle>
+            <CardDescription>
+              Acesse sua conta para gerenciar o catálogo
+            </CardDescription>
+          </CardHeader>
 
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                type="email"
-                name="email"
-                placeholder="seu@email.com"
-                required
-              />
-            </div>
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  name="email"
+                  placeholder="seu@email.com"
+                  required
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="••••••••"
-                required
-              />
-            </div>
-            {error && (
-              <p className="text-sm text-red-600">{error.message}</p>
-            )}
-          </CardContent>
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+              {error && (
+                <p className="text-sm text-red-600">{error.message}</p>
+              )}
+            </CardContent>
 
-          <CardFooter className="flex flex-col gap-3">
-            <Button type="submit" className="w-full" disabled={isPending}>
-              Entrar
-            </Button>
+            <CardFooter className="flex flex-col gap-3">
+              <Button type="submit" className="w-full" disabled={isPending}>
+                Entrar
+              </Button>
 
-            <p className="text-sm text-neutral-500 text-center">
-              Não tem uma conta?{" "}
-              <Link
-                to="/register"
-                className="text-neutral-900 font-medium underline underline-offset-4 hover:text-neutral-700"
-              >
-                Cadastre-se
-              </Link>
-            </p>
-          </CardFooter>
-        </form>
-      </Card>
-    </div>
+              <p className="text-sm text-neutral-500 text-center">
+                Não tem uma conta?{" "}
+                <Link
+                  to="/register"
+                  className="text-neutral-900 font-medium underline underline-offset-4 hover:text-neutral-700"
+                >
+                  Cadastre-se
+                </Link>
+              </p>
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
+    </PageShell>
   );
 }

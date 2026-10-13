@@ -166,7 +166,7 @@ function SpeciesSearchPage() {
 
   return (
     <PageShell className="bg-white">
-      <div className="mx-auto max-w-screen-xl px-4 py-6 sm:px-6 md:py-8 tv:max-w-screen-2xl tv:px-10">
+      <div className="mx-auto w-full max-w-screen-xl px-4 py-6 sm:px-6 md:py-8 tv:max-w-screen-2xl tv:px-10">
         {/* Search input + mobile filters toggle */}
         <div className="mb-4 flex gap-3 md:mb-6">
           <div className="relative max-w-md flex-1">

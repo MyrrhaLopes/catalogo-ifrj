@@ -38,11 +38,23 @@ export function CatalogHeader({ className }: CatalogHeaderProps) {
           <p>de Educação, Ciência e Tecnologia</p>
           <p>Rio de Janeiro</p>
         </div>
-        <span className="text-base font-bold text-green-950 lg:hidden">Catálogo IFRJ</span>
+        <Link
+          to="/especies/buscar"
+          search={{ searchIn: "species" }}
+          className="text-base font-bold text-green-950 lg:hidden"
+        >
+          Catálogo IFRJ
+        </Link>
       </div>
 
       <nav className="hidden flex-1 items-center gap-6 lg:flex">
-        <span className="text-xl font-bold text-green-950 tv:text-2xl">Catálogo IFRJ</span>
+        <Link
+          to="/especies/buscar"
+          search={{ searchIn: "species" }}
+          className="text-xl font-bold text-green-950 tv:text-2xl"
+        >
+          Catálogo IFRJ
+        </Link>
         <Link
           to="/especies/buscar"
           search={{ searchIn: "species" }}
