@@ -48,7 +48,7 @@ export function TextBlock({ content, sourcesMap }: Props) {
     currentParagraph.length = 0;
     const nodes = parseInlineCitations(raw, sourcesMap);
     elements.push(
-      <p key={key} className="text-sm text-neutral-700 leading-relaxed text-justify mb-4">
+      <p key={key} className="text-sm text-neutral-700 leading-relaxed text-justify mb-4 md:text-base tv:text-lg tv:leading-loose">
         {nodes}
       </p>,
     );
@@ -64,19 +64,19 @@ export function TextBlock({ content, sourcesMap }: Props) {
 
       if (level === 1) {
         elements.push(
-          <h2 key={i} id={id} className="text-xl font-semibold text-primary mt-6 mb-4">
+          <h2 key={i} id={id} className="text-xl font-semibold text-primary mt-6 mb-4 tv:text-2xl">
             {text}
           </h2>,
         );
       } else if (level === 2) {
         elements.push(
-          <h3 key={i} id={id} className="text-lg font-semibold text-primary mt-5 mb-3">
+          <h3 key={i} id={id} className="text-lg font-semibold text-primary mt-5 mb-3 tv:text-xl">
             {text}
           </h3>,
         );
       } else {
         elements.push(
-          <h4 key={i} id={id} className="text-base font-semibold text-primary mt-4 mb-2">
+          <h4 key={i} id={id} className="text-base font-semibold text-primary mt-4 mb-2 tv:text-lg">
             {text}
           </h4>,
         );

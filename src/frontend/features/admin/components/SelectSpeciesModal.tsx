@@ -127,7 +127,7 @@ export function SelectSpeciesModal({ open, onOpenChange, specimen }: SelectSpeci
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl flex flex-col gap-4">
+      <DialogContent className="flex max-h-[90vh] flex-col gap-4 overflow-y-auto max-w-2xl">
         <DialogHeader>
           <DialogTitle>Selecionar espécies</DialogTitle>
         </DialogHeader>

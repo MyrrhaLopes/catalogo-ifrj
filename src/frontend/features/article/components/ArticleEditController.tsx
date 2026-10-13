@@ -84,16 +84,16 @@ export function ArticleEditController({ id, editor }: ArticleEditControllerProps
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-10 px-10 py-10 max-w-screen-xl mx-auto">
-        <aside className="w-44 shrink-0">
+      <div className="mx-auto flex max-w-screen-xl flex-col gap-8 px-4 py-6 sm:px-6 md:px-8 lg:flex-row lg:gap-10 lg:px-10 lg:py-10">
+        <aside className="lg:w-44 lg:shrink-0">
           <p className="text-xs font-medium text-muted-foreground mb-2">Esquerda</p>
           <ArticleEditorSection sectionKey="left" speciesId={Number(id)} items={editor.sections.left} onAdd={(i, item) => editor.addItem("left", i, item)} onRemove={(itemId) => editor.removeItem("left", itemId)} onUpdate={(itemId, block) => editor.updateBlockContent("left", itemId, block)} onToggleDefault={(itemId) => editor.toggleDefaultBlock(itemId)} />
         </aside>
-        <article className="flex-1 min-w-0">
+        <article className="min-w-0 lg:flex-1">
           <p className="text-xs font-medium text-muted-foreground mb-2">Centro</p>
           <ArticleEditorSection sectionKey="center" speciesId={Number(id)} items={editor.sections.center} onAdd={(i, item) => editor.addItem("center", i, item)} onRemove={(itemId) => editor.removeItem("center", itemId)} onUpdate={(itemId, block) => editor.updateBlockContent("center", itemId, block)} onToggleDefault={(itemId) => editor.toggleDefaultBlock(itemId)} />
         </article>
-        <aside className="w-52 shrink-0">
+        <aside className="lg:w-52 lg:shrink-0">
           <p className="text-xs font-medium text-muted-foreground mb-2">Direita</p>
           <ArticleEditorSection sectionKey="right" speciesId={Number(id)} items={editor.sections.right} onAdd={(i, item) => editor.addItem("right", i, item)} onRemove={(itemId) => editor.removeItem("right", itemId)} onUpdate={(itemId, block) => editor.updateBlockContent("right", itemId, block)} onToggleDefault={(itemId) => editor.toggleDefaultBlock(itemId)} />
         </aside>

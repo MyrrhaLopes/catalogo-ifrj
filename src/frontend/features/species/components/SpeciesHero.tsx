@@ -4,6 +4,7 @@ import { FlaskConical, Pencil } from "lucide-react";
 import { Button } from "@/frontend/components/ui/button";
 import { ImageViewer, type ViewerImage } from "@/frontend/features/images/components/ImageViewer";
 import { StarButton } from "./StarButton";
+import { cn } from "@/lib/utils";
 import type { SpeciesDetails } from "@/frontend/features/species/species.api";
 import type { GalleryImage } from "@/frontend/features/images/images.api";
 
@@ -43,12 +44,19 @@ export function SpeciesHero({ species, scientificName, popularName, isAdmin, isE
 
   return (
     <>
-      <section className={`bg-[#e8f2d0] grid h-[420px] overflow-hidden ${thumbnails.length > 0 ? "grid-cols-[1fr_1fr_160px]" : "grid-cols-[1fr_1fr]"}`}>
-        <div className="flex flex-col justify-end px-12 py-10">
+      <section
+        className={cn(
+          "bg-[#e8f2d0] grid overflow-hidden lg:h-[420px] tv:h-[34rem]",
+          thumbnails.length > 0 ? "lg:grid-cols-[1fr_1fr_160px] tv:grid-cols-[1fr_1fr_220px]" : "lg:grid-cols-2",
+        )}
+      >
+        <div className="order-2 flex flex-col justify-end px-6 py-8 sm:px-8 md:px-10 lg:order-1 lg:px-12 lg:py-10 tv:px-16 tv:py-14">
           <Breadcrumb nodes={species.taxonomyPath} />
-          <h1 className="text-5xl font-bold italic text-neutral-900 mt-6 leading-tight">{scientificName}</h1>
-          {popularName && <p className="text-lg text-neutral-600 mt-1">{popularName}</p>}
-          <div className="flex gap-2 mt-4 self-start items-center">
+          <h1 className="mt-4 text-3xl font-bold italic leading-tight text-neutral-900 sm:text-4xl md:text-5xl lg:mt-6 tv:text-6xl">
+            {scientificName}
+          </h1>
+          {popularName && <p className="mt-1 text-base text-neutral-600 md:text-lg tv:text-xl">{popularName}</p>}
+          <div className="mt-4 flex flex-wrap items-center gap-2 self-start">
             {isAdmin && !isEditMode && (
               <>
                 <Button size="sm" variant="outline" className="bg-white/80 border-neutral-400 hover:bg-white hover:border-neutral-600"
@@ -66,7 +74,7 @@ export function SpeciesHero({ species, scientificName, popularName, isAdmin, isE
           {species.specimens.length > 0 && (
             <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3">
               {species.specimens.map((s, i) => (
-                <span key={s.id} className="flex items-center gap-1 text-xs text-neutral-700">
+                <span key={s.id} className="flex items-center gap-1 text-xs text-neutral-700 tv:text-sm">
                   {i > 0 && <span className="text-neutral-400">·</span>}
                   <span className="font-medium">{s.code}</span>
                   {(s.shelf != null || s.lot != null) && (
@@ -79,9 +87,11 @@ export function SpeciesHero({ species, scientificName, popularName, isAdmin, isE
             </div>
           )}
         </div>
-        <HeroImage image={heroImages[0]} alt={scientificName} onClick={() => { setViewerIndex(0); setViewerOpen(true); }} />
+        <div className="order-1 bg-[#e8f2d0] md:h-72 lg:order-2 lg:h-full">
+          <HeroImage image={heroImages[0]} alt={scientificName} onClick={() => { setViewerIndex(0); setViewerOpen(true); }} />
+        </div>
         {thumbnails.length > 0 && (
-          <div className="flex flex-col grid-cols-[1fr]">
+          <div className="order-3 flex gap-2 overflow-x-auto px-6 py-3 sm:px-8 md:px-10 lg:flex-col lg:gap-0 lg:overflow-visible lg:p-0">
             {thumbnails.map((img, i) => (
               <ThumbnailImage key={img.id} image={img} alt={img.alt ?? scientificName} onClick={() => { setViewerIndex(i + 1); setViewerOpen(true); }} />
             ))}
@@ -107,13 +117,26 @@ function Breadcrumb({ nodes }: { nodes: Array<{ id: number; labelValue: string }
 }
 
 function HeroImage({ image, alt, onClick }: { image: GalleryImage | undefined; alt: string; onClick?: () => void }) {
-  if (!image) return <div className="bg-neutral-200 flex items-center justify-center text-neutral-400 text-sm">Sem imagem</div>;
-  return <img src={image.url} alt={image.alt ?? alt} className={`w-full grid-cols-[2fr] h-full object-cover ${onClick ? "cursor-pointer" : ""}`} onClick={onClick} />;
+  if (!image) return <div className="h-48 w-full flex items-center justify-center bg-neutral-200 text-neutral-400 text-sm md:h-full">Sem imagem</div>;
+  return (
+    <img
+      src={image.url}
+      alt={image.alt ?? alt}
+      className={cn("w-full h-auto max-h-[70vh] object-contain md:h-full md:max-h-none md:object-cover", onClick && "cursor-pointer")}
+      onClick={onClick}
+    />
+  );
 }
 
 function ThumbnailImage({ image, alt, onClick }: { image: GalleryImage; alt: string; onClick?: () => void }) {
   return (
-    <div className={`flex-1 min-h-0 overflow-hidden ${onClick ? "cursor-pointer" : ""}`} onClick={onClick}>
+    <div
+      className={cn(
+        "h-20 w-20 shrink-0 overflow-hidden lg:h-auto lg:w-full lg:flex-1 lg:shrink lg:min-h-0",
+        onClick && "cursor-pointer",
+      )}
+      onClick={onClick}
+    >
       <img src={image.url} alt={image.alt ?? alt} className="w-full h-full object-cover" />
     </div>
   );

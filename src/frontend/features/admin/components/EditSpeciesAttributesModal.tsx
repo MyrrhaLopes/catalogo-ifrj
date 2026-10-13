@@ -151,7 +151,7 @@ export function EditSpeciesAttributesModal({ open, onOpenChange, species }: Prop
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
-      <DialogContent className="max-w-3xl flex flex-col gap-4">
+      <DialogContent className="flex max-h-[90vh] flex-col gap-4 overflow-y-auto max-w-3xl">
         <DialogHeader>
           <DialogTitle>
             Atributos de{" "}

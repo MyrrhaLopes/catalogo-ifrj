@@ -31,8 +31,8 @@ export function BlockInsertZone({ onAdd, options = ["text", "image", "column"] }
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <div className="group relative h-3 cursor-pointer flex items-center my-0.5">
-          <div className="absolute inset-x-0 h-0.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 bg-green-500 transition-opacity rounded-full" />
-          <Plus className="absolute right-0 top-1/2 -translate-y-1/2 h-3 w-3 text-white bg-green-500 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity z-10" />
+          <div className="absolute inset-x-0 h-0.5 top-1/2 -translate-y-1/2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 bg-green-500 transition-opacity rounded-full" />
+          <Plus className="absolute right-0 top-1/2 -translate-y-1/2 h-3 w-3 text-white bg-green-500 rounded-sm opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-10" />
         </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="text-xs min-w-32">

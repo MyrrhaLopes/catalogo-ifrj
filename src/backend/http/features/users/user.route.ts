@@ -33,7 +33,7 @@ userRouter.post("/sessions/", async (req, res, next) => {
       .cookie("session_id", sessionId, {
         httpOnly: true,
         sameSite: "lax",
-        secure: true,
+        secure: process.env.NODE_ENV === "production",
       })
       .status(201)
       .send();

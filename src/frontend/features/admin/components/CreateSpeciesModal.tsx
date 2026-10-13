@@ -40,7 +40,7 @@ export function CreateSpeciesModal({ open, onOpenChange }: CreateSpeciesModalPro
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto max-w-xl">
         <DialogHeader>
           <DialogTitle>Criar nova espécie</DialogTitle>
         </DialogHeader>

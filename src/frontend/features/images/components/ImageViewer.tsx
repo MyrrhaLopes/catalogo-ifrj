@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { X, ChevronLeft, ChevronRight, Download, Globe, Camera, Pencil, ExternalLink } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import useAuth from "@/frontend/shared/hooks/useAuth";
@@ -35,6 +35,11 @@ export function ImageViewer({ images, open, currentIndex, onClose, onNavigate }:
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < images.length - 1;
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isSyncingRef = useRef(false);
+  const scrollEndTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wasOpenRef = useRef(false);
+
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
@@ -45,6 +50,35 @@ export function ImageViewer({ images, open, currentIndex, onClose, onNavigate }:
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, hasPrev, hasNext, currentIndex, onClose, onNavigate]);
+
+  // Keep the swipeable strip in sync whenever currentIndex changes externally
+  // (arrows, thumbnails, keyboard) — jump instantly on open, animate otherwise.
+  useEffect(() => {
+    if (!open) {
+      wasOpenRef.current = false;
+      return;
+    }
+    const el = scrollRef.current;
+    if (!el) return;
+    const justOpened = !wasOpenRef.current;
+    wasOpenRef.current = true;
+    isSyncingRef.current = true;
+    el.scrollTo({ left: currentIndex * el.clientWidth, behavior: justOpened ? "auto" : "smooth" });
+    const t = setTimeout(() => { isSyncingRef.current = false; }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, open]);
+
+  function handleScroll() {
+    if (isSyncingRef.current) return;
+    const el = scrollRef.current;
+    if (!el || el.clientWidth === 0) return;
+    if (scrollEndTimeoutRef.current) clearTimeout(scrollEndTimeoutRef.current);
+    scrollEndTimeoutRef.current = setTimeout(() => {
+      const idx = Math.round(el.scrollLeft / el.clientWidth);
+      if (idx !== currentIndex && idx >= 0 && idx < images.length) onNavigate(idx);
+    }, 100);
+  }
 
   if (!open || !image) return null;
 
@@ -62,11 +96,11 @@ export function ImageViewer({ images, open, currentIndex, onClose, onNavigate }:
     : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex flex-col md:flex-row" role="dialog" aria-modal="true">
       {/* ── Left panel (dark) ── */}
-      <div className="flex flex-col bg-neutral-950" style={{ width: "68%" }}>
+      <div className="flex min-h-0 flex-1 flex-col bg-neutral-950 md:w-[68%] md:flex-none">
         {/* Top bar */}
-        <div className="flex items-center gap-3 px-5 py-3 text-white/80 text-sm shrink-0">
+        <div className="flex items-center gap-3 px-3 py-2.5 text-white/80 text-sm shrink-0 sm:px-5 sm:py-3">
           <span className="text-white/50 tabular-nums shrink-0">
             {currentIndex + 1} de {images.length}
           </span>
@@ -85,24 +119,36 @@ export function ImageViewer({ images, open, currentIndex, onClose, onNavigate }:
           </button>
         </div>
 
-        {/* Image area */}
-        <div className="flex-1 relative flex items-center justify-center min-h-0 bg-neutral-950">
-          {image.url ? (
-            <img
-              src={image.url}
-              alt={image.alt ?? ""}
-              className="max-h-full max-w-full object-contain"
-            />
-          ) : (
-            <div className="flex flex-col items-center gap-3 text-neutral-500">
-              <div className="w-16 h-16 rounded border-2 border-neutral-600 flex items-center justify-center">
-                <span className="text-2xl">🖼</span>
+        {/* Image area — swipeable/scrollable strip, one slide per image */}
+        <div className="flex-1 relative min-h-0 bg-neutral-950">
+          <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className="flex h-full w-full snap-x snap-mandatory overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden"
+            style={{ scrollbarWidth: "none" }}
+          >
+            {images.map((img) => (
+              <div key={img.id} className="flex h-full w-full shrink-0 snap-center items-center justify-center">
+                {img.url ? (
+                  <img
+                    src={img.url}
+                    alt={img.alt ?? ""}
+                    draggable={false}
+                    className="max-h-full max-w-full object-contain"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-3 text-neutral-500">
+                    <div className="w-16 h-16 rounded border-2 border-neutral-600 flex items-center justify-center">
+                      <span className="text-2xl">🖼</span>
+                    </div>
+                    {img.alt && (
+                      <p className="text-sm text-neutral-400">[{img.alt}]</p>
+                    )}
+                  </div>
+                )}
               </div>
-              {image.alt && (
-                <p className="text-sm text-neutral-400">[{image.alt}]</p>
-              )}
-            </div>
-          )}
+            ))}
+          </div>
 
           {hasPrev && (
             <button
@@ -151,8 +197,8 @@ export function ImageViewer({ images, open, currentIndex, onClose, onNavigate }:
       </div>
 
       {/* ── Right panel (white) ── */}
-      <div className="flex flex-col bg-white overflow-y-auto" style={{ width: "32%" }}>
-        <div className="flex-1 px-6 py-6 space-y-5">
+      <div className="flex max-h-[45vh] flex-col overflow-y-auto bg-white md:max-h-none md:w-[32%]">
+        <div className="flex-1 px-4 py-5 space-y-5 sm:px-6 sm:py-6">
           {/* Origin badge */}
           <div>
             {isAcervo ? (
@@ -292,7 +338,7 @@ export function ImageViewer({ images, open, currentIndex, onClose, onNavigate }:
         </div>
 
         {/* Footer actions */}
-        <div className="shrink-0 flex gap-2 px-6 pb-5">
+        <div className="shrink-0 flex gap-2 px-4 pb-5 sm:px-6">
           <a
             href={image.url}
             download

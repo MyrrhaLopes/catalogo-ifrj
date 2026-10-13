@@ -61,15 +61,34 @@ function AdminPage() {
 
   return (
     <PageShell>
-      <div className="flex flex-1 gap-4 p-4 max-w-screen-xl mx-auto w-full">
-        <aside className="w-52 shrink-0">
+      <div className="mx-auto flex w-full max-w-screen-xl flex-1 flex-col gap-4 p-3 sm:p-4 lg:flex-row tv:max-w-screen-2xl tv:gap-6 tv:p-6">
+        {/* Mobile/tablet: horizontal scrollable tabs */}
+        <nav className="flex gap-2 overflow-x-auto pb-1 lg:hidden">
+          {sidebarItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setSection(item.id)}
+              className={cn(
+                "shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm transition-colors",
+                section === item.id
+                  ? "border-primary bg-primary/10 font-medium text-primary"
+                  : "border-input text-muted-foreground hover:bg-muted/60",
+              )}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        {/* Desktop/TV: vertical sidebar */}
+        <aside className="hidden lg:block lg:w-52 lg:shrink-0 tv:w-64">
           <div className="border rounded-lg overflow-hidden">
             {sidebarItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => setSection(item.id)}
                 className={cn(
-                  "w-full text-left px-4 py-3 text-sm transition-colors hover:bg-muted/60",
+                  "w-full text-left px-4 py-3 text-sm transition-colors hover:bg-muted/60 tv:text-base tv:py-3.5",
                   section === item.id
                     ? "bg-muted font-medium border-l-2 border-primary"
                     : "border-l-2 border-transparent",
@@ -81,11 +100,11 @@ function AdminPage() {
           </div>
         </aside>
 
-        <main className="flex-1 border rounded-lg p-4 flex flex-col gap-4">
+        <main className="flex min-w-0 flex-1 flex-col gap-4 rounded-lg border p-3 sm:p-4 tv:gap-6 tv:p-6">
           {section === "species" && (
             <>
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Espécies</h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-lg font-semibold tv:text-xl">Espécies</h2>
                 <Button size="sm" onClick={() => setCreateModalOpen(true)}>
                   <Plus className="h-4 w-4 mr-1" />
                   Criar espécie
@@ -101,8 +120,8 @@ function AdminPage() {
 
           {section === "specimen" && (
             <>
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Espécimes</h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-lg font-semibold tv:text-xl">Espécimes</h2>
                 <Button size="sm" onClick={() => setCreateSpecimenModalOpen(true)}>
                   <Plus className="h-4 w-4 mr-1" />
                   Adicionar espécime

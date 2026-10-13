@@ -32,7 +32,7 @@ export function ImagePickerModal({ speciesId, open, onClose, onSelect }: Props) 
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto max-w-2xl">
         <DialogHeader>
           <DialogTitle>Selecionar imagem da galeria</DialogTitle>
         </DialogHeader>
@@ -62,7 +62,7 @@ export function ImagePickerModal({ speciesId, open, onClose, onSelect }: Props) 
         )}
 
         {!isLoading && filtered.length > 0 && (
-          <div className="grid grid-cols-3 gap-3 max-h-[400px] overflow-y-auto pr-1">
+          <div className="grid grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-1 sm:grid-cols-3">
             {filtered.map((image) => (
               <button
                 key={image.id}

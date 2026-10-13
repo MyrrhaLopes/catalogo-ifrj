@@ -15,8 +15,8 @@ export function SourcesBlock({ content, inlineSources = [], attributeSources = [
 
   return (
     <section id="fontes" className="mb-10">
-      <h2 className="text-xl font-semibold text-primary mb-4">Fontes</h2>
-      <ol className="space-y-2 text-sm text-neutral-700">
+      <h2 className="text-xl font-semibold text-primary mb-4 tv:text-2xl">Fontes</h2>
+      <ol className="space-y-2 text-sm text-neutral-700 tv:text-base">
         {sources.map((source) => (
           <li key={source.index} id={`source-${source.index}`} className="flex gap-2">
             <span className="text-neutral-500 shrink-0">[{source.index}]</span>

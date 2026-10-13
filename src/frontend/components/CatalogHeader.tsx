@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import useAuth from "@/frontend/shared/hooks/useAuth";
 import { HeaderSearch } from "@/frontend/features/catalog/components/HeaderSearch";
 import { UserMenu } from "@/frontend/features/catalog/components/UserMenu";
+import { MobileNav } from "@/frontend/features/catalog/components/MobileNav";
 
 type CatalogHeaderProps = {
   className?: string;
@@ -10,36 +13,47 @@ type CatalogHeaderProps = {
 
 export function CatalogHeader({ className }: CatalogHeaderProps) {
   const { data: user } = useAuth();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   return (
     <header
       className={cn(
-        "flex items-center gap-6 border-b border-[#aaba20] bg-[#8aba6d] px-6 py-2",
+        "flex items-center gap-3 border-b border-[#aaba20] bg-[#8aba6d] px-4 py-2 lg:gap-6 lg:px-6 tv:px-10 tv:py-4",
         className,
       )}
     >
+      <button
+        type="button"
+        onClick={() => setMobileNavOpen(true)}
+        className="shrink-0 rounded-md p-1.5 text-green-950 transition-colors hover:bg-black/5 lg:hidden"
+        aria-label="Abrir menu"
+      >
+        <Menu className="h-6 w-6" />
+      </button>
+
       <div className="flex items-center gap-3 shrink-0">
         <IFRJLogo />
-        <div className="text-[10px] font-medium uppercase leading-tight text-green-950">
+        <div className="hidden text-[10px] font-medium uppercase leading-tight text-green-950 lg:block tv:text-xs">
           <p className="font-bold">Instituto Federal</p>
           <p>de Educação, Ciência e Tecnologia</p>
           <p>Rio de Janeiro</p>
         </div>
+        <span className="text-base font-bold text-green-950 lg:hidden">Catálogo IFRJ</span>
       </div>
 
-      <nav className="flex flex-1 items-center gap-6">
-        <span className="text-xl font-bold text-green-950">Catálogo IFRJ</span>
+      <nav className="hidden flex-1 items-center gap-6 lg:flex">
+        <span className="text-xl font-bold text-green-950 tv:text-2xl">Catálogo IFRJ</span>
         <Link
           to="/especies/buscar"
           search={{ searchIn: "species" }}
-          className="text-sm text-green-950 transition-colors hover:underline"
+          className="text-sm text-green-950 transition-colors hover:underline tv:text-base"
         >
           Espécies
         </Link>
         <Link
           to="/galeria"
           search={{ search: "", origin: "all", groupBy: "especie", taxPath: [], thumbSize: "medium" }}
-          className="text-sm text-green-950 transition-colors hover:underline"
+          className="text-sm text-green-950 transition-colors hover:underline tv:text-base"
         >
           Galeria
         </Link>
@@ -47,18 +61,26 @@ export function CatalogHeader({ className }: CatalogHeaderProps) {
           <Link
             to="/admin"
             search={{ section: "species" }}
-            className="text-sm text-green-950 transition-colors hover:underline"
+            className="text-sm text-green-950 transition-colors hover:underline tv:text-base"
           >
             Admin
           </Link>
         )}
       </nav>
 
-      <HeaderSearch />
+      <div className="hidden shrink-0 lg:block">
+        <HeaderSearch className="w-48 xl:w-64 tv:w-80" />
+      </div>
 
-      <div className="shrink-0 flex items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
         <UserMenu />
       </div>
+
+      <MobileNav
+        open={mobileNavOpen}
+        onOpenChange={setMobileNavOpen}
+        isAdmin={user?.isAdmin === true}
+      />
     </header>
   );
 }

@@ -8,9 +8,9 @@ export function ColumnBlock({
   renderBlock: (block: ArticleBlock, key: number) => React.ReactNode;
 }) {
   return (
-    <div className="flex gap-6 mb-6">
+    <div className="mb-6 flex flex-col gap-6 md:flex-row">
       {columns.map((colBlocks, i) => (
-        <div key={i} className="flex-1 min-w-0">
+        <div key={i} className="min-w-0 md:flex-1">
           {colBlocks.map((block, j) => renderBlock(block, j))}
         </div>
       ))}

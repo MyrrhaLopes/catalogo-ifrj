@@ -25,9 +25,9 @@ type Props = {
 export function ArticleEditorHeader({ mode, isSaving, onPreview, onSave, onCancel, onBackToEdit }: Props) {
   if (mode === "preview") {
     return (
-      <div className="flex items-center gap-3 px-6 py-2 bg-blue-50 border-b border-blue-200 text-sm sticky top-0 z-20">
+      <div className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-blue-200 bg-blue-50 px-4 py-2 text-sm sm:px-6">
         <Eye className="h-4 w-4 text-blue-600 shrink-0" />
-        <span className="text-blue-800 flex-1 text-sm">
+        <span className="flex-1 text-sm text-blue-800">
           Modo de visualização — veja como o artigo ficará publicado
         </span>
         <Button size="sm" variant="outline" className="shrink-0" onClick={onBackToEdit}>
@@ -39,9 +39,9 @@ export function ArticleEditorHeader({ mode, isSaving, onPreview, onSave, onCance
   }
 
   return (
-    <div className="flex items-center gap-3 px-6 py-2 bg-amber-50 border-b border-amber-200 text-sm sticky top-0 z-20">
+    <div className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm sm:px-6">
       <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-      <span className="text-amber-800 flex-1 text-sm">
+      <span className="flex-1 text-sm text-amber-800 min-w-[14rem]">
         Modo de edição — mudanças salvas localmente até confirmar
       </span>
       <div className="flex items-center gap-2 shrink-0">

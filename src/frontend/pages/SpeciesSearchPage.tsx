@@ -8,15 +8,10 @@ import { useSearchSpecimens } from "../features/specimens/hooks/useSearchSpecime
 import { useAttributeTemplates } from "../features/species/hooks/useAttributeTemplates";
 import { SpeciesSearchResultCard } from "../features/search/components/SpeciesSearchResultCard";
 import { SpecimenSearchResultCard } from "../features/search/components/SpecimenSearchResultCard";
-import { TaxonomyFilters } from "../features/search/components/TaxonomyFilters";
-import {
-  AttributeFilters,
-  AddAttributeButton,
-  type ActiveAttrFilter,
-  type AttrOperator,
-} from "../features/search/components/AttributeFilters";
+import { SearchFiltersPanel } from "../features/search/components/SearchFiltersPanel";
+import { type ActiveAttrFilter, type AttrOperator } from "../features/search/components/AttributeFilters";
 import { fromBaseUnit, getDefaultDisplayUnit } from "../features/search/utils/unitConversion";
-import { Search } from "lucide-react";
+import { Search, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { Input } from "../components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -63,6 +58,7 @@ function SpeciesSearchPage() {
 
   const [activeFilters, setActiveFilters] = useState<ActiveAttrFilter[]>([]);
   const [inputValue, setInputValue] = useState(q);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didInitFromUrl = useRef(false);
 
@@ -170,29 +166,44 @@ function SpeciesSearchPage() {
 
   return (
     <PageShell className="bg-white">
-      <div className="mx-auto max-w-screen-xl px-6 py-8">
-        {/* Search input */}
-        <div className="relative mb-6 max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            value={inputValue}
-            onChange={(e) => handleInputChange(e.target.value)}
-            onKeyDown={handleInputKeyDown}
-            placeholder="Buscar espécie ou espécime..."
-            className="pl-9"
-          />
+      <div className="mx-auto max-w-screen-xl px-4 py-6 sm:px-6 md:py-8 tv:max-w-screen-2xl tv:px-10">
+        {/* Search input + mobile filters toggle */}
+        <div className="mb-4 flex gap-3 md:mb-6">
+          <div className="relative max-w-md flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              value={inputValue}
+              onChange={(e) => handleInputChange(e.target.value)}
+              onKeyDown={handleInputKeyDown}
+              placeholder="Buscar espécie ou espécime..."
+              className="pl-9"
+            />
+          </div>
+          <button
+            onClick={() => setMobileFiltersOpen((o) => !o)}
+            className="flex shrink-0 items-center gap-1.5 rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-600 transition-colors hover:border-neutral-300 lg:hidden"
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            Filtros
+            {(taxNodes.length > 0 || urlAttrs.length > 0) && (
+              <span className="rounded-full bg-green-600 px-1.5 text-xs text-white">
+                {taxNodes.length + urlAttrs.length}
+              </span>
+            )}
+            <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", mobileFiltersOpen && "rotate-180")} />
+          </button>
         </div>
 
         {q && (
-          <h2 className="mb-6 text-xl text-neutral-700">
+          <h2 className="mb-6 text-lg text-neutral-700 md:text-xl">
             Buscando por <strong className="text-neutral-900">"{q}"</strong>
           </h2>
         )}
 
-        <div className="flex gap-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:gap-8 tv:gap-12">
           {/* Results */}
-          <div className="min-w-0 flex-1">
+          <div className="order-2 min-w-0 flex-1 lg:order-1">
             {isLoading ? (
               <p className="text-sm text-neutral-400">Carregando...</p>
             ) : (
@@ -286,84 +297,31 @@ function SpeciesSearchPage() {
           </div>
 
           {/* Filters panel */}
-          <aside className="w-72 shrink-0">
-            <div className="space-y-5">
-              {/* Search type toggles */}
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                  Buscar em
-                </p>
-                <div className="flex gap-2">
-                  {(
-                    [
-                      { key: "species", label: "Espécies" },
-                      { key: "specimen", label: "Espécimes" },
-                    ] as const
-                  ).map(({ key, label }) => {
-                    const active = searchIn === key || searchIn === "both";
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => toggleSearchIn(key)}
-                        className={cn(
-                          "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                          active
-                            ? "border-green-600 bg-green-50 text-green-700"
-                            : "border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300",
-                        )}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Taxonomy filters — only shown when species is included */}
-              {includesSpecies && (
-                <div>
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                    Níveis taxonômicos
-                  </p>
-                  <TaxonomyFilters selectedIds={taxNodes} onChange={handleTaxNodesChange} />
-                </div>
-              )}
-
-              {/* Attribute filters — only shown when species is included */}
-              {includesSpecies && (
-                <div>
-                  <div className="mb-3 flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                      Atributos
-                    </p>
-                    <AddAttributeButton
-                      activeFilters={activeFilters}
-                      onAdd={(filter) => setActiveFilters((prev) => [...prev, filter])}
-                    />
-                  </div>
-                  <AttributeFilters
-                    filters={activeFilters}
-                    onChange={setActiveFilters}
-                    onSearchChange={handleAttrsSearchChange}
-                  />
-                </div>
-              )}
-
-              {/* Clear filters */}
-              {(taxNodes.length > 0 || urlAttrs.length > 0) && (
-                <button
-                  className="text-xs text-neutral-400 hover:text-red-500"
-                  onClick={() => {
-                    setActiveFilters([]);
-                    navigate({
-                      to: ROUTE,
-                      search: (p) => ({ q: p.q, searchIn: p.searchIn ?? "species", page: 1 }),
-                    });
-                  }}
-                >
-                  Limpar filtros
-                </button>
-              )}
+          <aside
+            className={cn(
+              "order-1 lg:order-2 lg:block lg:w-72 lg:shrink-0 tv:w-80",
+              mobileFiltersOpen ? "block" : "hidden",
+            )}
+          >
+            <div className="rounded-lg border border-neutral-200 p-4 lg:border-0 lg:p-0">
+              <SearchFiltersPanel
+                searchIn={searchIn}
+                onToggleSearchIn={toggleSearchIn}
+                includesSpecies={includesSpecies}
+                taxNodes={taxNodes}
+                onTaxNodesChange={handleTaxNodesChange}
+                activeFilters={activeFilters}
+                onActiveFiltersChange={setActiveFilters}
+                onAttrsSearchChange={handleAttrsSearchChange}
+                hasActiveFilters={taxNodes.length > 0 || urlAttrs.length > 0}
+                onClearFilters={() => {
+                  setActiveFilters([]);
+                  navigate({
+                    to: ROUTE,
+                    search: (p) => ({ q: p.q, searchIn: p.searchIn ?? "species", page: 1 }),
+                  });
+                }}
+              />
             </div>
           </aside>
         </div>

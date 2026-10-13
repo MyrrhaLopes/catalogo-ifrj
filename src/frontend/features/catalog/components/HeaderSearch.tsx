@@ -4,8 +4,14 @@ import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/frontend/components/ui/input";
 import { searchSpecies } from "@/frontend/features/species/species.api";
+import { cn } from "@/lib/utils";
 
-export function HeaderSearch() {
+type Props = {
+  className?: string;
+  onNavigate?: () => void;
+};
+
+export function HeaderSearch({ className, onNavigate }: Props = {}) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -31,6 +37,7 @@ export function HeaderSearch() {
     if (e.key === "Enter" && query.trim()) {
       setIsOpen(false);
       navigate({ to: "/especies/buscar", search: { searchIn: "species", q: query.trim() } });
+      onNavigate?.();
     }
     if (e.key === "Escape") setIsOpen(false);
   }
@@ -45,12 +52,13 @@ export function HeaderSearch() {
     setIsOpen(false);
     setQuery("");
     navigate({ to: "/especies/$id", params: { id: String(id) } });
+    onNavigate?.();
   }
 
   const species = quickResults?.species ?? [];
 
   return (
-    <div ref={containerRef} className="relative shrink-0" onBlur={handleBlur}>
+    <div ref={containerRef} className={cn("relative shrink-0 w-60", className)} onBlur={handleBlur}>
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
       <Input
         type="search"
@@ -59,11 +67,11 @@ export function HeaderSearch() {
         onKeyDown={handleKeyDown}
         onFocus={() => query.length >= 2 && setIsOpen(true)}
         placeholder="Pesquisar espécime"
-        className="w-60 rounded-sm border-neutral-300 bg-white pl-9 text-sm focus-visible:ring-green-600"
+        className="w-full rounded-sm border-neutral-300 bg-white pl-9 text-sm focus-visible:ring-green-600"
       />
 
       {isOpen && species.length > 0 && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-80 rounded-lg border border-neutral-200 bg-white shadow-xl">
+        <div className="absolute inset-x-0 top-full z-50 mt-1 rounded-lg border border-neutral-200 bg-white shadow-xl">
           {species.map((s) => {
             const leaf = s.taxonomyPath.at(-1);
             const parent = s.taxonomyPath.at(-2);
@@ -92,6 +100,7 @@ export function HeaderSearch() {
               onMouseDown={() => {
                 setIsOpen(false);
                 navigate({ to: "/especies/buscar", search: { searchIn: "species", q: query } });
+                onNavigate?.();
               }}
             >
               Ver todos os resultados para "{query}"
