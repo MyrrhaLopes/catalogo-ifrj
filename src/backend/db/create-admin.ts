@@ -12,12 +12,12 @@ if (!EMAIL || !PASSWORD) {
   process.exit(1);
 }
 
-async function createAdmin() {
-  const passwordHash = await bcrypt.hash(PASSWORD, 10);
+async function createAdmin(email: string, password: string) {
+  const passwordHash = await bcrypt.hash(password, 10);
 
   const [inserted] = await db
     .insert(usersTable)
-    .values({ email: EMAIL, passwordHash, isAdmin: true })
+    .values({ email, passwordHash, isAdmin: true })
     .onConflictDoNothing()
     .returning({ id: usersTable.id, email: usersTable.email });
 
@@ -26,7 +26,7 @@ async function createAdmin() {
     const [updated] = await db
       .update(usersTable)
       .set({ isAdmin: true })
-      .where(eq(usersTable.email, EMAIL))
+      .where(eq(usersTable.email, email))
       .returning({ id: usersTable.id, email: usersTable.email });
     console.log(`isAdmin atualizado para true — id=${updated?.id}, email=${updated?.email}`);
     return;
@@ -35,7 +35,7 @@ async function createAdmin() {
   console.log(`Usuário admin criado — id=${inserted.id}, email=${inserted.email}`);
 }
 
-createAdmin()
+createAdmin(EMAIL, PASSWORD)
   .catch((err) => {
     console.error(err);
     process.exit(1);

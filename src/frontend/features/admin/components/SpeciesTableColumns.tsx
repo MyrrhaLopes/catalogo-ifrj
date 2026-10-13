@@ -17,7 +17,6 @@ import { BookOpen, ImageIcon, Loader2, Lock, Pencil, Trash2, X } from "lucide-re
 import { useDeleteSpecies, useUpdateSpeciesAttributes, useSetSpeciesThumbnail } from "../hooks/useAdminSpecies";
 import { useUpdateSpecimen } from "@/frontend/features/specimens/hooks/useAdminSpecimen";
 import { useAttributeTemplates } from "@/frontend/features/species/hooks/useAttributeTemplates";
-import { cn } from "@/lib/utils";
 import type { SpeciesSearchResult } from "@/backend/http/features/species/species.schema";
 import { EditSpeciesAttributesModal } from "./EditSpeciesAttributesModal";
 import { ImagePickerModal } from "@/frontend/features/images/components/ImagePickerModal";

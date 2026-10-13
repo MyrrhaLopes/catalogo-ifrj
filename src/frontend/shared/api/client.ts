@@ -1,7 +1,12 @@
 export class ApiError extends Error {
-  constructor(public status: number, public response: Response, message?: string) {
+  status: number;
+  response: Response;
+
+  constructor(status: number, response: Response, message?: string) {
     super(message ?? `Request failed with status ${status}`);
     this.name = "ApiError";
+    this.status = status;
+    this.response = response;
   }
 }
 

@@ -22,18 +22,18 @@ vi.mock("bcrypt", () => ({
 function mockSelect(result: unknown[]) {
   const where = vi.fn().mockResolvedValue(result);
   const from = vi.fn().mockReturnValue({ where });
-  vi.mocked(db.select).mockReturnValueOnce({ from } as ReturnType<typeof db.select>);
+  vi.mocked(db.select).mockReturnValueOnce({ from } as unknown as ReturnType<typeof db.select>);
 }
 
 function mockInsert(result: unknown[]) {
   const returning = vi.fn().mockResolvedValue(result);
   const values = vi.fn().mockReturnValue({ returning });
-  vi.mocked(db.insert).mockReturnValueOnce({ values } as ReturnType<typeof db.insert>);
+  vi.mocked(db.insert).mockReturnValueOnce({ values } as unknown as ReturnType<typeof db.insert>);
 }
 
 function mockDelete() {
   const where = vi.fn().mockResolvedValue(undefined);
-  vi.mocked(db.delete).mockReturnValueOnce({ where } as ReturnType<typeof db.delete>);
+  vi.mocked(db.delete).mockReturnValueOnce({ where } as unknown as ReturnType<typeof db.delete>);
 }
 
 beforeEach(() => {
