@@ -9,6 +9,7 @@ lerna-debug.log*
 
 # Project-specific
 docs/pessoal/*
+~$*
 
 # Environment variables
 .env
