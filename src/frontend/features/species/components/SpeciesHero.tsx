@@ -51,7 +51,7 @@ export function SpeciesHero({ species, scientificName, popularName, isAdmin, isE
         )}
       >
         <div className="order-2 flex flex-col justify-end px-6 py-8 sm:px-8 md:px-10 lg:order-1 lg:px-12 lg:py-10 tv:px-16 tv:py-14">
-          <Breadcrumb nodes={species.taxonomyPath} />
+          <Breadcrumb nodes={species.taxonomyPath} onNodeClick={(nodeId) => void navigate({ to: "/especies/buscar", search: { taxNodes: [nodeId], searchIn: "species" } })} />
           <h1 className="mt-4 text-3xl font-bold italic leading-tight text-neutral-900 sm:text-4xl md:text-5xl lg:mt-6 tv:text-6xl">
             {scientificName}
           </h1>
@@ -103,13 +103,25 @@ export function SpeciesHero({ species, scientificName, popularName, isAdmin, isE
   );
 }
 
-function Breadcrumb({ nodes }: { nodes: Array<{ id: number; labelValue: string }> }) {
+function Breadcrumb({
+  nodes,
+  onNodeClick,
+}: {
+  nodes: Array<{ id: number; labelValue: string }>;
+  onNodeClick: (nodeId: number) => void;
+}) {
   return (
     <nav className="flex items-center gap-1 text-xs text-neutral-600 flex-wrap">
       {nodes.map((node, i) => (
         <span key={node.id} className="flex items-center gap-1">
           {i > 0 && <span className="text-neutral-400">&gt;</span>}
-          <span className="underline">{node.labelValue}</span>
+          <button
+            type="button"
+            onClick={() => onNodeClick(node.id)}
+            className="underline hover:text-neutral-900"
+          >
+            {node.labelValue}
+          </button>
         </span>
       ))}
     </nav>
