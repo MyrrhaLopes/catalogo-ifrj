@@ -16,6 +16,7 @@
     "db:seed": "tsx src/backend/db/seed.ts",
     "db:seed:catalogo": "tsx src/backend/db/seeds/seed-especies-catalogo-2026-10.ts",
     "db:create-admin": "tsx src/backend/db/create-admin.ts",
+    "db:clean": "tsx src/backend/db/reset.ts",
     "db:reset": "tsx src/backend/db/reset.ts && npm run db:seed",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
