@@ -1,20 +1,19 @@
 import "dotenv/config";
-import { sql, eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "../drizzle.ts";
 import {
   usersTable,
-  taxonomyTable,
   speciesTable,
   specimenTable,
   articleTable,
   popularNameTable,
   speciesPopularNamePivot,
-  attributeTemplateTable,
   attributeTable,
   sourceTable,
   imageTable,
   articleSourcesPivotTable,
 } from "../schema.ts";
+import { getOrCreateAttributeTemplate, getOrCreateTaxon, getOrCreateTaxonomyRoot } from "./seed-helpers.ts";
 import bcrypt from "bcrypt";
 
 function buildArticleContent_esponja_do_mar(sourceIds: Record<string, number>) {
@@ -621,19 +620,9 @@ async function seed() {
 
   // ---- esponja-do-mar (Porifera) ----
 
-  const tax_1Result = await db.execute(sql`
-    WITH seq AS (SELECT nextval('taxonomies_id_seq') AS id)
-    INSERT INTO taxonomies (id, label, label_value, created_by, parent)
-    SELECT seq.id, ${"Reino"}, ${"animalia"}, ${user.id}::uuid, seq.id FROM seq
-    RETURNING id
-  `);
-  const tax_1 = Number((tax_1Result.rows[0] as { id: unknown }).id);
+  const tax_1 = await getOrCreateTaxonomyRoot("Reino", "animalia", user.id);
 
-  const [tax_2Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Filo", labelValue: "porifera", parent: tax_1, createdBy: user.id })
-    .returning();
-  const tax_2 = tax_2Row.id;
+  const tax_2 = await getOrCreateTaxon("Filo", "porifera", tax_1, user.id);
 
   const [species_esponja_do_mar] = await db
     .insert(speciesTable)
@@ -670,57 +659,10 @@ async function seed() {
   }
   const src_5 = src_5Row.id;
 
-  let [atpl_1Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Classes viventes"), eq(attributeTemplateTable.unit, "class")));
-  if (!atpl_1Row) {
-    [atpl_1Row] = await db.insert(attributeTemplateTable).values({ label: "Classes viventes", unit: "class" }).returning();
-  }
-  const atpl_1 = atpl_1Row.id;
-
-  let [atpl_2Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Espécies conhecidas"), eq(attributeTemplateTable.unit, "species")));
-  if (!atpl_2Row) {
-    [atpl_2Row] = await db.insert(attributeTemplateTable).values({ label: "Espécies conhecidas", unit: "species" }).returning();
-  }
-  const atpl_2 = atpl_2Row.id;
-
-  let [atpl_3Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Profundidade máxima registrada"), eq(attributeTemplateTable.unit, "meter")));
-  if (!atpl_3Row) {
-    [atpl_3Row] = await db.insert(attributeTemplateTable).values({ label: "Profundidade máxima registrada", unit: "meter" }).returning();
-  }
-  const atpl_3 = atpl_3Row.id;
-
-  let [atpl_4Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Captura de alimento pelos coanócitos"), eq(attributeTemplateTable.unit, "percent")));
-  if (!atpl_4Row) {
-    [atpl_4Row] = await db.insert(attributeTemplateTable).values({ label: "Captura de alimento pelos coanócitos", unit: "percent" }).returning();
-  }
-  const atpl_4 = atpl_4Row.id;
-
-  let [atpl_5Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Velocidade de expulsão de água pelo ósculo"), eq(attributeTemplateTable.unit, "centimeter per second")));
-  if (!atpl_5Row) {
-    [atpl_5Row] = await db.insert(attributeTemplateTable).values({ label: "Velocidade de expulsão de água pelo ósculo", unit: "centimeter per second" }).returning();
-  }
-  const atpl_5 = atpl_5Row.id;
+  const atplg_100129 = await getOrCreateAttributeTemplate("Profundidade de ocorrência", "meter");
 
   await db.insert(attributeTable).values([
-    { species: species_esponja_do_mar.id, attribute: atpl_1, value: "4", sourceId: src_2 },
-    { species: species_esponja_do_mar.id, attribute: atpl_2, value: "5000-10000", sourceId: src_2 },
-    { species: species_esponja_do_mar.id, attribute: atpl_3, value: "8000", sourceId: src_1 },
-    { species: species_esponja_do_mar.id, attribute: atpl_4, value: "80", sourceId: src_2 },
-    { species: species_esponja_do_mar.id, attribute: atpl_5, value: "8.5", sourceId: src_2 },
+    { species: species_esponja_do_mar.id, attribute: atplg_100129, value: "8000", sourceId: src_1 },
   ]);
 
   {
@@ -781,23 +723,11 @@ async function seed() {
     .returning();
   // ---- anemona (Actiniaria) ----
 
-  const [tax_3Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Filo", labelValue: "cnidaria", parent: tax_1, createdBy: user.id })
-    .returning();
-  const tax_3 = tax_3Row.id;
+  const tax_3 = await getOrCreateTaxon("Filo", "cnidaria", tax_1, user.id);
 
-  const [tax_4Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Classe", labelValue: "anthozoa", parent: tax_3, createdBy: user.id })
-    .returning();
-  const tax_4 = tax_4Row.id;
+  const tax_4 = await getOrCreateTaxon("Classe", "anthozoa", tax_3, user.id);
 
-  const [tax_5Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "actiniaria", parent: tax_4, createdBy: user.id })
-    .returning();
-  const tax_5 = tax_5Row.id;
+  const tax_5 = await getOrCreateTaxon("Ordem", "actiniaria", tax_4, user.id);
 
   const [species_anemona] = await db
     .insert(speciesTable)
@@ -840,47 +770,14 @@ async function seed() {
   }
   const src_11 = src_11Row.id;
 
-  let [atpl_6Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Diâmetro corporal"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_6Row) {
-    [atpl_6Row] = await db.insert(attributeTemplateTable).values({ label: "Diâmetro corporal", unit: "centimeter" }).returning();
-  }
-  const atpl_6 = atpl_6Row.id;
-
-  let [atpl_7Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento corporal"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_7Row) {
-    [atpl_7Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento corporal", unit: "centimeter" }).returning();
-  }
-  const atpl_7 = atpl_7Row.id;
-
-  let [atpl_8Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Longevidade máxima registrada"), eq(attributeTemplateTable.unit, "year")));
-  if (!atpl_8Row) {
-    [atpl_8Row] = await db.insert(attributeTemplateTable).values({ label: "Longevidade máxima registrada", unit: "year" }).returning();
-  }
-  const atpl_8 = atpl_8Row.id;
-
-  let [atpl_9Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Diversidade da ordem Actiniaria"), eq(attributeTemplateTable.unit, "species")));
-  if (!atpl_9Row) {
-    [atpl_9Row] = await db.insert(attributeTemplateTable).values({ label: "Diversidade da ordem Actiniaria", unit: "species" }).returning();
-  }
-  const atpl_9 = atpl_9Row.id;
+  const atplg_100126 = await getOrCreateAttributeTemplate("Diâmetro corporal", "centimeter");
+  const atplg_100127 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
+  const atplg_100128 = await getOrCreateAttributeTemplate("Longevidade máxima", "year");
 
   await db.insert(attributeTable).values([
-    { species: species_anemona.id, attribute: atpl_6, value: "1 a 5", sourceId: src_6 },
-    { species: species_anemona.id, attribute: atpl_7, value: "1.5 a 10", sourceId: src_6 },
-    { species: species_anemona.id, attribute: atpl_8, value: "80 (em cativeiro, Heteractis magnifica)", sourceId: src_6 },
-    { species: species_anemona.id, attribute: atpl_9, value: "aproximadamente 1200", sourceId: src_7 },
+    { species: species_anemona.id, attribute: atplg_100126, value: "1 a 5", sourceId: src_6 },
+    { species: species_anemona.id, attribute: atplg_100127, value: "1.5 a 10", sourceId: src_6 },
+    { species: species_anemona.id, attribute: atplg_100128, value: "80 (em cativeiro, Heteractis magnifica)", sourceId: src_6 },
   ]);
 
   {
@@ -934,41 +831,17 @@ async function seed() {
     .returning();
   // ---- lombriga (Ascaris lumbricoides) ----
 
-  const [tax_6Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Filo", labelValue: "nematoda", parent: tax_1, createdBy: user.id })
-    .returning();
-  const tax_6 = tax_6Row.id;
+  const tax_6 = await getOrCreateTaxon("Filo", "nematoda", tax_1, user.id);
 
-  const [tax_7Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Classe", labelValue: "chromadorea", parent: tax_6, createdBy: user.id })
-    .returning();
-  const tax_7 = tax_7Row.id;
+  const tax_7 = await getOrCreateTaxon("Classe", "chromadorea", tax_6, user.id);
 
-  const [tax_8Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "rhabditida", parent: tax_7, createdBy: user.id })
-    .returning();
-  const tax_8 = tax_8Row.id;
+  const tax_8 = await getOrCreateTaxon("Ordem", "rhabditida", tax_7, user.id);
 
-  const [tax_9Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "ascarididae", parent: tax_8, createdBy: user.id })
-    .returning();
-  const tax_9 = tax_9Row.id;
+  const tax_9 = await getOrCreateTaxon("Família", "ascarididae", tax_8, user.id);
 
-  const [tax_10Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "ascaris", parent: tax_9, createdBy: user.id })
-    .returning();
-  const tax_10 = tax_10Row.id;
+  const tax_10 = await getOrCreateTaxon("Gênero", "ascaris", tax_9, user.id);
 
-  const [tax_11Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "ascaris lumbricoides", parent: tax_10, createdBy: user.id })
-    .returning();
-  const tax_11 = tax_11Row.id;
+  const tax_11 = await getOrCreateTaxon("Espécie", "ascaris lumbricoides", tax_10, user.id);
 
   const [species_lombriga] = await db
     .insert(speciesTable)
@@ -993,67 +866,16 @@ async function seed() {
   }
   const src_14 = src_14Row.id;
 
-  let [atpl_10Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento corporal (fêmea)"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_10Row) {
-    [atpl_10Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento corporal (fêmea)", unit: "centimeter" }).returning();
-  }
-  const atpl_10 = atpl_10Row.id;
-
-  let [atpl_11Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento corporal (macho)"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_11Row) {
-    [atpl_11Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento corporal (macho)", unit: "centimeter" }).returning();
-  }
-  const atpl_11 = atpl_11Row.id;
-
-  let [atpl_12Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Diâmetro corporal"), eq(attributeTemplateTable.unit, "millimeter")));
-  if (!atpl_12Row) {
-    [atpl_12Row] = await db.insert(attributeTemplateTable).values({ label: "Diâmetro corporal", unit: "millimeter" }).returning();
-  }
-  const atpl_12 = atpl_12Row.id;
-
-  let [atpl_13Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Tempo até maturidade reprodutiva"), eq(attributeTemplateTable.unit, "day")));
-  if (!atpl_13Row) {
-    [atpl_13Row] = await db.insert(attributeTemplateTable).values({ label: "Tempo até maturidade reprodutiva", unit: "day" }).returning();
-  }
-  const atpl_13 = atpl_13Row.id;
-
-  let [atpl_14Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Viabilidade dos ovos no solo"), eq(attributeTemplateTable.unit, "year")));
-  if (!atpl_14Row) {
-    [atpl_14Row] = await db.insert(attributeTemplateTable).values({ label: "Viabilidade dos ovos no solo", unit: "year" }).returning();
-  }
-  const atpl_14 = atpl_14Row.id;
-
-  let [atpl_15Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Pessoas infectadas no mundo"), eq(attributeTemplateTable.unit, "person")));
-  if (!atpl_15Row) {
-    [atpl_15Row] = await db.insert(attributeTemplateTable).values({ label: "Pessoas infectadas no mundo", unit: "person" }).returning();
-  }
-  const atpl_15 = atpl_15Row.id;
+  const atplg_100122 = await getOrCreateAttributeTemplate("Comprimento corporal (fêmea)", "centimeter");
+  const atplg_100123 = await getOrCreateAttributeTemplate("Comprimento corporal (macho)", "centimeter");
+  const atplg_100124 = await getOrCreateAttributeTemplate("Diâmetro corporal", "centimeter");
+  const atplg_100125 = await getOrCreateAttributeTemplate("Duração do ciclo de vida", "day");
 
   await db.insert(attributeTable).values([
-    { species: species_lombriga.id, attribute: atpl_10, value: "20 to 49", sourceId: src_12 },
-    { species: species_lombriga.id, attribute: atpl_11, value: "15 to 31", sourceId: src_12 },
-    { species: species_lombriga.id, attribute: atpl_12, value: "2 to 6", sourceId: src_12 },
-    { species: species_lombriga.id, attribute: atpl_13, value: "60 to 65", sourceId: src_12 },
-    { species: species_lombriga.id, attribute: atpl_14, value: "up to 10", sourceId: src_12 },
-    { species: species_lombriga.id, attribute: atpl_15, value: "more than 1 billion", sourceId: src_13 },
+    { species: species_lombriga.id, attribute: atplg_100122, value: "20 to 49", sourceId: src_12 },
+    { species: species_lombriga.id, attribute: atplg_100123, value: "15 to 31", sourceId: src_12 },
+    { species: species_lombriga.id, attribute: atplg_100124, value: "0.2 to 0.6", sourceId: src_12 },
+    { species: species_lombriga.id, attribute: atplg_100125, value: "60 to 65", sourceId: src_12 },
   ]);
 
   {
@@ -1108,23 +930,11 @@ async function seed() {
     .returning();
   // ---- planaria (Tricladida) ----
 
-  const [tax_12Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Filo", labelValue: "platyhelminthes", parent: tax_1, createdBy: user.id })
-    .returning();
-  const tax_12 = tax_12Row.id;
+  const tax_12 = await getOrCreateTaxon("Filo", "platyhelminthes", tax_1, user.id);
 
-  const [tax_13Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Classe", labelValue: "turbellaria", parent: tax_12, createdBy: user.id })
-    .returning();
-  const tax_13 = tax_13Row.id;
+  const tax_13 = await getOrCreateTaxon("Classe", "turbellaria", tax_12, user.id);
 
-  const [tax_14Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "tricladida", parent: tax_13, createdBy: user.id })
-    .returning();
-  const tax_14 = tax_14Row.id;
+  const tax_14 = await getOrCreateTaxon("Ordem", "tricladida", tax_13, user.id);
 
   const [species_planaria] = await db
     .insert(speciesTable)
@@ -1167,67 +977,10 @@ async function seed() {
   }
   const src_20 = src_20Row.id;
 
-  let [atpl_16Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento corporal"), eq(attributeTemplateTable.unit, "mm")));
-  if (!atpl_16Row) {
-    [atpl_16Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento corporal", unit: "mm" }).returning();
-  }
-  const atpl_16 = atpl_16Row.id;
-
-  let [atpl_17Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Proporcao de neoblastos (celulas-tronco)"), eq(attributeTemplateTable.unit, "percent")));
-  if (!atpl_17Row) {
-    [atpl_17Row] = await db.insert(attributeTemplateTable).values({ label: "Proporcao de neoblastos (celulas-tronco)", unit: "percent" }).returning();
-  }
-  const atpl_17 = atpl_17Row.id;
-
-  let [atpl_18Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Tempo de regeneracao da cabeca"), eq(attributeTemplateTable.unit, "week")));
-  if (!atpl_18Row) {
-    [atpl_18Row] = await db.insert(attributeTemplateTable).values({ label: "Tempo de regeneracao da cabeca", unit: "week" }).returning();
-  }
-  const atpl_18 = atpl_18Row.id;
-
-  let [atpl_19Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Habitat"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_19Row) {
-    [atpl_19Row] = await db.insert(attributeTemplateTable).values({ label: "Habitat", unit: "" }).returning();
-  }
-  const atpl_19 = atpl_19Row.id;
-
-  let [atpl_20Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Dieta"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_20Row) {
-    [atpl_20Row] = await db.insert(attributeTemplateTable).values({ label: "Dieta", unit: "" }).returning();
-  }
-  const atpl_20 = atpl_20Row.id;
-
-  let [atpl_21Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Locomocao"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_21Row) {
-    [atpl_21Row] = await db.insert(attributeTemplateTable).values({ label: "Locomocao", unit: "" }).returning();
-  }
-  const atpl_21 = atpl_21Row.id;
+  const atplg_100121 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
 
   await db.insert(attributeTable).values([
-    { species: species_planaria.id, attribute: atpl_16, value: "3-15", sourceId: src_16 },
-    { species: species_planaria.id, attribute: atpl_17, value: "up to 30", sourceId: src_16 },
-    { species: species_planaria.id, attribute: atpl_18, value: "about 2", sourceId: src_16 },
-    { species: species_planaria.id, attribute: atpl_19, value: "agua doce, ambientes escuros e turvos", sourceId: src_15 },
-    { species: species_planaria.id, attribute: atpl_20, value: "gastropodes de agua doce, oligoquetas tubificideos, artropodes (isopodes) e larvas de quironomideos", sourceId: src_15 },
-    { species: species_planaria.id, attribute: atpl_21, value: "deslizamento por batimento ciliar na epiderme ventral sobre pelicula de muco", sourceId: src_17 },
+    { species: species_planaria.id, attribute: atplg_100121, value: "0.3-1.5", sourceId: src_16 },
   ]);
 
   {
@@ -1273,35 +1026,15 @@ async function seed() {
     .returning();
   // ---- tenia (Taenia solium) ----
 
-  const [tax_15Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Classe", labelValue: "cestoda", parent: tax_12, createdBy: user.id })
-    .returning();
-  const tax_15 = tax_15Row.id;
+  const tax_15 = await getOrCreateTaxon("Classe", "cestoda", tax_12, user.id);
 
-  const [tax_16Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "cyclophyllidea", parent: tax_15, createdBy: user.id })
-    .returning();
-  const tax_16 = tax_16Row.id;
+  const tax_16 = await getOrCreateTaxon("Ordem", "cyclophyllidea", tax_15, user.id);
 
-  const [tax_17Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "taeniidae", parent: tax_16, createdBy: user.id })
-    .returning();
-  const tax_17 = tax_17Row.id;
+  const tax_17 = await getOrCreateTaxon("Família", "taeniidae", tax_16, user.id);
 
-  const [tax_18Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "taenia", parent: tax_17, createdBy: user.id })
-    .returning();
-  const tax_18 = tax_18Row.id;
+  const tax_18 = await getOrCreateTaxon("Gênero", "taenia", tax_17, user.id);
 
-  const [tax_19Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "taenia solium", parent: tax_18, createdBy: user.id })
-    .returning();
-  const tax_19 = tax_19Row.id;
+  const tax_19 = await getOrCreateTaxon("Espécie", "taenia solium", tax_18, user.id);
 
   const [species_tenia] = await db
     .insert(speciesTable)
@@ -1314,67 +1047,10 @@ async function seed() {
   }
   const src_21 = src_21Row.id;
 
-  let [atpl_22Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento corporal"), eq(attributeTemplateTable.unit, "meter")));
-  if (!atpl_22Row) {
-    [atpl_22Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento corporal", unit: "meter" }).returning();
-  }
-  const atpl_22 = atpl_22Row.id;
-
-  let [atpl_23Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Número de proglótides"), eq(attributeTemplateTable.unit, "unit")));
-  if (!atpl_23Row) {
-    [atpl_23Row] = await db.insert(attributeTemplateTable).values({ label: "Número de proglótides", unit: "unit" }).returning();
-  }
-  const atpl_23 = atpl_23Row.id;
-
-  let [atpl_24Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Diâmetro do escólex"), eq(attributeTemplateTable.unit, "millimeter")));
-  if (!atpl_24Row) {
-    [atpl_24Row] = await db.insert(attributeTemplateTable).values({ label: "Diâmetro do escólex", unit: "millimeter" }).returning();
-  }
-  const atpl_24 = atpl_24Row.id;
-
-  let [atpl_25Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Número de ganchos rostelares"), eq(attributeTemplateTable.unit, "unit")));
-  if (!atpl_25Row) {
-    [atpl_25Row] = await db.insert(attributeTemplateTable).values({ label: "Número de ganchos rostelares", unit: "unit" }).returning();
-  }
-  const atpl_25 = atpl_25Row.id;
-
-  let [atpl_26Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Diâmetro do ovo"), eq(attributeTemplateTable.unit, "micrometer")));
-  if (!atpl_26Row) {
-    [atpl_26Row] = await db.insert(attributeTemplateTable).values({ label: "Diâmetro do ovo", unit: "micrometer" }).returning();
-  }
-  const atpl_26 = atpl_26Row.id;
-
-  let [atpl_27Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Tempo de maturação em humano"), eq(attributeTemplateTable.unit, "week")));
-  if (!atpl_27Row) {
-    [atpl_27Row] = await db.insert(attributeTemplateTable).values({ label: "Tempo de maturação em humano", unit: "week" }).returning();
-  }
-  const atpl_27 = atpl_27Row.id;
+  const atplg_100120 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
 
   await db.insert(attributeTable).values([
-    { species: species_tenia.id, attribute: atpl_22, value: "2 to 3, exceptionally up to 8", sourceId: src_21 },
-    { species: species_tenia.id, attribute: atpl_23, value: "800 to 900", sourceId: src_21 },
-    { species: species_tenia.id, attribute: atpl_24, value: "1", sourceId: src_21 },
-    { species: species_tenia.id, attribute: atpl_25, value: "22 to 32", sourceId: src_21 },
-    { species: species_tenia.id, attribute: atpl_26, value: "35 to 42", sourceId: src_21 },
-    { species: species_tenia.id, attribute: atpl_27, value: "10 to 12", sourceId: src_21 },
+    { species: species_tenia.id, attribute: atplg_100120, value: "200 to 300, exceptionally up to 800", sourceId: src_21 },
   ]);
 
   {
@@ -1427,41 +1103,17 @@ async function seed() {
     .returning();
   // ---- bivalve (Perna perna) ----
 
-  const [tax_20Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Filo", labelValue: "mollusca", parent: tax_1, createdBy: user.id })
-    .returning();
-  const tax_20 = tax_20Row.id;
+  const tax_20 = await getOrCreateTaxon("Filo", "mollusca", tax_1, user.id);
 
-  const [tax_21Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Classe", labelValue: "bivalvia", parent: tax_20, createdBy: user.id })
-    .returning();
-  const tax_21 = tax_21Row.id;
+  const tax_21 = await getOrCreateTaxon("Classe", "bivalvia", tax_20, user.id);
 
-  const [tax_22Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "mytilida", parent: tax_21, createdBy: user.id })
-    .returning();
-  const tax_22 = tax_22Row.id;
+  const tax_22 = await getOrCreateTaxon("Ordem", "mytilida", tax_21, user.id);
 
-  const [tax_23Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "mytilidae", parent: tax_22, createdBy: user.id })
-    .returning();
-  const tax_23 = tax_23Row.id;
+  const tax_23 = await getOrCreateTaxon("Família", "mytilidae", tax_22, user.id);
 
-  const [tax_24Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "perna", parent: tax_23, createdBy: user.id })
-    .returning();
-  const tax_24 = tax_24Row.id;
+  const tax_24 = await getOrCreateTaxon("Gênero", "perna", tax_23, user.id);
 
-  const [tax_25Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "perna perna", parent: tax_24, createdBy: user.id })
-    .returning();
-  const tax_25 = tax_25Row.id;
+  const tax_25 = await getOrCreateTaxon("Espécie", "perna perna", tax_24, user.id);
 
   const [species_bivalve] = await db
     .insert(speciesTable)
@@ -1480,67 +1132,16 @@ async function seed() {
   }
   const src_23 = src_23Row.id;
 
-  let [atpl_28Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento da concha"), eq(attributeTemplateTable.unit, "millimeter")));
-  if (!atpl_28Row) {
-    [atpl_28Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento da concha", unit: "millimeter" }).returning();
-  }
-  const atpl_28 = atpl_28Row.id;
-
-  let [atpl_29Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Faixa de temperatura tolerada"), eq(attributeTemplateTable.unit, "celsius")));
-  if (!atpl_29Row) {
-    [atpl_29Row] = await db.insert(attributeTemplateTable).values({ label: "Faixa de temperatura tolerada", unit: "celsius" }).returning();
-  }
-  const atpl_29 = atpl_29Row.id;
-
-  let [atpl_30Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Faixa de salinidade tolerada"), eq(attributeTemplateTable.unit, "ppt")));
-  if (!atpl_30Row) {
-    [atpl_30Row] = await db.insert(attributeTemplateTable).values({ label: "Faixa de salinidade tolerada", unit: "ppt" }).returning();
-  }
-  const atpl_30 = atpl_30Row.id;
-
-  let [atpl_31Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Hábito alimentar"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_31Row) {
-    [atpl_31Row] = await db.insert(attributeTemplateTable).values({ label: "Hábito alimentar", unit: "" }).returning();
-  }
-  const atpl_31 = atpl_31Row.id;
-
-  let [atpl_32Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Faixa de profundidade"), eq(attributeTemplateTable.unit, "meter")));
-  if (!atpl_32Row) {
-    [atpl_32Row] = await db.insert(attributeTemplateTable).values({ label: "Faixa de profundidade", unit: "meter" }).returning();
-  }
-  const atpl_32 = atpl_32Row.id;
-
-  let [atpl_33Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Vulnerabilidade à pesca"), eq(attributeTemplateTable.unit, "score")));
-  if (!atpl_33Row) {
-    [atpl_33Row] = await db.insert(attributeTemplateTable).values({ label: "Vulnerabilidade à pesca", unit: "score" }).returning();
-  }
-  const atpl_33 = atpl_33Row.id;
+  const atplg_100116 = await getOrCreateAttributeTemplate("Comprimento da concha", "centimeter");
+  const atplg_100117 = await getOrCreateAttributeTemplate("Faixa de temperatura tolerada", "celsius");
+  const atplg_100118 = await getOrCreateAttributeTemplate("Tolerância de salinidade", "ppt");
+  const atplg_100119 = await getOrCreateAttributeTemplate("Profundidade de ocorrência", "meter");
 
   await db.insert(attributeTable).values([
-    { species: species_bivalve.id, attribute: atpl_28, value: "90 (até 120)", sourceId: src_22 },
-    { species: species_bivalve.id, attribute: atpl_29, value: "10-30", sourceId: src_22 },
-    { species: species_bivalve.id, attribute: atpl_30, value: "15-50", sourceId: src_22 },
-    { species: species_bivalve.id, attribute: atpl_31, value: "filtrador, alimenta-se de fitoplâncton, zooplâncton e matéria orgânica em suspensão", sourceId: src_22 },
-    { species: species_bivalve.id, attribute: atpl_32, value: "0-50", sourceId: src_23 },
-    { species: species_bivalve.id, attribute: atpl_33, value: "29 de 100 (baixa a moderada)", sourceId: src_23 },
+    { species: species_bivalve.id, attribute: atplg_100116, value: "9 (até 12)", sourceId: src_22 },
+    { species: species_bivalve.id, attribute: atplg_100117, value: "10-30", sourceId: src_22 },
+    { species: species_bivalve.id, attribute: atplg_100118, value: "15-50", sourceId: src_22 },
+    { species: species_bivalve.id, attribute: atplg_100119, value: "0-50", sourceId: src_23 },
   ]);
 
   {
@@ -1585,35 +1186,15 @@ async function seed() {
     .returning();
   // ---- lula-1 (Doryteuthis plei) ----
 
-  const [tax_26Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Classe", labelValue: "cephalopoda", parent: tax_20, createdBy: user.id })
-    .returning();
-  const tax_26 = tax_26Row.id;
+  const tax_26 = await getOrCreateTaxon("Classe", "cephalopoda", tax_20, user.id);
 
-  const [tax_27Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "myopsida", parent: tax_26, createdBy: user.id })
-    .returning();
-  const tax_27 = tax_27Row.id;
+  const tax_27 = await getOrCreateTaxon("Ordem", "myopsida", tax_26, user.id);
 
-  const [tax_28Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "loliginidae", parent: tax_27, createdBy: user.id })
-    .returning();
-  const tax_28 = tax_28Row.id;
+  const tax_28 = await getOrCreateTaxon("Família", "loliginidae", tax_27, user.id);
 
-  const [tax_29Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "doryteuthis", parent: tax_28, createdBy: user.id })
-    .returning();
-  const tax_29 = tax_29Row.id;
+  const tax_29 = await getOrCreateTaxon("Gênero", "doryteuthis", tax_28, user.id);
 
-  const [tax_30Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "doryteuthis plei", parent: tax_29, createdBy: user.id })
-    .returning();
-  const tax_30 = tax_30Row.id;
+  const tax_30 = await getOrCreateTaxon("Espécie", "doryteuthis plei", tax_29, user.id);
 
   const [species_lula_1] = await db
     .insert(speciesTable)
@@ -1632,58 +1213,14 @@ async function seed() {
   }
   const src_25 = src_25Row.id;
 
-  let [atpl_34Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento médio do manto"), eq(attributeTemplateTable.unit, "millimeter")));
-  if (!atpl_34Row) {
-    [atpl_34Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento médio do manto", unit: "millimeter" }).returning();
-  }
-  const atpl_34 = atpl_34Row.id;
-
-  let [atpl_35Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento máximo do manto (machos)"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_35Row) {
-    [atpl_35Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento máximo do manto (machos)", unit: "centimeter" }).returning();
-  }
-  const atpl_35 = atpl_35Row.id;
-
-  let [atpl_36Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Distribuição no Brasil"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_36Row) {
-    [atpl_36Row] = await db.insert(attributeTemplateTable).values({ label: "Distribuição no Brasil", unit: "" }).returning();
-  }
-  const atpl_36 = atpl_36Row.id;
-
-  let [atpl_37Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Proporção comprimento:largura do corpo"), eq(attributeTemplateTable.unit, "ratio")));
-  if (!atpl_37Row) {
-    [atpl_37Row] = await db.insert(attributeTemplateTable).values({ label: "Proporção comprimento:largura do corpo", unit: "ratio" }).returning();
-  }
-  const atpl_37 = atpl_37Row.id;
-
-  let [atpl_38Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Status de conservação (IUCN)"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_38Row) {
-    [atpl_38Row] = await db.insert(attributeTemplateTable).values({ label: "Status de conservação (IUCN)", unit: "" }).returning();
-  }
-  const atpl_38 = atpl_38Row.id;
+  const atplg_100113 = await getOrCreateAttributeTemplate("Comprimento do manto", "centimeter");
+  const atplg_100114 = await getOrCreateAttributeTemplate("Comprimento do manto (macho)", "centimeter");
+  const atplg_100115 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "category");
 
   await db.insert(attributeTable).values([
-    { species: species_lula_1.id, attribute: atpl_34, value: "150", sourceId: src_25 },
-    { species: species_lula_1.id, attribute: atpl_35, value: "33", sourceId: src_24 },
-    { species: species_lula_1.id, attribute: atpl_36, value: "Rio de Janeiro, São Paulo, Paraná, Santa Catarina e Rio Grande do Sul", sourceId: src_25 },
-    { species: species_lula_1.id, attribute: atpl_37, value: "7:1", sourceId: src_24 },
-    { species: species_lula_1.id, attribute: atpl_20, value: "peixes estuarinos (ex. peixes-rei e mosquitofish) e pequenos crustáceos como camarões-da-grama", sourceId: src_24 },
-    { species: species_lula_1.id, attribute: atpl_38, value: "pouco preocupante (LC)", sourceId: src_24 },
+    { species: species_lula_1.id, attribute: atplg_100113, value: "15", sourceId: src_25 },
+    { species: species_lula_1.id, attribute: atplg_100114, value: "33", sourceId: src_24 },
+    { species: species_lula_1.id, attribute: atplg_100115, value: "LC", sourceId: src_24 },
   ]);
 
   {
@@ -1728,35 +1265,15 @@ async function seed() {
     .returning();
   // ---- lesma (Phyllocaulis variegatus) ----
 
-  const [tax_31Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Classe", labelValue: "gastropoda", parent: tax_20, createdBy: user.id })
-    .returning();
-  const tax_31 = tax_31Row.id;
+  const tax_31 = await getOrCreateTaxon("Classe", "gastropoda", tax_20, user.id);
 
-  const [tax_32Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "systellommatophora", parent: tax_31, createdBy: user.id })
-    .returning();
-  const tax_32 = tax_32Row.id;
+  const tax_32 = await getOrCreateTaxon("Ordem", "systellommatophora", tax_31, user.id);
 
-  const [tax_33Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "veronicellidae", parent: tax_32, createdBy: user.id })
-    .returning();
-  const tax_33 = tax_33Row.id;
+  const tax_33 = await getOrCreateTaxon("Família", "veronicellidae", tax_32, user.id);
 
-  const [tax_34Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "phyllocaulis", parent: tax_33, createdBy: user.id })
-    .returning();
-  const tax_34 = tax_34Row.id;
+  const tax_34 = await getOrCreateTaxon("Gênero", "phyllocaulis", tax_33, user.id);
 
-  const [tax_35Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "phyllocaulis variegatus", parent: tax_34, createdBy: user.id })
-    .returning();
-  const tax_35 = tax_35Row.id;
+  const tax_35 = await getOrCreateTaxon("Espécie", "phyllocaulis variegatus", tax_34, user.id);
 
   const [species_lesma] = await db
     .insert(speciesTable)
@@ -1787,60 +1304,7 @@ async function seed() {
   }
   const src_29 = src_29Row.id;
 
-  let [atpl_39Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Concha"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_39Row) {
-    [atpl_39Row] = await db.insert(attributeTemplateTable).values({ label: "Concha", unit: "" }).returning();
-  }
-  const atpl_39 = atpl_39Row.id;
-
-  let [atpl_40Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Respiração"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_40Row) {
-    [atpl_40Row] = await db.insert(attributeTemplateTable).values({ label: "Respiração", unit: "" }).returning();
-  }
-  const atpl_40 = atpl_40Row.id;
-
-  let [atpl_41Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Distribuição"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_41Row) {
-    [atpl_41Row] = await db.insert(attributeTemplateTable).values({ label: "Distribuição", unit: "" }).returning();
-  }
-  const atpl_41 = atpl_41Row.id;
-
-  let [atpl_42Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Hospedeiro parasitário"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_42Row) {
-    [atpl_42Row] = await db.insert(attributeTemplateTable).values({ label: "Hospedeiro parasitário", unit: "" }).returning();
-  }
-  const atpl_42 = atpl_42Row.id;
-
-  let [atpl_43Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Gênero"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_43Row) {
-    [atpl_43Row] = await db.insert(attributeTemplateTable).values({ label: "Gênero", unit: "" }).returning();
-  }
-  const atpl_43 = atpl_43Row.id;
-
-  await db.insert(attributeTable).values([
-    { species: species_lesma.id, attribute: atpl_39, value: "ausente; dorso completamente revestido pelo manto (hiponoto)", sourceId: src_28 },
-    { species: species_lesma.id, attribute: atpl_40, value: "sem pulmão ou órgão pulmonar, ao contrário da maioria das lesmas terrestres; olhos em tentáculos contráteis (não retráteis)", sourceId: src_28 },
-    { species: species_lesma.id, attribute: atpl_20, value: "herbívora, podendo causar danos a cultivos agrícolas", sourceId: src_28 },
-    { species: species_lesma.id, attribute: atpl_41, value: "Brasil, Argentina e Uruguai", sourceId: src_26 },
-    { species: species_lesma.id, attribute: atpl_42, value: "hospedeiro intermediário confirmado de metacercárias de Brachylaima sp. (Digenea: Brachylaimidae), registrado em Puerto Iguazú, Argentina", sourceId: src_29 },
-    { species: species_lesma.id, attribute: atpl_43, value: "Phyllocaulis, gênero de distribuição sul-americana com 6 espécies descritas", sourceId: src_27 },
-  ]);
-
+  
   {
     const [pn] = await db
       .insert(popularNameTable)
@@ -1886,29 +1350,13 @@ async function seed() {
     .returning();
   // ---- caramujo (Lissachatina fulica) ----
 
-  const [tax_36Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "stylommatophora", parent: tax_31, createdBy: user.id })
-    .returning();
-  const tax_36 = tax_36Row.id;
+  const tax_36 = await getOrCreateTaxon("Ordem", "stylommatophora", tax_31, user.id);
 
-  const [tax_37Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "achatinidae", parent: tax_36, createdBy: user.id })
-    .returning();
-  const tax_37 = tax_37Row.id;
+  const tax_37 = await getOrCreateTaxon("Família", "achatinidae", tax_36, user.id);
 
-  const [tax_38Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "lissachatina", parent: tax_37, createdBy: user.id })
-    .returning();
-  const tax_38 = tax_38Row.id;
+  const tax_38 = await getOrCreateTaxon("Gênero", "lissachatina", tax_37, user.id);
 
-  const [tax_39Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "lissachatina fulica", parent: tax_38, createdBy: user.id })
-    .returning();
-  const tax_39 = tax_39Row.id;
+  const tax_39 = await getOrCreateTaxon("Espécie", "lissachatina fulica", tax_38, user.id);
 
   const [species_caramujo] = await db
     .insert(speciesTable)
@@ -1933,67 +1381,18 @@ async function seed() {
   }
   const src_32 = src_32Row.id;
 
-  let [atpl_44Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento da concha"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_44Row) {
-    [atpl_44Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento da concha", unit: "centimeter" }).returning();
-  }
-  const atpl_44 = atpl_44Row.id;
-
-  let [atpl_45Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Diâmetro da concha"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_45Row) {
-    [atpl_45Row] = await db.insert(attributeTemplateTable).values({ label: "Diâmetro da concha", unit: "centimeter" }).returning();
-  }
-  const atpl_45 = atpl_45Row.id;
-
-  let [atpl_46Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Peso"), eq(attributeTemplateTable.unit, "gram")));
-  if (!atpl_46Row) {
-    [atpl_46Row] = await db.insert(attributeTemplateTable).values({ label: "Peso", unit: "gram" }).returning();
-  }
-  const atpl_46 = atpl_46Row.id;
-
-  let [atpl_47Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Expectativa de vida"), eq(attributeTemplateTable.unit, "year")));
-  if (!atpl_47Row) {
-    [atpl_47Row] = await db.insert(attributeTemplateTable).values({ label: "Expectativa de vida", unit: "year" }).returning();
-  }
-  const atpl_47 = atpl_47Row.id;
-
-  let [atpl_48Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Ovos por desova"), eq(attributeTemplateTable.unit, "egg")));
-  if (!atpl_48Row) {
-    [atpl_48Row] = await db.insert(attributeTemplateTable).values({ label: "Ovos por desova", unit: "egg" }).returning();
-  }
-  const atpl_48 = atpl_48Row.id;
-
-  let [atpl_49Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Ano do primeiro registro no Paraná"), eq(attributeTemplateTable.unit, "year")));
-  if (!atpl_49Row) {
-    [atpl_49Row] = await db.insert(attributeTemplateTable).values({ label: "Ano do primeiro registro no Paraná", unit: "year" }).returning();
-  }
-  const atpl_49 = atpl_49Row.id;
+  const atplg_100108 = await getOrCreateAttributeTemplate("Comprimento da concha", "centimeter");
+  const atplg_100109 = await getOrCreateAttributeTemplate("Diâmetro da concha", "centimeter");
+  const atplg_100110 = await getOrCreateAttributeTemplate("Massa corporal", "gram");
+  const atplg_100111 = await getOrCreateAttributeTemplate("Longevidade média", "year");
+  const atplg_100112 = await getOrCreateAttributeTemplate("Ovos por postura", "unit");
 
   await db.insert(attributeTable).values([
-    { species: species_caramujo.id, attribute: atpl_44, value: "20", sourceId: src_31 },
-    { species: species_caramujo.id, attribute: atpl_45, value: "7", sourceId: src_31 },
-    { species: species_caramujo.id, attribute: atpl_46, value: "100", sourceId: src_32 },
-    { species: species_caramujo.id, attribute: atpl_47, value: "5", sourceId: src_32 },
-    { species: species_caramujo.id, attribute: atpl_48, value: "200", sourceId: src_31 },
-    { species: species_caramujo.id, attribute: atpl_49, value: "2000", sourceId: src_32 },
+    { species: species_caramujo.id, attribute: atplg_100108, value: "20", sourceId: src_31 },
+    { species: species_caramujo.id, attribute: atplg_100109, value: "7", sourceId: src_31 },
+    { species: species_caramujo.id, attribute: atplg_100110, value: "100", sourceId: src_32 },
+    { species: species_caramujo.id, attribute: atplg_100111, value: "5", sourceId: src_32 },
+    { species: species_caramujo.id, attribute: atplg_100112, value: "200", sourceId: src_31 },
   ]);
 
   {
@@ -2047,17 +1446,9 @@ async function seed() {
     .returning();
   // ---- lula-2 (Lolliguncula brevis) ----
 
-  const [tax_40Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "lolliguncula", parent: tax_28, createdBy: user.id })
-    .returning();
-  const tax_40 = tax_40Row.id;
+  const tax_40 = await getOrCreateTaxon("Gênero", "lolliguncula", tax_28, user.id);
 
-  const [tax_41Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "lolliguncula brevis", parent: tax_40, createdBy: user.id })
-    .returning();
-  const tax_41 = tax_41Row.id;
+  const tax_41 = await getOrCreateTaxon("Espécie", "lolliguncula brevis", tax_40, user.id);
 
   const [species_lula_2] = await db
     .insert(speciesTable)
@@ -2100,67 +1491,20 @@ async function seed() {
   }
   const src_38 = src_38Row.id;
 
-  let [atpl_50Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento do manto (fêmea)"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_50Row) {
-    [atpl_50Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento do manto (fêmea)", unit: "centimeter" }).returning();
-  }
-  const atpl_50 = atpl_50Row.id;
-
-  let [atpl_51Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento do manto (macho)"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_51Row) {
-    [atpl_51Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento do manto (macho)", unit: "centimeter" }).returning();
-  }
-  const atpl_51 = atpl_51Row.id;
-
-  let [atpl_52Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento máximo do manto"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_52Row) {
-    [atpl_52Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento máximo do manto", unit: "centimeter" }).returning();
-  }
-  const atpl_52 = atpl_52Row.id;
-
-  let [atpl_53Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Profundidade de ocorrência"), eq(attributeTemplateTable.unit, "meter")));
-  if (!atpl_53Row) {
-    [atpl_53Row] = await db.insert(attributeTemplateTable).values({ label: "Profundidade de ocorrência", unit: "meter" }).returning();
-  }
-  const atpl_53 = atpl_53Row.id;
-
-  let [atpl_54Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Tolerância mínima de salinidade"), eq(attributeTemplateTable.unit, "part per thousand")));
-  if (!atpl_54Row) {
-    [atpl_54Row] = await db.insert(attributeTemplateTable).values({ label: "Tolerância mínima de salinidade", unit: "part per thousand" }).returning();
-  }
-  const atpl_54 = atpl_54Row.id;
-
-  let [atpl_55Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Status de conservação (IUCN)"), eq(attributeTemplateTable.unit, "category")));
-  if (!atpl_55Row) {
-    [atpl_55Row] = await db.insert(attributeTemplateTable).values({ label: "Status de conservação (IUCN)", unit: "category" }).returning();
-  }
-  const atpl_55 = atpl_55Row.id;
+  const atplg_100102 = await getOrCreateAttributeTemplate("Comprimento do manto (fêmea)", "centimeter");
+  const atplg_100103 = await getOrCreateAttributeTemplate("Comprimento do manto (macho)", "centimeter");
+  const atplg_100104 = await getOrCreateAttributeTemplate("Comprimento do manto", "centimeter");
+  const atplg_100105 = await getOrCreateAttributeTemplate("Profundidade de ocorrência", "meter");
+  const atplg_100106 = await getOrCreateAttributeTemplate("Tolerância de salinidade", "ppt");
+  const atplg_100107 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "category");
 
   await db.insert(attributeTable).values([
-    { species: species_lula_2.id, attribute: atpl_50, value: "11", sourceId: src_33 },
-    { species: species_lula_2.id, attribute: atpl_51, value: "9", sourceId: src_33 },
-    { species: species_lula_2.id, attribute: atpl_52, value: "12", sourceId: src_33 },
-    { species: species_lula_2.id, attribute: atpl_53, value: "8.9-26.5", sourceId: src_33 },
-    { species: species_lula_2.id, attribute: atpl_54, value: "17.9", sourceId: src_33 },
-    { species: species_lula_2.id, attribute: atpl_55, value: "data deficient", sourceId: src_33 },
+    { species: species_lula_2.id, attribute: atplg_100102, value: "11", sourceId: src_33 },
+    { species: species_lula_2.id, attribute: atplg_100103, value: "9", sourceId: src_33 },
+    { species: species_lula_2.id, attribute: atplg_100104, value: "12", sourceId: src_33 },
+    { species: species_lula_2.id, attribute: atplg_100105, value: "8.9-26.5", sourceId: src_33 },
+    { species: species_lula_2.id, attribute: atplg_100106, value: "17.9", sourceId: src_33 },
+    { species: species_lula_2.id, attribute: atplg_100107, value: "DD", sourceId: src_33 },
   ]);
 
   {
@@ -2214,29 +1558,13 @@ async function seed() {
     .returning();
   // ---- polvo (Octopus vulgaris) ----
 
-  const [tax_42Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "octopoda", parent: tax_26, createdBy: user.id })
-    .returning();
-  const tax_42 = tax_42Row.id;
+  const tax_42 = await getOrCreateTaxon("Ordem", "octopoda", tax_26, user.id);
 
-  const [tax_43Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "octopodidae", parent: tax_42, createdBy: user.id })
-    .returning();
-  const tax_43 = tax_43Row.id;
+  const tax_43 = await getOrCreateTaxon("Família", "octopodidae", tax_42, user.id);
 
-  const [tax_44Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "octopus", parent: tax_43, createdBy: user.id })
-    .returning();
-  const tax_44 = tax_44Row.id;
+  const tax_44 = await getOrCreateTaxon("Gênero", "octopus", tax_43, user.id);
 
-  const [tax_45Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "octopus vulgaris", parent: tax_44, createdBy: user.id })
-    .returning();
-  const tax_45 = tax_45Row.id;
+  const tax_45 = await getOrCreateTaxon("Espécie", "octopus vulgaris", tax_44, user.id);
 
   const [species_polvo] = await db
     .insert(speciesTable)
@@ -2267,49 +1595,16 @@ async function seed() {
   }
   const src_42 = src_42Row.id;
 
-  let [atpl_56Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento do manto"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_56Row) {
-    [atpl_56Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento do manto", unit: "centimeter" }).returning();
-  }
-  const atpl_56 = atpl_56Row.id;
-
-  let [atpl_57Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento dos braços"), eq(attributeTemplateTable.unit, "meter")));
-  if (!atpl_57Row) {
-    [atpl_57Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento dos braços", unit: "meter" }).returning();
-  }
-  const atpl_57 = atpl_57Row.id;
-
-  let [atpl_58Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Massa corporal"), eq(attributeTemplateTable.unit, "kilogram")));
-  if (!atpl_58Row) {
-    [atpl_58Row] = await db.insert(attributeTemplateTable).values({ label: "Massa corporal", unit: "kilogram" }).returning();
-  }
-  const atpl_58 = atpl_58Row.id;
-
-  let [atpl_59Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Captura no litoral do Rio de Janeiro"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_59Row) {
-    [atpl_59Row] = await db.insert(attributeTemplateTable).values({ label: "Captura no litoral do Rio de Janeiro", unit: "" }).returning();
-  }
-  const atpl_59 = atpl_59Row.id;
+  const atplg_100098 = await getOrCreateAttributeTemplate("Comprimento do manto", "centimeter");
+  const atplg_100099 = await getOrCreateAttributeTemplate("Massa corporal", "gram");
+  const atplg_100100 = await getOrCreateAttributeTemplate("Profundidade de ocorrência", "meter");
+  const atplg_100101 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "category");
 
   await db.insert(attributeTable).values([
-    { species: species_polvo.id, attribute: atpl_56, value: "up to 25", sourceId: src_39 },
-    { species: species_polvo.id, attribute: atpl_57, value: "up to 1", sourceId: src_39 },
-    { species: species_polvo.id, attribute: atpl_58, value: "up to 9", sourceId: src_39 },
-    { species: species_polvo.id, attribute: atpl_53, value: "0 to 200", sourceId: src_39 },
-    { species: species_polvo.id, attribute: atpl_38, value: "least concern", sourceId: src_39 },
-    { species: species_polvo.id, attribute: atpl_59, value: "ocorre durante todo o ano, por arrasto de camarão e pesca artesanal", sourceId: src_41 },
+    { species: species_polvo.id, attribute: atplg_100098, value: "up to 25", sourceId: src_39 },
+    { species: species_polvo.id, attribute: atplg_100099, value: "up to 9000", sourceId: src_39 },
+    { species: species_polvo.id, attribute: atplg_100100, value: "0 to 200", sourceId: src_39 },
+    { species: species_polvo.id, attribute: atplg_100101, value: "LC", sourceId: src_39 },
   ]);
 
   {
@@ -2365,47 +1660,19 @@ async function seed() {
     .returning();
   // ---- sanguessuga (Hirudo medicinalis) ----
 
-  const [tax_46Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Filo", labelValue: "annelida", parent: tax_1, createdBy: user.id })
-    .returning();
-  const tax_46 = tax_46Row.id;
+  const tax_46 = await getOrCreateTaxon("Filo", "annelida", tax_1, user.id);
 
-  const [tax_47Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Classe", labelValue: "clitellata", parent: tax_46, createdBy: user.id })
-    .returning();
-  const tax_47 = tax_47Row.id;
+  const tax_47 = await getOrCreateTaxon("Classe", "clitellata", tax_46, user.id);
 
-  const [tax_48Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Subclasse", labelValue: "hirudinea", parent: tax_47, createdBy: user.id })
-    .returning();
-  const tax_48 = tax_48Row.id;
+  const tax_48 = await getOrCreateTaxon("Subclasse", "hirudinea", tax_47, user.id);
 
-  const [tax_49Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "arhynchobdellida", parent: tax_48, createdBy: user.id })
-    .returning();
-  const tax_49 = tax_49Row.id;
+  const tax_49 = await getOrCreateTaxon("Ordem", "arhynchobdellida", tax_48, user.id);
 
-  const [tax_50Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "hirudinidae", parent: tax_49, createdBy: user.id })
-    .returning();
-  const tax_50 = tax_50Row.id;
+  const tax_50 = await getOrCreateTaxon("Família", "hirudinidae", tax_49, user.id);
 
-  const [tax_51Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "hirudo", parent: tax_50, createdBy: user.id })
-    .returning();
-  const tax_51 = tax_51Row.id;
+  const tax_51 = await getOrCreateTaxon("Gênero", "hirudo", tax_50, user.id);
 
-  const [tax_52Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "hirudo medicinalis", parent: tax_51, createdBy: user.id })
-    .returning();
-  const tax_52 = tax_52Row.id;
+  const tax_52 = await getOrCreateTaxon("Espécie", "hirudo medicinalis", tax_51, user.id);
 
   const [species_sanguessuga] = await db
     .insert(speciesTable)
@@ -2436,58 +1703,14 @@ async function seed() {
   }
   const src_46 = src_46Row.id;
 
-  let [atpl_60Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento máximo"), eq(attributeTemplateTable.unit, "cm")));
-  if (!atpl_60Row) {
-    [atpl_60Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento máximo", unit: "cm" }).returning();
-  }
-  const atpl_60 = atpl_60Row.id;
-
-  let [atpl_61Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Volume de sangue ingerido por refeição"), eq(attributeTemplateTable.unit, "ml")));
-  if (!atpl_61Row) {
-    [atpl_61Row] = await db.insert(attributeTemplateTable).values({ label: "Volume de sangue ingerido por refeição", unit: "ml" }).returning();
-  }
-  const atpl_61 = atpl_61Row.id;
-
-  let [atpl_62Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Intervalo entre refeições"), eq(attributeTemplateTable.unit, "month")));
-  if (!atpl_62Row) {
-    [atpl_62Row] = await db.insert(attributeTemplateTable).values({ label: "Intervalo entre refeições", unit: "month" }).returning();
-  }
-  const atpl_62 = atpl_62Row.id;
-
-  let [atpl_63Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Número de dentes por mandíbula"), eq(attributeTemplateTable.unit, "unit")));
-  if (!atpl_63Row) {
-    [atpl_63Row] = await db.insert(attributeTemplateTable).values({ label: "Número de dentes por mandíbula", unit: "unit" }).returning();
-  }
-  const atpl_63 = atpl_63Row.id;
-
-  let [atpl_64Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Ovos por postura"), eq(attributeTemplateTable.unit, "unit")));
-  if (!atpl_64Row) {
-    [atpl_64Row] = await db.insert(attributeTemplateTable).values({ label: "Ovos por postura", unit: "unit" }).returning();
-  }
-  const atpl_64 = atpl_64Row.id;
+  const atplg_100095 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
+  const atplg_100096 = await getOrCreateAttributeTemplate("Ovos por postura", "unit");
+  const atplg_100097 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "category");
 
   await db.insert(attributeTable).values([
-    { species: species_sanguessuga.id, attribute: atpl_60, value: "20", sourceId: src_43 },
-    { species: species_sanguessuga.id, attribute: atpl_61, value: "5-15", sourceId: src_43 },
-    { species: species_sanguessuga.id, attribute: atpl_62, value: "up to 12", sourceId: src_43 },
-    { species: species_sanguessuga.id, attribute: atpl_63, value: "about 100", sourceId: src_43 },
-    { species: species_sanguessuga.id, attribute: atpl_64, value: "up to 50", sourceId: src_43 },
-    { species: species_sanguessuga.id, attribute: atpl_55, value: "near threatened", sourceId: src_45 },
+    { species: species_sanguessuga.id, attribute: atplg_100095, value: "20", sourceId: src_43 },
+    { species: species_sanguessuga.id, attribute: atplg_100096, value: "up to 50", sourceId: src_43 },
+    { species: species_sanguessuga.id, attribute: atplg_100097, value: "NT", sourceId: src_45 },
   ]);
 
   {
@@ -2542,35 +1765,15 @@ async function seed() {
     .returning();
   // ---- minhoca (Pontoscolex corethrurus) ----
 
-  const [tax_53Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Subclasse", labelValue: "oligochaeta", parent: tax_47, createdBy: user.id })
-    .returning();
-  const tax_53 = tax_53Row.id;
+  const tax_53 = await getOrCreateTaxon("Subclasse", "oligochaeta", tax_47, user.id);
 
-  const [tax_54Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "haplotaxida", parent: tax_53, createdBy: user.id })
-    .returning();
-  const tax_54 = tax_54Row.id;
+  const tax_54 = await getOrCreateTaxon("Ordem", "haplotaxida", tax_53, user.id);
 
-  const [tax_55Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "glossoscolecidae", parent: tax_54, createdBy: user.id })
-    .returning();
-  const tax_55 = tax_55Row.id;
+  const tax_55 = await getOrCreateTaxon("Família", "glossoscolecidae", tax_54, user.id);
 
-  const [tax_56Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "pontoscolex", parent: tax_55, createdBy: user.id })
-    .returning();
-  const tax_56 = tax_56Row.id;
+  const tax_56 = await getOrCreateTaxon("Gênero", "pontoscolex", tax_55, user.id);
 
-  const [tax_57Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "pontoscolex corethrurus", parent: tax_56, createdBy: user.id })
-    .returning();
-  const tax_57 = tax_57Row.id;
+  const tax_57 = await getOrCreateTaxon("Espécie", "pontoscolex corethrurus", tax_56, user.id);
 
   const [species_minhoca] = await db
     .insert(speciesTable)
@@ -2625,57 +1828,12 @@ async function seed() {
   }
   const src_54 = src_54Row.id;
 
-  let [atpl_65Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento do corpo"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_65Row) {
-    [atpl_65Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento do corpo", unit: "centimeter" }).returning();
-  }
-  const atpl_65 = atpl_65Row.id;
-
-  let [atpl_66Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Número de segmentos corporais"), eq(attributeTemplateTable.unit, "segment")));
-  if (!atpl_66Row) {
-    [atpl_66Row] = await db.insert(attributeTemplateTable).values({ label: "Número de segmentos corporais", unit: "segment" }).returning();
-  }
-  const atpl_66 = atpl_66Row.id;
-
-  let [atpl_67Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Distribuição nativa"), eq(attributeTemplateTable.unit, "region")));
-  if (!atpl_67Row) {
-    [atpl_67Row] = await db.insert(attributeTemplateTable).values({ label: "Distribuição nativa", unit: "region" }).returning();
-  }
-  const atpl_67 = atpl_67Row.id;
-
-  let [atpl_68Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Modo de reprodução"), eq(attributeTemplateTable.unit, "mode")));
-  if (!atpl_68Row) {
-    [atpl_68Row] = await db.insert(attributeTemplateTable).values({ label: "Modo de reprodução", unit: "mode" }).returning();
-  }
-  const atpl_68 = atpl_68Row.id;
-
-  let [atpl_69Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Duração do ciclo de vida"), eq(attributeTemplateTable.unit, "year")));
-  if (!atpl_69Row) {
-    [atpl_69Row] = await db.insert(attributeTemplateTable).values({ label: "Duração do ciclo de vida", unit: "year" }).returning();
-  }
-  const atpl_69 = atpl_69Row.id;
+  const atplg_100093 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
+  const atplg_100094 = await getOrCreateAttributeTemplate("Duração do ciclo de vida", "day");
 
   await db.insert(attributeTable).values([
-    { species: species_minhoca.id, attribute: atpl_65, value: "5-10", sourceId: src_47 },
-    { species: species_minhoca.id, attribute: atpl_66, value: "approximately 200", sourceId: src_47 },
-    { species: species_minhoca.id, attribute: atpl_67, value: "Planalto das Guianas (Neotrópico), com distribuição circuntropical atual", sourceId: src_47 },
-    { species: species_minhoca.id, attribute: atpl_68, value: "partenogenética (raramente sexuada)", sourceId: src_47 },
-    { species: species_minhoca.id, attribute: atpl_69, value: "1", sourceId: src_47 },
+    { species: species_minhoca.id, attribute: atplg_100093, value: "5-10", sourceId: src_47 },
+    { species: species_minhoca.id, attribute: atplg_100094, value: "365", sourceId: src_47 },
   ]);
 
   {
@@ -2715,53 +1873,21 @@ async function seed() {
     .returning();
   // ---- cigarra (Quesada gigas) ----
 
-  const [tax_58Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Filo", labelValue: "arthropoda", parent: tax_1, createdBy: user.id })
-    .returning();
-  const tax_58 = tax_58Row.id;
+  const tax_58 = await getOrCreateTaxon("Filo", "arthropoda", tax_1, user.id);
 
-  const [tax_59Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Classe", labelValue: "insecta", parent: tax_58, createdBy: user.id })
-    .returning();
-  const tax_59 = tax_59Row.id;
+  const tax_59 = await getOrCreateTaxon("Classe", "insecta", tax_58, user.id);
 
-  const [tax_60Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "hemiptera", parent: tax_59, createdBy: user.id })
-    .returning();
-  const tax_60 = tax_60Row.id;
+  const tax_60 = await getOrCreateTaxon("Ordem", "hemiptera", tax_59, user.id);
 
-  const [tax_61Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Subordem", labelValue: "auchenorrhyncha", parent: tax_60, createdBy: user.id })
-    .returning();
-  const tax_61 = tax_61Row.id;
+  const tax_61 = await getOrCreateTaxon("Subordem", "auchenorrhyncha", tax_60, user.id);
 
-  const [tax_62Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "cicadidae", parent: tax_61, createdBy: user.id })
-    .returning();
-  const tax_62 = tax_62Row.id;
+  const tax_62 = await getOrCreateTaxon("Família", "cicadidae", tax_61, user.id);
 
-  const [tax_63Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Tribo", labelValue: "fidicinini", parent: tax_62, createdBy: user.id })
-    .returning();
-  const tax_63 = tax_63Row.id;
+  const tax_63 = await getOrCreateTaxon("Tribo", "fidicinini", tax_62, user.id);
 
-  const [tax_64Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "quesada", parent: tax_63, createdBy: user.id })
-    .returning();
-  const tax_64 = tax_64Row.id;
+  const tax_64 = await getOrCreateTaxon("Gênero", "quesada", tax_63, user.id);
 
-  const [tax_65Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "quesada gigas", parent: tax_64, createdBy: user.id })
-    .returning();
-  const tax_65 = tax_65Row.id;
+  const tax_65 = await getOrCreateTaxon("Espécie", "quesada gigas", tax_64, user.id);
 
   const [species_cigarra] = await db
     .insert(speciesTable)
@@ -2804,67 +1930,10 @@ async function seed() {
   }
   const src_60 = src_60Row.id;
 
-  let [atpl_70Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Tamanho relativo"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_70Row) {
-    [atpl_70Row] = await db.insert(attributeTemplateTable).values({ label: "Tamanho relativo", unit: "" }).returning();
-  }
-  const atpl_70 = atpl_70Row.id;
-
-  let [atpl_71Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Padrão de coloração"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_71Row) {
-    [atpl_71Row] = await db.insert(attributeTemplateTable).values({ label: "Padrão de coloração", unit: "" }).returning();
-  }
-  const atpl_71 = atpl_71Row.id;
-
-  let [atpl_72Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Canto"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_72Row) {
-    [atpl_72Row] = await db.insert(attributeTemplateTable).values({ label: "Canto", unit: "" }).returning();
-  }
-  const atpl_72 = atpl_72Row.id;
-
-  let [atpl_73Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Distribuição geográfica"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_73Row) {
-    [atpl_73Row] = await db.insert(attributeTemplateTable).values({ label: "Distribuição geográfica", unit: "" }).returning();
-  }
-  const atpl_73 = atpl_73Row.id;
-
-  let [atpl_74Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Duração da fase ninfal subterrânea"), eq(attributeTemplateTable.unit, "year")));
-  if (!atpl_74Row) {
-    [atpl_74Row] = await db.insert(attributeTemplateTable).values({ label: "Duração da fase ninfal subterrânea", unit: "year" }).returning();
-  }
-  const atpl_74 = atpl_74Row.id;
-
-  let [atpl_75Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Hábito alimentar das ninfas"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_75Row) {
-    [atpl_75Row] = await db.insert(attributeTemplateTable).values({ label: "Hábito alimentar das ninfas", unit: "" }).returning();
-  }
-  const atpl_75 = atpl_75Row.id;
+  const atplg_100092 = await getOrCreateAttributeTemplate("Duração do ciclo de vida", "day");
 
   await db.insert(attributeTable).values([
-    { species: species_cigarra.id, attribute: atpl_70, value: "maior espécie de cigarra do Hemisfério Ocidental", sourceId: src_55 },
-    { species: species_cigarra.id, attribute: atpl_71, value: "preto, verde e marrom, com colar pronotal verde-amarronzado e olhos castanho a oliva", sourceId: src_55 },
-    { species: species_cigarra.id, attribute: atpl_72, value: "assobio agudo e prolongado, semelhante ao apito de uma locomotiva, durando quase meio minuto", sourceId: src_56 },
-    { species: species_cigarra.id, attribute: atpl_73, value: "do centro do Texas (EUA) até o norte da Argentina, incluindo o Brasil", sourceId: src_55 },
-    { species: species_cigarra.id, attribute: atpl_74, value: "4", sourceId: src_55 },
-    { species: species_cigarra.id, attribute: atpl_75, value: "sucção de seiva (xilema) das raízes de árvores no solo", sourceId: src_56 },
+    { species: species_cigarra.id, attribute: atplg_100092, value: "1460", sourceId: src_55 },
   ]);
 
   {
@@ -2910,17 +1979,9 @@ async function seed() {
     .returning();
   // ---- besouro-escaravelho (Scarabaeidae) ----
 
-  const [tax_66Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "coleoptera", parent: tax_59, createdBy: user.id })
-    .returning();
-  const tax_66 = tax_66Row.id;
+  const tax_66 = await getOrCreateTaxon("Ordem", "coleoptera", tax_59, user.id);
 
-  const [tax_67Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "scarabaeidae", parent: tax_66, createdBy: user.id })
-    .returning();
-  const tax_67 = tax_67Row.id;
+  const tax_67 = await getOrCreateTaxon("Família", "scarabaeidae", tax_66, user.id);
 
   const [species_besouro_escaravelho] = await db
     .insert(speciesTable)
@@ -2963,67 +2024,10 @@ async function seed() {
   }
   const src_66 = src_66Row.id;
 
-  let [atpl_76Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento corporal"), eq(attributeTemplateTable.unit, "millimeter")));
-  if (!atpl_76Row) {
-    [atpl_76Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento corporal", unit: "millimeter" }).returning();
-  }
-  const atpl_76 = atpl_76Row.id;
-
-  let [atpl_77Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Riqueza da família"), eq(attributeTemplateTable.unit, "species")));
-  if (!atpl_77Row) {
-    [atpl_77Row] = await db.insert(attributeTemplateTable).values({ label: "Riqueza da família", unit: "species" }).returning();
-  }
-  const atpl_77 = atpl_77Row.id;
-
-  let [atpl_78Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Tipo de antena"), eq(attributeTemplateTable.unit, "type")));
-  if (!atpl_78Row) {
-    [atpl_78Row] = await db.insert(attributeTemplateTable).values({ label: "Tipo de antena", unit: "type" }).returning();
-  }
-  const atpl_78 = atpl_78Row.id;
-
-  let [atpl_79Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Hábito alimentar"), eq(attributeTemplateTable.unit, "diet")));
-  if (!atpl_79Row) {
-    [atpl_79Row] = await db.insert(attributeTemplateTable).values({ label: "Hábito alimentar", unit: "diet" }).returning();
-  }
-  const atpl_79 = atpl_79Row.id;
-
-  let [atpl_80Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Coloração"), eq(attributeTemplateTable.unit, "color")));
-  if (!atpl_80Row) {
-    [atpl_80Row] = await db.insert(attributeTemplateTable).values({ label: "Coloração", unit: "color" }).returning();
-  }
-  const atpl_80 = atpl_80Row.id;
-
-  let [atpl_81Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comportamento reprodutivo"), eq(attributeTemplateTable.unit, "behavior")));
-  if (!atpl_81Row) {
-    [atpl_81Row] = await db.insert(attributeTemplateTable).values({ label: "Comportamento reprodutivo", unit: "behavior" }).returning();
-  }
-  const atpl_81 = atpl_81Row.id;
+  const atplg_100091 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
 
   await db.insert(attributeTable).values([
-    { species: species_besouro_escaravelho.id, attribute: atpl_76, value: "1.5 to 160", sourceId: src_61 },
-    { species: species_besouro_escaravelho.id, attribute: atpl_77, value: "about 27800", sourceId: src_62 },
-    { species: species_besouro_escaravelho.id, attribute: atpl_78, value: "lamellate", sourceId: src_61 },
-    { species: species_besouro_escaravelho.id, attribute: atpl_79, value: "coprophagous, saprophagous or phytophagous", sourceId: src_62 },
-    { species: species_besouro_escaravelho.id, attribute: atpl_80, value: "brown or black, metallic green in diurnal species", sourceId: src_65 },
-    { species: species_besouro_escaravelho.id, attribute: atpl_81, value: "male carries female while rolling a dung ball", sourceId: src_66 },
+    { species: species_besouro_escaravelho.id, attribute: atplg_100091, value: "0.15 to 16", sourceId: src_61 },
   ]);
 
   {
@@ -3080,29 +2084,13 @@ async function seed() {
     .returning();
   // ---- abelha (Apis mellifera) ----
 
-  const [tax_68Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "hymenoptera", parent: tax_59, createdBy: user.id })
-    .returning();
-  const tax_68 = tax_68Row.id;
+  const tax_68 = await getOrCreateTaxon("Ordem", "hymenoptera", tax_59, user.id);
 
-  const [tax_69Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "apidae", parent: tax_68, createdBy: user.id })
-    .returning();
-  const tax_69 = tax_69Row.id;
+  const tax_69 = await getOrCreateTaxon("Família", "apidae", tax_68, user.id);
 
-  const [tax_70Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "apis", parent: tax_69, createdBy: user.id })
-    .returning();
-  const tax_70 = tax_70Row.id;
+  const tax_70 = await getOrCreateTaxon("Gênero", "apis", tax_69, user.id);
 
-  const [tax_71Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "apis mellifera", parent: tax_70, createdBy: user.id })
-    .returning();
-  const tax_71 = tax_71Row.id;
+  const tax_71 = await getOrCreateTaxon("Espécie", "apis mellifera", tax_70, user.id);
 
   const [species_abelha] = await db
     .insert(speciesTable)
@@ -3127,58 +2115,16 @@ async function seed() {
   }
   const src_69 = src_69Row.id;
 
-  let [atpl_82Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento (operária)"), eq(attributeTemplateTable.unit, "mm")));
-  if (!atpl_82Row) {
-    [atpl_82Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento (operária)", unit: "mm" }).returning();
-  }
-  const atpl_82 = atpl_82Row.id;
-
-  let [atpl_83Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento (rainha)"), eq(attributeTemplateTable.unit, "mm")));
-  if (!atpl_83Row) {
-    [atpl_83Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento (rainha)", unit: "mm" }).returning();
-  }
-  const atpl_83 = atpl_83Row.id;
-
-  let [atpl_84Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Expectativa de vida (rainha)"), eq(attributeTemplateTable.unit, "year")));
-  if (!atpl_84Row) {
-    [atpl_84Row] = await db.insert(attributeTemplateTable).values({ label: "Expectativa de vida (rainha)", unit: "year" }).returning();
-  }
-  const atpl_84 = atpl_84Row.id;
-
-  let [atpl_85Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Expectativa de vida (operária)"), eq(attributeTemplateTable.unit, "week")));
-  if (!atpl_85Row) {
-    [atpl_85Row] = await db.insert(attributeTemplateTable).values({ label: "Expectativa de vida (operária)", unit: "week" }).returning();
-  }
-  const atpl_85 = atpl_85Row.id;
-
-  let [atpl_86Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Subespécies reconhecidas"), eq(attributeTemplateTable.unit, "count")));
-  if (!atpl_86Row) {
-    [atpl_86Row] = await db.insert(attributeTemplateTable).values({ label: "Subespécies reconhecidas", unit: "count" }).returning();
-  }
-  const atpl_86 = atpl_86Row.id;
+  const atplg_100087 = await getOrCreateAttributeTemplate("Comprimento corporal (operária)", "centimeter");
+  const atplg_100088 = await getOrCreateAttributeTemplate("Comprimento corporal (rainha)", "centimeter");
+  const atplg_100089 = await getOrCreateAttributeTemplate("Longevidade média (rainha)", "year");
+  const atplg_100090 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "category");
 
   await db.insert(attributeTable).values([
-    { species: species_abelha.id, attribute: atpl_82, value: "10-15", sourceId: src_69 },
-    { species: species_abelha.id, attribute: atpl_83, value: "18-20", sourceId: src_69 },
-    { species: species_abelha.id, attribute: atpl_84, value: "3-5", sourceId: src_67 },
-    { species: species_abelha.id, attribute: atpl_85, value: "poucas semanas no verão, meses no inverno", sourceId: src_67 },
-    { species: species_abelha.id, attribute: atpl_55, value: "deficiente em dados (data deficient)", sourceId: src_67 },
-    { species: species_abelha.id, attribute: atpl_86, value: "31", sourceId: src_67 },
+    { species: species_abelha.id, attribute: atplg_100087, value: "1-1.5", sourceId: src_69 },
+    { species: species_abelha.id, attribute: atplg_100088, value: "1.8-2", sourceId: src_69 },
+    { species: species_abelha.id, attribute: atplg_100089, value: "3-5", sourceId: src_67 },
+    { species: species_abelha.id, attribute: atplg_100090, value: "DD", sourceId: src_67 },
   ]);
 
   {
@@ -3248,29 +2194,13 @@ async function seed() {
     .returning();
   // ---- libelula (Erythemis vesiculosa) ----
 
-  const [tax_72Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "odonata", parent: tax_59, createdBy: user.id })
-    .returning();
-  const tax_72 = tax_72Row.id;
+  const tax_72 = await getOrCreateTaxon("Ordem", "odonata", tax_59, user.id);
 
-  const [tax_73Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "libellulidae", parent: tax_72, createdBy: user.id })
-    .returning();
-  const tax_73 = tax_73Row.id;
+  const tax_73 = await getOrCreateTaxon("Família", "libellulidae", tax_72, user.id);
 
-  const [tax_74Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "erythemis", parent: tax_73, createdBy: user.id })
-    .returning();
-  const tax_74 = tax_74Row.id;
+  const tax_74 = await getOrCreateTaxon("Gênero", "erythemis", tax_73, user.id);
 
-  const [tax_75Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "erythemis vesiculosa", parent: tax_74, createdBy: user.id })
-    .returning();
-  const tax_75 = tax_75Row.id;
+  const tax_75 = await getOrCreateTaxon("Espécie", "erythemis vesiculosa", tax_74, user.id);
 
   const [species_libelula] = await db
     .insert(speciesTable)
@@ -3307,37 +2237,10 @@ async function seed() {
   }
   const src_74 = src_74Row.id;
 
-  let [atpl_87Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Envergadura alar"), eq(attributeTemplateTable.unit, "millimeter")));
-  if (!atpl_87Row) {
-    [atpl_87Row] = await db.insert(attributeTemplateTable).values({ label: "Envergadura alar", unit: "millimeter" }).returning();
-  }
-  const atpl_87 = atpl_87Row.id;
-
-  let [atpl_88Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento do abdômen"), eq(attributeTemplateTable.unit, "millimeter")));
-  if (!atpl_88Row) {
-    [atpl_88Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento do abdômen", unit: "millimeter" }).returning();
-  }
-  const atpl_88 = atpl_88Row.id;
-
-  let [atpl_89Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento da ala posterior"), eq(attributeTemplateTable.unit, "millimeter")));
-  if (!atpl_89Row) {
-    [atpl_89Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento da ala posterior", unit: "millimeter" }).returning();
-  }
-  const atpl_89 = atpl_89Row.id;
+  const atplg_100086 = await getOrCreateAttributeTemplate("Envergadura", "centimeter");
 
   await db.insert(attributeTable).values([
-    { species: species_libelula.id, attribute: atpl_87, value: "56-60", sourceId: src_70 },
-    { species: species_libelula.id, attribute: atpl_88, value: "40-43", sourceId: src_70 },
-    { species: species_libelula.id, attribute: atpl_89, value: "38-40", sourceId: src_70 },
+    { species: species_libelula.id, attribute: atplg_100086, value: "5.6-6", sourceId: src_70 },
   ]);
 
   {
@@ -3386,29 +2289,13 @@ async function seed() {
     .returning();
   // ---- grilo (Gryllus assimilis) ----
 
-  const [tax_76Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "orthoptera", parent: tax_59, createdBy: user.id })
-    .returning();
-  const tax_76 = tax_76Row.id;
+  const tax_76 = await getOrCreateTaxon("Ordem", "orthoptera", tax_59, user.id);
 
-  const [tax_77Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "gryllidae", parent: tax_76, createdBy: user.id })
-    .returning();
-  const tax_77 = tax_77Row.id;
+  const tax_77 = await getOrCreateTaxon("Família", "gryllidae", tax_76, user.id);
 
-  const [tax_78Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "gryllus", parent: tax_77, createdBy: user.id })
-    .returning();
-  const tax_78 = tax_78Row.id;
+  const tax_78 = await getOrCreateTaxon("Gênero", "gryllus", tax_77, user.id);
 
-  const [tax_79Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "assimilis", parent: tax_78, createdBy: user.id })
-    .returning();
-  const tax_79 = tax_79Row.id;
+  const tax_79 = await getOrCreateTaxon("Espécie", "assimilis", tax_78, user.id);
 
   const [species_grilo] = await db
     .insert(speciesTable)
@@ -3439,67 +2326,16 @@ async function seed() {
   }
   const src_78 = src_78Row.id;
 
-  let [atpl_90Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento máximo do corpo"), eq(attributeTemplateTable.unit, "millimeter")));
-  if (!atpl_90Row) {
-    [atpl_90Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento máximo do corpo", unit: "millimeter" }).returning();
-  }
-  const atpl_90 = atpl_90Row.id;
-
-  let [atpl_91Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Número de ovos por postura"), eq(attributeTemplateTable.unit, "egg")));
-  if (!atpl_91Row) {
-    [atpl_91Row] = await db.insert(attributeTemplateTable).values({ label: "Número de ovos por postura", unit: "egg" }).returning();
-  }
-  const atpl_91 = atpl_91Row.id;
-
-  let [atpl_92Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Período de incubação dos ovos"), eq(attributeTemplateTable.unit, "day")));
-  if (!atpl_92Row) {
-    [atpl_92Row] = await db.insert(attributeTemplateTable).values({ label: "Período de incubação dos ovos", unit: "day" }).returning();
-  }
-  const atpl_92 = atpl_92Row.id;
-
-  let [atpl_93Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Duração do desenvolvimento ninfal"), eq(attributeTemplateTable.unit, "week")));
-  if (!atpl_93Row) {
-    [atpl_93Row] = await db.insert(attributeTemplateTable).values({ label: "Duração do desenvolvimento ninfal", unit: "week" }).returning();
-  }
-  const atpl_93 = atpl_93Row.id;
-
-  let [atpl_94Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Pulsos por chilrido do canto"), eq(attributeTemplateTable.unit, "pulse")));
-  if (!atpl_94Row) {
-    [atpl_94Row] = await db.insert(attributeTemplateTable).values({ label: "Pulsos por chilrido do canto", unit: "pulse" }).returning();
-  }
-  const atpl_94 = atpl_94Row.id;
-
-  let [atpl_95Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Frequência do canto de chamado"), eq(attributeTemplateTable.unit, "chirp per second")));
-  if (!atpl_95Row) {
-    [atpl_95Row] = await db.insert(attributeTemplateTable).values({ label: "Frequência do canto de chamado", unit: "chirp per second" }).returning();
-  }
-  const atpl_95 = atpl_95Row.id;
+  const atplg_100082 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
+  const atplg_100083 = await getOrCreateAttributeTemplate("Ovos por postura", "unit");
+  const atplg_100084 = await getOrCreateAttributeTemplate("Período de incubação", "day");
+  const atplg_100085 = await getOrCreateAttributeTemplate("Duração do ciclo de vida", "day");
 
   await db.insert(attributeTable).values([
-    { species: species_grilo.id, attribute: atpl_90, value: "31", sourceId: src_76 },
-    { species: species_grilo.id, attribute: atpl_91, value: "400", sourceId: src_75 },
-    { species: species_grilo.id, attribute: atpl_92, value: "11", sourceId: src_75 },
-    { species: species_grilo.id, attribute: atpl_93, value: "6 a 7", sourceId: src_75 },
-    { species: species_grilo.id, attribute: atpl_94, value: "7 ou mais", sourceId: src_77 },
-    { species: species_grilo.id, attribute: atpl_95, value: "1", sourceId: src_77 },
+    { species: species_grilo.id, attribute: atplg_100082, value: "3.1", sourceId: src_76 },
+    { species: species_grilo.id, attribute: atplg_100083, value: "400", sourceId: src_75 },
+    { species: species_grilo.id, attribute: atplg_100084, value: "11", sourceId: src_75 },
+    { species: species_grilo.id, attribute: atplg_100085, value: "42 a 49", sourceId: src_75 },
   ]);
 
   {
@@ -3579,29 +2415,13 @@ async function seed() {
     .returning();
   // ---- larva-mosca-1 (Musca domestica) ----
 
-  const [tax_80Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "diptera", parent: tax_59, createdBy: user.id })
-    .returning();
-  const tax_80 = tax_80Row.id;
+  const tax_80 = await getOrCreateTaxon("Ordem", "diptera", tax_59, user.id);
 
-  const [tax_81Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "muscidae", parent: tax_80, createdBy: user.id })
-    .returning();
-  const tax_81 = tax_81Row.id;
+  const tax_81 = await getOrCreateTaxon("Família", "muscidae", tax_80, user.id);
 
-  const [tax_82Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "musca", parent: tax_81, createdBy: user.id })
-    .returning();
-  const tax_82 = tax_82Row.id;
+  const tax_82 = await getOrCreateTaxon("Gênero", "musca", tax_81, user.id);
 
-  const [tax_83Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "musca domestica", parent: tax_82, createdBy: user.id })
-    .returning();
-  const tax_83 = tax_83Row.id;
+  const tax_83 = await getOrCreateTaxon("Espécie", "musca domestica", tax_82, user.id);
 
   const [species_larva_mosca_1] = await db
     .insert(speciesTable)
@@ -3626,67 +2446,16 @@ async function seed() {
   }
   const src_81 = src_81Row.id;
 
-  let [atpl_96Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento do adulto"), eq(attributeTemplateTable.unit, "mm")));
-  if (!atpl_96Row) {
-    [atpl_96Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento do adulto", unit: "mm" }).returning();
-  }
-  const atpl_96 = atpl_96Row.id;
-
-  let [atpl_97Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Envergadura das asas"), eq(attributeTemplateTable.unit, "mm")));
-  if (!atpl_97Row) {
-    [atpl_97Row] = await db.insert(attributeTemplateTable).values({ label: "Envergadura das asas", unit: "mm" }).returning();
-  }
-  const atpl_97 = atpl_97Row.id;
-
-  let [atpl_98Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento da larva"), eq(attributeTemplateTable.unit, "mm")));
-  if (!atpl_98Row) {
-    [atpl_98Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento da larva", unit: "mm" }).returning();
-  }
-  const atpl_98 = atpl_98Row.id;
-
-  let [atpl_99Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Duração do ciclo de vida completo"), eq(attributeTemplateTable.unit, "day")));
-  if (!atpl_99Row) {
-    [atpl_99Row] = await db.insert(attributeTemplateTable).values({ label: "Duração do ciclo de vida completo", unit: "day" }).returning();
-  }
-  const atpl_99 = atpl_99Row.id;
-
-  let [atpl_100Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Classificação científica"), eq(attributeTemplateTable.unit, "none")));
-  if (!atpl_100Row) {
-    [atpl_100Row] = await db.insert(attributeTemplateTable).values({ label: "Classificação científica", unit: "none" }).returning();
-  }
-  const atpl_100 = atpl_100Row.id;
-
-  let [atpl_101Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Distribuição"), eq(attributeTemplateTable.unit, "none")));
-  if (!atpl_101Row) {
-    [atpl_101Row] = await db.insert(attributeTemplateTable).values({ label: "Distribuição", unit: "none" }).returning();
-  }
-  const atpl_101 = atpl_101Row.id;
+  const atplg_100078 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
+  const atplg_100079 = await getOrCreateAttributeTemplate("Envergadura", "centimeter");
+  const atplg_100080 = await getOrCreateAttributeTemplate("Comprimento corporal (larva)", "centimeter");
+  const atplg_100081 = await getOrCreateAttributeTemplate("Duração do ciclo de vida", "day");
 
   await db.insert(attributeTable).values([
-    { species: species_larva_mosca_1.id, attribute: atpl_96, value: "6 to 7", sourceId: src_79 },
-    { species: species_larva_mosca_1.id, attribute: atpl_97, value: "13 to 15", sourceId: src_79 },
-    { species: species_larva_mosca_1.id, attribute: atpl_98, value: "3 to 9", sourceId: src_79 },
-    { species: species_larva_mosca_1.id, attribute: atpl_99, value: "7 to 10 (optimal) up to 60 (adverse)", sourceId: src_79 },
-    { species: species_larva_mosca_1.id, attribute: atpl_100, value: "linnaeus 1758", sourceId: src_80 },
-    { species: species_larva_mosca_1.id, attribute: atpl_101, value: "cosmopolitan worldwide", sourceId: src_79 },
+    { species: species_larva_mosca_1.id, attribute: atplg_100078, value: "0.6 to 0.7", sourceId: src_79 },
+    { species: species_larva_mosca_1.id, attribute: atplg_100079, value: "1.3 to 1.5", sourceId: src_79 },
+    { species: species_larva_mosca_1.id, attribute: atplg_100080, value: "0.3 to 0.9", sourceId: src_79 },
+    { species: species_larva_mosca_1.id, attribute: atplg_100081, value: "7 to 10 (optimal) up to 60 (adverse)", sourceId: src_79 },
   ]);
 
   {
@@ -3741,35 +2510,15 @@ async function seed() {
     .returning();
   // ---- mariposa (Ascalapha odorata) ----
 
-  const [tax_84Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "lepidoptera", parent: tax_59, createdBy: user.id })
-    .returning();
-  const tax_84 = tax_84Row.id;
+  const tax_84 = await getOrCreateTaxon("Ordem", "lepidoptera", tax_59, user.id);
 
-  const [tax_85Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Superfamília", labelValue: "noctuoidea", parent: tax_84, createdBy: user.id })
-    .returning();
-  const tax_85 = tax_85Row.id;
+  const tax_85 = await getOrCreateTaxon("Superfamília", "noctuoidea", tax_84, user.id);
 
-  const [tax_86Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "erebidae", parent: tax_85, createdBy: user.id })
-    .returning();
-  const tax_86 = tax_86Row.id;
+  const tax_86 = await getOrCreateTaxon("Família", "erebidae", tax_85, user.id);
 
-  const [tax_87Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "ascalapha", parent: tax_86, createdBy: user.id })
-    .returning();
-  const tax_87 = tax_87Row.id;
+  const tax_87 = await getOrCreateTaxon("Gênero", "ascalapha", tax_86, user.id);
 
-  const [tax_88Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "ascalapha odorata", parent: tax_87, createdBy: user.id })
-    .returning();
-  const tax_88 = tax_88Row.id;
+  const tax_88 = await getOrCreateTaxon("Espécie", "ascalapha odorata", tax_87, user.id);
 
   const [species_mariposa] = await db
     .insert(speciesTable)
@@ -3818,67 +2567,16 @@ async function seed() {
   }
   const src_88 = src_88Row.id;
 
-  let [atpl_102Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Envergadura da fêmea"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_102Row) {
-    [atpl_102Row] = await db.insert(attributeTemplateTable).values({ label: "Envergadura da fêmea", unit: "centimeter" }).returning();
-  }
-  const atpl_102 = atpl_102Row.id;
-
-  let [atpl_103Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Envergadura do macho"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_103Row) {
-    [atpl_103Row] = await db.insert(attributeTemplateTable).values({ label: "Envergadura do macho", unit: "centimeter" }).returning();
-  }
-  const atpl_103 = atpl_103Row.id;
-
-  let [atpl_104Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento da larva"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_104Row) {
-    [atpl_104Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento da larva", unit: "centimeter" }).returning();
-  }
-  const atpl_104 = atpl_104Row.id;
-
-  let [atpl_105Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Hábito alimentar do adulto"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_105Row) {
-    [atpl_105Row] = await db.insert(attributeTemplateTable).values({ label: "Hábito alimentar do adulto", unit: "" }).returning();
-  }
-  const atpl_105 = atpl_105Row.id;
-
-  let [atpl_106Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Hábitat"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_106Row) {
-    [atpl_106Row] = await db.insert(attributeTemplateTable).values({ label: "Hábitat", unit: "" }).returning();
-  }
-  const atpl_106 = atpl_106Row.id;
-
-  let [atpl_107Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Status de conservação"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_107Row) {
-    [atpl_107Row] = await db.insert(attributeTemplateTable).values({ label: "Status de conservação", unit: "" }).returning();
-  }
-  const atpl_107 = atpl_107Row.id;
+  const atplg_100074 = await getOrCreateAttributeTemplate("Envergadura (fêmea)", "centimeter");
+  const atplg_100075 = await getOrCreateAttributeTemplate("Envergadura (macho)", "centimeter");
+  const atplg_100076 = await getOrCreateAttributeTemplate("Comprimento corporal (larva)", "centimeter");
+  const atplg_100077 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "category");
 
   await db.insert(attributeTable).values([
-    { species: species_mariposa.id, attribute: atpl_102, value: "24", sourceId: src_82 },
-    { species: species_mariposa.id, attribute: atpl_103, value: "12", sourceId: src_82 },
-    { species: species_mariposa.id, attribute: atpl_104, value: "7", sourceId: src_82 },
-    { species: species_mariposa.id, attribute: atpl_105, value: "frugívoro, alimenta-se de frutos muito maduros, sobretudo banana", sourceId: src_82 },
-    { species: species_mariposa.id, attribute: atpl_106, value: "florestas tropicais e áreas arbustivas tropicais", sourceId: src_83 },
-    { species: species_mariposa.id, attribute: atpl_107, value: "não avaliada pela IUCN (NE - not evaluated)", sourceId: src_84 },
+    { species: species_mariposa.id, attribute: atplg_100074, value: "24", sourceId: src_82 },
+    { species: species_mariposa.id, attribute: atplg_100075, value: "12", sourceId: src_82 },
+    { species: species_mariposa.id, attribute: atplg_100076, value: "7", sourceId: src_82 },
+    { species: species_mariposa.id, attribute: atplg_100077, value: "NE", sourceId: src_84 },
   ]);
 
   {
@@ -3933,35 +2631,15 @@ async function seed() {
     .returning();
   // ---- barata (Periplaneta americana) ----
 
-  const [tax_89Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "blattodea", parent: tax_59, createdBy: user.id })
-    .returning();
-  const tax_89 = tax_89Row.id;
+  const tax_89 = await getOrCreateTaxon("Ordem", "blattodea", tax_59, user.id);
 
-  const [tax_90Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "blattidae", parent: tax_89, createdBy: user.id })
-    .returning();
-  const tax_90 = tax_90Row.id;
+  const tax_90 = await getOrCreateTaxon("Família", "blattidae", tax_89, user.id);
 
-  const [tax_91Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Subfamília", labelValue: "blattinae", parent: tax_90, createdBy: user.id })
-    .returning();
-  const tax_91 = tax_91Row.id;
+  const tax_91 = await getOrCreateTaxon("Subfamília", "blattinae", tax_90, user.id);
 
-  const [tax_92Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "periplaneta", parent: tax_91, createdBy: user.id })
-    .returning();
-  const tax_92 = tax_92Row.id;
+  const tax_92 = await getOrCreateTaxon("Gênero", "periplaneta", tax_91, user.id);
 
-  const [tax_93Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "periplaneta americana", parent: tax_92, createdBy: user.id })
-    .returning();
-  const tax_93 = tax_93Row.id;
+  const tax_93 = await getOrCreateTaxon("Espécie", "periplaneta americana", tax_92, user.id);
 
   const [species_barata] = await db
     .insert(speciesTable)
@@ -4010,58 +2688,14 @@ async function seed() {
   }
   const src_95 = src_95Row.id;
 
-  let [atpl_108Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Temperatura ideal de habitat"), eq(attributeTemplateTable.unit, "celsius")));
-  if (!atpl_108Row) {
-    [atpl_108Row] = await db.insert(attributeTemplateTable).values({ label: "Temperatura ideal de habitat", unit: "celsius" }).returning();
-  }
-  const atpl_108 = atpl_108Row.id;
-
-  let [atpl_109Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Duração do ciclo de vida"), eq(attributeTemplateTable.unit, "day")));
-  if (!atpl_109Row) {
-    [atpl_109Row] = await db.insert(attributeTemplateTable).values({ label: "Duração do ciclo de vida", unit: "day" }).returning();
-  }
-  const atpl_109 = atpl_109Row.id;
-
-  let [atpl_110Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Coloração"), eq(attributeTemplateTable.unit, "none")));
-  if (!atpl_110Row) {
-    [atpl_110Row] = await db.insert(attributeTemplateTable).values({ label: "Coloração", unit: "none" }).returning();
-  }
-  const atpl_110 = atpl_110Row.id;
-
-  let [atpl_111Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Distribuição original"), eq(attributeTemplateTable.unit, "none")));
-  if (!atpl_111Row) {
-    [atpl_111Row] = await db.insert(attributeTemplateTable).values({ label: "Distribuição original", unit: "none" }).returning();
-  }
-  const atpl_111 = atpl_111Row.id;
-
-  let [atpl_112Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Habito alimentar"), eq(attributeTemplateTable.unit, "none")));
-  if (!atpl_112Row) {
-    [atpl_112Row] = await db.insert(attributeTemplateTable).values({ label: "Habito alimentar", unit: "none" }).returning();
-  }
-  const atpl_112 = atpl_112Row.id;
+  const atplg_100071 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
+  const atplg_100072 = await getOrCreateAttributeTemplate("Faixa de temperatura tolerada", "celsius");
+  const atplg_100073 = await getOrCreateAttributeTemplate("Duração do ciclo de vida", "day");
 
   await db.insert(attributeTable).values([
-    { species: species_barata.id, attribute: atpl_65, value: "4", sourceId: src_89 },
-    { species: species_barata.id, attribute: atpl_108, value: "29", sourceId: src_89 },
-    { species: species_barata.id, attribute: atpl_109, value: "700", sourceId: src_89 },
-    { species: species_barata.id, attribute: atpl_110, value: "castanho-avermelhada com margem amarelada no pronoto", sourceId: src_90 },
-    { species: species_barata.id, attribute: atpl_111, value: "nativa da Africa e do Oriente Medio, atualmente de distribuicao cosmopolita", sourceId: src_89 },
-    { species: species_barata.id, attribute: atpl_112, value: "onivora oportunista, consome materia organica, papel, couro e alimentos fermentados", sourceId: src_89 },
+    { species: species_barata.id, attribute: atplg_100071, value: "4", sourceId: src_89 },
+    { species: species_barata.id, attribute: atplg_100072, value: "29", sourceId: src_89 },
+    { species: species_barata.id, attribute: atplg_100073, value: "700", sourceId: src_89 },
   ]);
 
   {
@@ -4138,67 +2772,14 @@ async function seed() {
   }
   const src_98 = src_98Row.id;
 
-  let [atpl_113Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento do ovo"), eq(attributeTemplateTable.unit, "mm")));
-  if (!atpl_113Row) {
-    [atpl_113Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento do ovo", unit: "mm" }).returning();
-  }
-  const atpl_113 = atpl_113Row.id;
-
-  let [atpl_114Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Cor do ovo"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_114Row) {
-    [atpl_114Row] = await db.insert(attributeTemplateTable).values({ label: "Cor do ovo", unit: "" }).returning();
-  }
-  const atpl_114 = atpl_114Row.id;
-
-  let [atpl_115Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Ovos por postura"), eq(attributeTemplateTable.unit, "egg")));
-  if (!atpl_115Row) {
-    [atpl_115Row] = await db.insert(attributeTemplateTable).values({ label: "Ovos por postura", unit: "egg" }).returning();
-  }
-  const atpl_115 = atpl_115Row.id;
-
-  let [atpl_116Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Total de ovos por fêmea"), eq(attributeTemplateTable.unit, "egg")));
-  if (!atpl_116Row) {
-    [atpl_116Row] = await db.insert(attributeTemplateTable).values({ label: "Total de ovos por fêmea", unit: "egg" }).returning();
-  }
-  const atpl_116 = atpl_116Row.id;
-
-  let [atpl_117Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Tempo de incubação"), eq(attributeTemplateTable.unit, "day")));
-  if (!atpl_117Row) {
-    [atpl_117Row] = await db.insert(attributeTemplateTable).values({ label: "Tempo de incubação", unit: "day" }).returning();
-  }
-  const atpl_117 = atpl_117Row.id;
-
-  let [atpl_118Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Formato do ovo"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_118Row) {
-    [atpl_118Row] = await db.insert(attributeTemplateTable).values({ label: "Formato do ovo", unit: "" }).returning();
-  }
-  const atpl_118 = atpl_118Row.id;
+  const atplg_100068 = await getOrCreateAttributeTemplate("Ovos por postura", "unit");
+  const atplg_100069 = await getOrCreateAttributeTemplate("Ovos por fêmea (total)", "unit");
+  const atplg_100070 = await getOrCreateAttributeTemplate("Período de incubação", "day");
 
   await db.insert(attributeTable).values([
-    { species: species_ovo_mosca.id, attribute: atpl_113, value: "1.2", sourceId: src_79 },
-    { species: species_ovo_mosca.id, attribute: atpl_114, value: "white", sourceId: src_79 },
-    { species: species_ovo_mosca.id, attribute: atpl_115, value: "75-150", sourceId: src_79 },
-    { species: species_ovo_mosca.id, attribute: atpl_116, value: "up to 500", sourceId: src_79 },
-    { species: species_ovo_mosca.id, attribute: atpl_117, value: "less than 1", sourceId: src_79 },
-    { species: species_ovo_mosca.id, attribute: atpl_118, value: "banana-shaped", sourceId: src_96 },
+    { species: species_ovo_mosca.id, attribute: atplg_100068, value: "75-150", sourceId: src_79 },
+    { species: species_ovo_mosca.id, attribute: atplg_100069, value: "up to 500", sourceId: src_79 },
+    { species: species_ovo_mosca.id, attribute: atplg_100070, value: "less than 1", sourceId: src_79 },
   ]);
 
   {
@@ -4250,29 +2831,13 @@ async function seed() {
     .returning();
   // ---- larva-mosca-2 (Chrysomya megacephala) ----
 
-  const [tax_94Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "calliphoridae", parent: tax_80, createdBy: user.id })
-    .returning();
-  const tax_94 = tax_94Row.id;
+  const tax_94 = await getOrCreateTaxon("Família", "calliphoridae", tax_80, user.id);
 
-  const [tax_95Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Subfamília", labelValue: "chrysomyinae", parent: tax_94, createdBy: user.id })
-    .returning();
-  const tax_95 = tax_95Row.id;
+  const tax_95 = await getOrCreateTaxon("Subfamília", "chrysomyinae", tax_94, user.id);
 
-  const [tax_96Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "chrysomya", parent: tax_95, createdBy: user.id })
-    .returning();
-  const tax_96 = tax_96Row.id;
+  const tax_96 = await getOrCreateTaxon("Gênero", "chrysomya", tax_95, user.id);
 
-  const [tax_97Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "chrysomya megacephala", parent: tax_96, createdBy: user.id })
-    .returning();
-  const tax_97 = tax_97Row.id;
+  const tax_97 = await getOrCreateTaxon("Espécie", "chrysomya megacephala", tax_96, user.id);
 
   const [species_larva_mosca_2] = await db
     .insert(speciesTable)
@@ -4309,67 +2874,16 @@ async function seed() {
   }
   const src_103 = src_103Row.id;
 
-  let [atpl_119Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "comprimento do adulto"), eq(attributeTemplateTable.unit, "mm")));
-  if (!atpl_119Row) {
-    [atpl_119Row] = await db.insert(attributeTemplateTable).values({ label: "comprimento do adulto", unit: "mm" }).returning();
-  }
-  const atpl_119 = atpl_119Row.id;
-
-  let [atpl_120Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "comprimento da larva de terceiro estádio"), eq(attributeTemplateTable.unit, "mm")));
-  if (!atpl_120Row) {
-    [atpl_120Row] = await db.insert(attributeTemplateTable).values({ label: "comprimento da larva de terceiro estádio", unit: "mm" }).returning();
-  }
-  const atpl_120 = atpl_120Row.id;
-
-  let [atpl_121Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "duração do ciclo de vida"), eq(attributeTemplateTable.unit, "day")));
-  if (!atpl_121Row) {
-    [atpl_121Row] = await db.insert(attributeTemplateTable).values({ label: "duração do ciclo de vida", unit: "day" }).returning();
-  }
-  const atpl_121 = atpl_121Row.id;
-
-  let [atpl_122Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "duração da fase larval"), eq(attributeTemplateTable.unit, "day")));
-  if (!atpl_122Row) {
-    [atpl_122Row] = await db.insert(attributeTemplateTable).values({ label: "duração da fase larval", unit: "day" }).returning();
-  }
-  const atpl_122 = atpl_122Row.id;
-
-  let [atpl_123Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "ovos por postura"), eq(attributeTemplateTable.unit, "egg")));
-  if (!atpl_123Row) {
-    [atpl_123Row] = await db.insert(attributeTemplateTable).values({ label: "ovos por postura", unit: "egg" }).returning();
-  }
-  const atpl_123 = atpl_123Row.id;
-
-  let [atpl_124Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "índice de sinantropia em Paracambi (RJ)"), eq(attributeTemplateTable.unit, "percent")));
-  if (!atpl_124Row) {
-    [atpl_124Row] = await db.insert(attributeTemplateTable).values({ label: "índice de sinantropia em Paracambi (RJ)", unit: "percent" }).returning();
-  }
-  const atpl_124 = atpl_124Row.id;
+  const atplg_100064 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
+  const atplg_100065 = await getOrCreateAttributeTemplate("Comprimento corporal (larva)", "centimeter");
+  const atplg_100066 = await getOrCreateAttributeTemplate("Duração do ciclo de vida", "day");
+  const atplg_100067 = await getOrCreateAttributeTemplate("Ovos por postura", "unit");
 
   await db.insert(attributeTable).values([
-    { species: species_larva_mosca_2.id, attribute: atpl_119, value: "greater than 10", sourceId: src_100 },
-    { species: species_larva_mosca_2.id, attribute: atpl_120, value: "approximately 16", sourceId: src_101 },
-    { species: species_larva_mosca_2.id, attribute: atpl_121, value: "7 to 10", sourceId: src_101 },
-    { species: species_larva_mosca_2.id, attribute: atpl_122, value: "approximately 5.4", sourceId: src_99 },
-    { species: species_larva_mosca_2.id, attribute: atpl_123, value: "200 to 300", sourceId: src_99 },
-    { species: species_larva_mosca_2.id, attribute: atpl_124, value: "37.54", sourceId: src_102 },
+    { species: species_larva_mosca_2.id, attribute: atplg_100064, value: "greater than 1", sourceId: src_100 },
+    { species: species_larva_mosca_2.id, attribute: atplg_100065, value: "approximately 1.6", sourceId: src_101 },
+    { species: species_larva_mosca_2.id, attribute: atplg_100066, value: "7 to 10", sourceId: src_101 },
+    { species: species_larva_mosca_2.id, attribute: atplg_100067, value: "200 to 300", sourceId: src_99 },
   ]);
 
   {
@@ -4426,23 +2940,11 @@ async function seed() {
     .returning();
   // ---- larva-mosca-3 (Lucilia sericata) ----
 
-  const [tax_98Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Subfamília", labelValue: "luciliinae", parent: tax_94, createdBy: user.id })
-    .returning();
-  const tax_98 = tax_98Row.id;
+  const tax_98 = await getOrCreateTaxon("Subfamília", "luciliinae", tax_94, user.id);
 
-  const [tax_99Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "lucilia", parent: tax_98, createdBy: user.id })
-    .returning();
-  const tax_99 = tax_99Row.id;
+  const tax_99 = await getOrCreateTaxon("Gênero", "lucilia", tax_98, user.id);
 
-  const [tax_100Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "lucilia sericata", parent: tax_99, createdBy: user.id })
-    .returning();
-  const tax_100 = tax_100Row.id;
+  const tax_100 = await getOrCreateTaxon("Espécie", "lucilia sericata", tax_99, user.id);
 
   const [species_larva_mosca_3] = await db
     .insert(speciesTable)
@@ -4467,49 +2969,16 @@ async function seed() {
   }
   const src_106 = src_106Row.id;
 
-  let [atpl_125Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento do adulto"), eq(attributeTemplateTable.unit, "millimeter")));
-  if (!atpl_125Row) {
-    [atpl_125Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento do adulto", unit: "millimeter" }).returning();
-  }
-  const atpl_125 = atpl_125Row.id;
-
-  let [atpl_126Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento da larva (3º ínstar)"), eq(attributeTemplateTable.unit, "millimeter")));
-  if (!atpl_126Row) {
-    [atpl_126Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento da larva (3º ínstar)", unit: "millimeter" }).returning();
-  }
-  const atpl_126 = atpl_126Row.id;
-
-  let [atpl_127Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Duração da pupação"), eq(attributeTemplateTable.unit, "day")));
-  if (!atpl_127Row) {
-    [atpl_127Row] = await db.insert(attributeTemplateTable).values({ label: "Duração da pupação", unit: "day" }).returning();
-  }
-  const atpl_127 = atpl_127Row.id;
-
-  let [atpl_128Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Gerações por ano em clima temperado frio"), eq(attributeTemplateTable.unit, "generation")));
-  if (!atpl_128Row) {
-    [atpl_128Row] = await db.insert(attributeTemplateTable).values({ label: "Gerações por ano em clima temperado frio", unit: "generation" }).returning();
-  }
-  const atpl_128 = atpl_128Row.id;
+  const atplg_100060 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
+  const atplg_100061 = await getOrCreateAttributeTemplate("Comprimento corporal (larva)", "centimeter");
+  const atplg_100062 = await getOrCreateAttributeTemplate("Duração do ciclo de vida", "day");
+  const atplg_100063 = await getOrCreateAttributeTemplate("Ovos por postura", "unit");
 
   await db.insert(attributeTable).values([
-    { species: species_larva_mosca_3.id, attribute: atpl_125, value: "10-14", sourceId: src_104 },
-    { species: species_larva_mosca_3.id, attribute: atpl_126, value: "10-14", sourceId: src_104 },
-    { species: species_larva_mosca_3.id, attribute: atpl_99, value: "14-21", sourceId: src_104 },
-    { species: species_larva_mosca_3.id, attribute: atpl_91, value: "150-200", sourceId: src_104 },
-    { species: species_larva_mosca_3.id, attribute: atpl_127, value: "6-14", sourceId: src_104 },
-    { species: species_larva_mosca_3.id, attribute: atpl_128, value: "3-4", sourceId: src_104 },
+    { species: species_larva_mosca_3.id, attribute: atplg_100060, value: "1-1.4", sourceId: src_104 },
+    { species: species_larva_mosca_3.id, attribute: atplg_100061, value: "1-1.4", sourceId: src_104 },
+    { species: species_larva_mosca_3.id, attribute: atplg_100062, value: "14-21", sourceId: src_104 },
+    { species: species_larva_mosca_3.id, attribute: atplg_100063, value: "150-200", sourceId: src_104 },
   ]);
 
   {
@@ -4564,17 +3033,9 @@ async function seed() {
     .returning();
   // ---- larva-mosca-4 (Chrysomya albiceps) ----
 
-  const [tax_101Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "chrysomya", parent: tax_94, createdBy: user.id })
-    .returning();
-  const tax_101 = tax_101Row.id;
+  const tax_101 = await getOrCreateTaxon("Gênero", "chrysomya", tax_94, user.id);
 
-  const [tax_102Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "chrysomya albiceps", parent: tax_101, createdBy: user.id })
-    .returning();
-  const tax_102 = tax_102Row.id;
+  const tax_102 = await getOrCreateTaxon("Espécie", "chrysomya albiceps", tax_101, user.id);
 
   const [species_larva_mosca_4] = await db
     .insert(speciesTable)
@@ -4623,58 +3084,14 @@ async function seed() {
   }
   const src_113 = src_113Row.id;
 
-  let [atpl_129Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Temperatura ideal de oviposição"), eq(attributeTemplateTable.unit, "degree celsius")));
-  if (!atpl_129Row) {
-    [atpl_129Row] = await db.insert(attributeTemplateTable).values({ label: "Temperatura ideal de oviposição", unit: "degree celsius" }).returning();
-  }
-  const atpl_129 = atpl_129Row.id;
-
-  let [atpl_130Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Duração do ciclo de vida (ovo a adulto, 20-30°C)"), eq(attributeTemplateTable.unit, "day")));
-  if (!atpl_130Row) {
-    [atpl_130Row] = await db.insert(attributeTemplateTable).values({ label: "Duração do ciclo de vida (ovo a adulto, 20-30°C)", unit: "day" }).returning();
-  }
-  const atpl_130 = atpl_130Row.id;
-
-  let [atpl_131Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Faixa de elevação"), eq(attributeTemplateTable.unit, "meter")));
-  if (!atpl_131Row) {
-    [atpl_131Row] = await db.insert(attributeTemplateTable).values({ label: "Faixa de elevação", unit: "meter" }).returning();
-  }
-  const atpl_131 = atpl_131Row.id;
-
-  let [atpl_132Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comportamento larval"), eq(attributeTemplateTable.unit, "none")));
-  if (!atpl_132Row) {
-    [atpl_132Row] = await db.insert(attributeTemplateTable).values({ label: "Comportamento larval", unit: "none" }).returning();
-  }
-  const atpl_132 = atpl_132Row.id;
-
-  let [atpl_133Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Hábito alimentar das larvas"), eq(attributeTemplateTable.unit, "none")));
-  if (!atpl_133Row) {
-    [atpl_133Row] = await db.insert(attributeTemplateTable).values({ label: "Hábito alimentar das larvas", unit: "none" }).returning();
-  }
-  const atpl_133 = atpl_133Row.id;
+  const atplg_100057 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
+  const atplg_100058 = await getOrCreateAttributeTemplate("Faixa de temperatura tolerada", "celsius");
+  const atplg_100059 = await getOrCreateAttributeTemplate("Duração do ciclo de vida", "day");
 
   await db.insert(attributeTable).values([
-    { species: species_larva_mosca_4.id, attribute: atpl_125, value: "6-9", sourceId: src_107 },
-    { species: species_larva_mosca_4.id, attribute: atpl_129, value: "25-27", sourceId: src_107 },
-    { species: species_larva_mosca_4.id, attribute: atpl_130, value: "66", sourceId: src_107 },
-    { species: species_larva_mosca_4.id, attribute: atpl_131, value: "200-3100", sourceId: src_107 },
-    { species: species_larva_mosca_4.id, attribute: atpl_132, value: "predatory and cannibalistic", sourceId: src_107 },
-    { species: species_larva_mosca_4.id, attribute: atpl_133, value: "necrophagous", sourceId: src_108 },
+    { species: species_larva_mosca_4.id, attribute: atplg_100057, value: "0.6-0.9", sourceId: src_107 },
+    { species: species_larva_mosca_4.id, attribute: atplg_100058, value: "25-27", sourceId: src_107 },
+    { species: species_larva_mosca_4.id, attribute: atplg_100059, value: "66", sourceId: src_107 },
   ]);
 
   {
@@ -4746,49 +3163,14 @@ async function seed() {
   }
   const src_115 = src_115Row.id;
 
-  let [atpl_134Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Tamanho do pupário"), eq(attributeTemplateTable.unit, "mm")));
-  if (!atpl_134Row) {
-    [atpl_134Row] = await db.insert(attributeTemplateTable).values({ label: "Tamanho do pupário", unit: "mm" }).returning();
-  }
-  const atpl_134 = atpl_134Row.id;
-
-  let [atpl_135Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Ciclo de vida completo em ambiente natural"), eq(attributeTemplateTable.unit, "day")));
-  if (!atpl_135Row) {
-    [atpl_135Row] = await db.insert(attributeTemplateTable).values({ label: "Ciclo de vida completo em ambiente natural", unit: "day" }).returning();
-  }
-  const atpl_135 = atpl_135Row.id;
-
-  let [atpl_136Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento do corpo adulto"), eq(attributeTemplateTable.unit, "mm")));
-  if (!atpl_136Row) {
-    [atpl_136Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento do corpo adulto", unit: "mm" }).returning();
-  }
-  const atpl_136 = atpl_136Row.id;
-
-  let [atpl_137Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Coloração do tórax"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_137Row) {
-    [atpl_137Row] = await db.insert(attributeTemplateTable).values({ label: "Coloração do tórax", unit: "" }).returning();
-  }
-  const atpl_137 = atpl_137Row.id;
+  const atplg_100054 = await getOrCreateAttributeTemplate("Duração do ciclo de vida", "day");
+  const atplg_100055 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
+  const atplg_100056 = await getOrCreateAttributeTemplate("Envergadura", "centimeter");
 
   await db.insert(attributeTable).values([
-    { species: species_pupa_mosca.id, attribute: atpl_127, value: "2 a 20, variando com a temperatura", sourceId: src_115 },
-    { species: species_pupa_mosca.id, attribute: atpl_134, value: "8", sourceId: src_115 },
-    { species: species_pupa_mosca.id, attribute: atpl_135, value: "25 a 30", sourceId: src_114 },
-    { species: species_pupa_mosca.id, attribute: atpl_136, value: "6 a 7", sourceId: src_115 },
-    { species: species_pupa_mosca.id, attribute: atpl_97, value: "13 a 15", sourceId: src_115 },
-    { species: species_pupa_mosca.id, attribute: atpl_137, value: "cinzenta, com quatro linhas longitudinais escuras", sourceId: src_114 },
+    { species: species_pupa_mosca.id, attribute: atplg_100054, value: "25 a 30", sourceId: src_114 },
+    { species: species_pupa_mosca.id, attribute: atplg_100055, value: "0.6 a 0.7", sourceId: src_115 },
+    { species: species_pupa_mosca.id, attribute: atplg_100056, value: "1.3 a 1.5", sourceId: src_115 },
   ]);
 
   {
@@ -4846,67 +3228,18 @@ async function seed() {
     .values({ speciesRoot: tax_83, createdBy: user.id })
     .returning();
 
-  let [atpl_138Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento do corpo"), eq(attributeTemplateTable.unit, "mm")));
-  if (!atpl_138Row) {
-    [atpl_138Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento do corpo", unit: "mm" }).returning();
-  }
-  const atpl_138 = atpl_138Row.id;
-
-  let [atpl_139Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Envergadura"), eq(attributeTemplateTable.unit, "mm")));
-  if (!atpl_139Row) {
-    [atpl_139Row] = await db.insert(attributeTemplateTable).values({ label: "Envergadura", unit: "mm" }).returning();
-  }
-  const atpl_139 = atpl_139Row.id;
-
-  let [atpl_140Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Expectativa de vida do adulto"), eq(attributeTemplateTable.unit, "week")));
-  if (!atpl_140Row) {
-    [atpl_140Row] = await db.insert(attributeTemplateTable).values({ label: "Expectativa de vida do adulto", unit: "week" }).returning();
-  }
-  const atpl_140 = atpl_140Row.id;
-
-  let [atpl_141Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Ovos por fêmea"), eq(attributeTemplateTable.unit, "egg")));
-  if (!atpl_141Row) {
-    [atpl_141Row] = await db.insert(attributeTemplateTable).values({ label: "Ovos por fêmea", unit: "egg" }).returning();
-  }
-  const atpl_141 = atpl_141Row.id;
-
-  let [atpl_142Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Ciclo de vida completo (condições ótimas)"), eq(attributeTemplateTable.unit, "day")));
-  if (!atpl_142Row) {
-    [atpl_142Row] = await db.insert(attributeTemplateTable).values({ label: "Ciclo de vida completo (condições ótimas)", unit: "day" }).returning();
-  }
-  const atpl_142 = atpl_142Row.id;
-
-  let [atpl_143Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Gerações por ano (regiões tropicais)"), eq(attributeTemplateTable.unit, "generation")));
-  if (!atpl_143Row) {
-    [atpl_143Row] = await db.insert(attributeTemplateTable).values({ label: "Gerações por ano (regiões tropicais)", unit: "generation" }).returning();
-  }
-  const atpl_143 = atpl_143Row.id;
+  const atplg_100049 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
+  const atplg_100050 = await getOrCreateAttributeTemplate("Envergadura", "centimeter");
+  const atplg_100051 = await getOrCreateAttributeTemplate("Longevidade média", "year");
+  const atplg_100052 = await getOrCreateAttributeTemplate("Ovos por fêmea (total)", "unit");
+  const atplg_100053 = await getOrCreateAttributeTemplate("Duração do ciclo de vida", "day");
 
   await db.insert(attributeTable).values([
-    { species: species_mosca.id, attribute: atpl_138, value: "6 to 7", sourceId: src_79 },
-    { species: species_mosca.id, attribute: atpl_139, value: "13 to 15", sourceId: src_79 },
-    { species: species_mosca.id, attribute: atpl_140, value: "2 to 4", sourceId: src_79 },
-    { species: species_mosca.id, attribute: atpl_141, value: "up to 500", sourceId: src_79 },
-    { species: species_mosca.id, attribute: atpl_142, value: "7 to 10", sourceId: src_79 },
-    { species: species_mosca.id, attribute: atpl_143, value: "more than 20", sourceId: src_79 },
+    { species: species_mosca.id, attribute: atplg_100049, value: "0.6 to 0.7", sourceId: src_79 },
+    { species: species_mosca.id, attribute: atplg_100050, value: "1.3 to 1.5", sourceId: src_79 },
+    { species: species_mosca.id, attribute: atplg_100051, value: "0.04 to 0.08", sourceId: src_79 },
+    { species: species_mosca.id, attribute: atplg_100052, value: "up to 500", sourceId: src_79 },
+    { species: species_mosca.id, attribute: atplg_100053, value: "7 to 10", sourceId: src_79 },
   ]);
 
   {
@@ -4952,11 +3285,7 @@ async function seed() {
     .returning();
   // ---- besouro-chifre (Dynastinae) ----
 
-  const [tax_103Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Subfamília", labelValue: "dynastinae", parent: tax_67, createdBy: user.id })
-    .returning();
-  const tax_103 = tax_103Row.id;
+  const tax_103 = await getOrCreateTaxon("Subfamília", "dynastinae", tax_67, user.id);
 
   const [species_besouro_chifre] = await db
     .insert(speciesTable)
@@ -5005,58 +3334,10 @@ async function seed() {
   }
   const src_122 = src_122Row.id;
 
-  let [atpl_144Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Dieta larval"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_144Row) {
-    [atpl_144Row] = await db.insert(attributeTemplateTable).values({ label: "Dieta larval", unit: "" }).returning();
-  }
-  const atpl_144 = atpl_144Row.id;
-
-  let [atpl_145Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Dieta adulta"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_145Row) {
-    [atpl_145Row] = await db.insert(attributeTemplateTable).values({ label: "Dieta adulta", unit: "" }).returning();
-  }
-  const atpl_145 = atpl_145Row.id;
-
-  let [atpl_146Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Função do chifre"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_146Row) {
-    [atpl_146Row] = await db.insert(attributeTemplateTable).values({ label: "Função do chifre", unit: "" }).returning();
-  }
-  const atpl_146 = atpl_146Row.id;
-
-  let [atpl_147Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Diversidade conhecida"), eq(attributeTemplateTable.unit, "species")));
-  if (!atpl_147Row) {
-    [atpl_147Row] = await db.insert(attributeTemplateTable).values({ label: "Diversidade conhecida", unit: "species" }).returning();
-  }
-  const atpl_147 = atpl_147Row.id;
-
-  let [atpl_148Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Distribuição do gênero Megasoma"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_148Row) {
-    [atpl_148Row] = await db.insert(attributeTemplateTable).values({ label: "Distribuição do gênero Megasoma", unit: "" }).returning();
-  }
-  const atpl_148 = atpl_148Row.id;
+  const atplg_100048 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
 
   await db.insert(attributeTable).values([
-    { species: species_besouro_chifre.id, attribute: atpl_7, value: "more than 15", sourceId: src_116 },
-    { species: species_besouro_chifre.id, attribute: atpl_144, value: "rotten wood", sourceId: src_116 },
-    { species: species_besouro_chifre.id, attribute: atpl_145, value: "nectar, plant sap and fruit", sourceId: src_116 },
-    { species: species_besouro_chifre.id, attribute: atpl_146, value: "male fighting and digging", sourceId: src_116 },
-    { species: species_besouro_chifre.id, attribute: atpl_147, value: "over 1500", sourceId: src_116 },
-    { species: species_besouro_chifre.id, attribute: atpl_148, value: "Bolivia, Brazil, Colombia, Ecuador, French Guiana, Guyana, Panama, Peru, Suriname and Venezuela", sourceId: src_117 },
+    { species: species_besouro_chifre.id, attribute: atplg_100048, value: "more than 15", sourceId: src_116 },
   ]);
 
   {
@@ -5111,29 +3392,13 @@ async function seed() {
     .returning();
   // ---- lagarta-borboleta (Heliconius erato phyllis) ----
 
-  const [tax_104Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "nymphalidae", parent: tax_84, createdBy: user.id })
-    .returning();
-  const tax_104 = tax_104Row.id;
+  const tax_104 = await getOrCreateTaxon("Família", "nymphalidae", tax_84, user.id);
 
-  const [tax_105Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "heliconius", parent: tax_104, createdBy: user.id })
-    .returning();
-  const tax_105 = tax_105Row.id;
+  const tax_105 = await getOrCreateTaxon("Gênero", "heliconius", tax_104, user.id);
 
-  const [tax_106Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "heliconius erato", parent: tax_105, createdBy: user.id })
-    .returning();
-  const tax_106 = tax_106Row.id;
+  const tax_106 = await getOrCreateTaxon("Espécie", "heliconius erato", tax_105, user.id);
 
-  const [tax_107Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Subespécie", labelValue: "heliconius erato phyllis", parent: tax_106, createdBy: user.id })
-    .returning();
-  const tax_107 = tax_107Row.id;
+  const tax_107 = await getOrCreateTaxon("Subespécie", "heliconius erato phyllis", tax_106, user.id);
 
   const [species_lagarta_borboleta] = await db
     .insert(speciesTable)
@@ -5158,67 +3423,10 @@ async function seed() {
   }
   const src_125 = src_125Row.id;
 
-  let [atpl_149Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Envergadura (adulto)"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_149Row) {
-    [atpl_149Row] = await db.insert(attributeTemplateTable).values({ label: "Envergadura (adulto)", unit: "centimeter" }).returning();
-  }
-  const atpl_149 = atpl_149Row.id;
-
-  let [atpl_150Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Coloração da lagarta (último ínstar)"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_150Row) {
-    [atpl_150Row] = await db.insert(attributeTemplateTable).values({ label: "Coloração da lagarta (último ínstar)", unit: "" }).returning();
-  }
-  const atpl_150 = atpl_150Row.id;
-
-  let [atpl_151Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Planta hospedeira"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_151Row) {
-    [atpl_151Row] = await db.insert(attributeTemplateTable).values({ label: "Planta hospedeira", unit: "" }).returning();
-  }
-  const atpl_151 = atpl_151Row.id;
-
-  let [atpl_152Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Mimetismo mülleriano"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_152Row) {
-    [atpl_152Row] = await db.insert(attributeTemplateTable).values({ label: "Mimetismo mülleriano", unit: "" }).returning();
-  }
-  const atpl_152 = atpl_152Row.id;
-
-  let [atpl_153Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Toxicidade"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_153Row) {
-    [atpl_153Row] = await db.insert(attributeTemplateTable).values({ label: "Toxicidade", unit: "" }).returning();
-  }
-  const atpl_153 = atpl_153Row.id;
-
-  let [atpl_154Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Distribuição da subespécie (H. e. phyllis)"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_154Row) {
-    [atpl_154Row] = await db.insert(attributeTemplateTable).values({ label: "Distribuição da subespécie (H. e. phyllis)", unit: "" }).returning();
-  }
-  const atpl_154 = atpl_154Row.id;
+  const atplg_100047 = await getOrCreateAttributeTemplate("Envergadura", "centimeter");
 
   await db.insert(attributeTable).values([
-    { species: species_lagarta_borboleta.id, attribute: atpl_149, value: "6.7-8.0", sourceId: src_123 },
-    { species: species_lagarta_borboleta.id, attribute: atpl_150, value: "corpo branco com manchas pretas e laranjas, espinhos pretos e cabeça amarela", sourceId: src_123 },
-    { species: species_lagarta_borboleta.id, attribute: atpl_151, value: "Passiflora (ex.: P. misera, P. suberosa, P. actinia)", sourceId: src_123 },
-    { species: species_lagarta_borboleta.id, attribute: atpl_152, value: "compartilha o padrão de coloração com pelo menos 20 das 27 subespécies de Heliconius melpomene", sourceId: src_123 },
-    { species: species_lagarta_borboleta.id, attribute: atpl_153, value: "acumula glicosídeos cianogênicos obtidos da planta hospedeira, tornando-se desagradável a predadores", sourceId: src_123 },
-    { species: species_lagarta_borboleta.id, attribute: atpl_154, value: "Brasil (ao sul da bacia Amazônica, Mata Atlântica e Mato Grosso), Paraguai, Uruguai, norte da Argentina e Bolívia", sourceId: src_124 },
+    { species: species_lagarta_borboleta.id, attribute: atplg_100047, value: "6.7-8.0", sourceId: src_123 },
   ]);
 
   {
@@ -5265,29 +3473,13 @@ async function seed() {
     .returning();
   // ---- besouros (Macrodontia cervicornis) ----
 
-  const [tax_108Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "cerambycidae", parent: tax_66, createdBy: user.id })
-    .returning();
-  const tax_108 = tax_108Row.id;
+  const tax_108 = await getOrCreateTaxon("Família", "cerambycidae", tax_66, user.id);
 
-  const [tax_109Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Subfamília", labelValue: "prioninae", parent: tax_108, createdBy: user.id })
-    .returning();
-  const tax_109 = tax_109Row.id;
+  const tax_109 = await getOrCreateTaxon("Subfamília", "prioninae", tax_108, user.id);
 
-  const [tax_110Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "macrodontia", parent: tax_109, createdBy: user.id })
-    .returning();
-  const tax_110 = tax_110Row.id;
+  const tax_110 = await getOrCreateTaxon("Gênero", "macrodontia", tax_109, user.id);
 
-  const [tax_111Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "macrodontia cervicornis", parent: tax_110, createdBy: user.id })
-    .returning();
-  const tax_111 = tax_111Row.id;
+  const tax_111 = await getOrCreateTaxon("Espécie", "macrodontia cervicornis", tax_110, user.id);
 
   const [species_besouros] = await db
     .insert(speciesTable)
@@ -5306,58 +3498,14 @@ async function seed() {
   }
   const src_127 = src_127Row.id;
 
-  let [atpl_155Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento máximo registrado"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_155Row) {
-    [atpl_155Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento máximo registrado", unit: "centimeter" }).returning();
-  }
-  const atpl_155 = atpl_155Row.id;
-
-  let [atpl_156Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Duração da fase larval"), eq(attributeTemplateTable.unit, "year")));
-  if (!atpl_156Row) {
-    [atpl_156Row] = await db.insert(attributeTemplateTable).values({ label: "Duração da fase larval", unit: "year" }).returning();
-  }
-  const atpl_156 = atpl_156Row.id;
-
-  let [atpl_157Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento da galeria larval"), eq(attributeTemplateTable.unit, "meter")));
-  if (!atpl_157Row) {
-    [atpl_157Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento da galeria larval", unit: "meter" }).returning();
-  }
-  const atpl_157 = atpl_157Row.id;
-
-  let [atpl_158Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Dimorfismo sexual das mandíbulas"), eq(attributeTemplateTable.unit, "description")));
-  if (!atpl_158Row) {
-    [atpl_158Row] = await db.insert(attributeTemplateTable).values({ label: "Dimorfismo sexual das mandíbulas", unit: "description" }).returning();
-  }
-  const atpl_158 = atpl_158Row.id;
-
-  let [atpl_159Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Distribuição geográfica"), eq(attributeTemplateTable.unit, "region")));
-  if (!atpl_159Row) {
-    [atpl_159Row] = await db.insert(attributeTemplateTable).values({ label: "Distribuição geográfica", unit: "region" }).returning();
-  }
-  const atpl_159 = atpl_159Row.id;
+  const atplg_100044 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
+  const atplg_100045 = await getOrCreateAttributeTemplate("Duração do ciclo de vida", "day");
+  const atplg_100046 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "category");
 
   await db.insert(attributeTable).values([
-    { species: species_besouros.id, attribute: atpl_155, value: "17.7", sourceId: src_126 },
-    { species: species_besouros.id, attribute: atpl_156, value: "up to 10", sourceId: src_126 },
-    { species: species_besouros.id, attribute: atpl_55, value: "vulnerable", sourceId: src_126 },
-    { species: species_besouros.id, attribute: atpl_157, value: "over 1", sourceId: src_126 },
-    { species: species_besouros.id, attribute: atpl_158, value: "males have much larger, antler-like serrated mandibles than females", sourceId: src_127 },
-    { species: species_besouros.id, attribute: atpl_159, value: "neotropical, from Colombia and the Guianas to southern Brazil (Paraná), including Ecuador, Peru, Bolivia and Venezuela", sourceId: src_127 },
+    { species: species_besouros.id, attribute: atplg_100044, value: "17.7", sourceId: src_126 },
+    { species: species_besouros.id, attribute: atplg_100045, value: "up to 3650", sourceId: src_126 },
+    { species: species_besouros.id, attribute: atplg_100046, value: "VU", sourceId: src_126 },
   ]);
 
   {
@@ -5403,23 +3551,11 @@ async function seed() {
     .returning();
   // ---- besouro-gorgulho (Sitophilus zeamais) ----
 
-  const [tax_112Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "curculionidae", parent: tax_66, createdBy: user.id })
-    .returning();
-  const tax_112 = tax_112Row.id;
+  const tax_112 = await getOrCreateTaxon("Família", "curculionidae", tax_66, user.id);
 
-  const [tax_113Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "sitophilus", parent: tax_112, createdBy: user.id })
-    .returning();
-  const tax_113 = tax_113Row.id;
+  const tax_113 = await getOrCreateTaxon("Gênero", "sitophilus", tax_112, user.id);
 
-  const [tax_114Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "sitophilus zeamais", parent: tax_113, createdBy: user.id })
-    .returning();
-  const tax_114 = tax_114Row.id;
+  const tax_114 = await getOrCreateTaxon("Espécie", "sitophilus zeamais", tax_113, user.id);
 
   const [species_besouro_gorgulho] = await db
     .insert(speciesTable)
@@ -5444,67 +3580,16 @@ async function seed() {
   }
   const src_130 = src_130Row.id;
 
-  let [atpl_160Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento do corpo"), eq(attributeTemplateTable.unit, "millimeter")));
-  if (!atpl_160Row) {
-    [atpl_160Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento do corpo", unit: "millimeter" }).returning();
-  }
-  const atpl_160 = atpl_160Row.id;
-
-  let [atpl_161Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Coloração"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_161Row) {
-    [atpl_161Row] = await db.insert(attributeTemplateTable).values({ label: "Coloração", unit: "" }).returning();
-  }
-  const atpl_161 = atpl_161Row.id;
-
-  let [atpl_162Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Longevidade do adulto"), eq(attributeTemplateTable.unit, "month")));
-  if (!atpl_162Row) {
-    [atpl_162Row] = await db.insert(attributeTemplateTable).values({ label: "Longevidade do adulto", unit: "month" }).returning();
-  }
-  const atpl_162 = atpl_162Row.id;
-
-  let [atpl_163Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Fecundidade por fêmea"), eq(attributeTemplateTable.unit, "egg")));
-  if (!atpl_163Row) {
-    [atpl_163Row] = await db.insert(attributeTemplateTable).values({ label: "Fecundidade por fêmea", unit: "egg" }).returning();
-  }
-  const atpl_163 = atpl_163Row.id;
-
-  let [atpl_164Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Duração do desenvolvimento (ovo a adulto)"), eq(attributeTemplateTable.unit, "day")));
-  if (!atpl_164Row) {
-    [atpl_164Row] = await db.insert(attributeTemplateTable).values({ label: "Duração do desenvolvimento (ovo a adulto)", unit: "day" }).returning();
-  }
-  const atpl_164 = atpl_164Row.id;
-
-  let [atpl_165Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Alcance de voo"), eq(attributeTemplateTable.unit, "meter")));
-  if (!atpl_165Row) {
-    [atpl_165Row] = await db.insert(attributeTemplateTable).values({ label: "Alcance de voo", unit: "meter" }).returning();
-  }
-  const atpl_165 = atpl_165Row.id;
+  const atplg_100040 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
+  const atplg_100041 = await getOrCreateAttributeTemplate("Longevidade média", "year");
+  const atplg_100042 = await getOrCreateAttributeTemplate("Ovos por fêmea (total)", "unit");
+  const atplg_100043 = await getOrCreateAttributeTemplate("Duração do ciclo de vida", "day");
 
   await db.insert(attributeTable).values([
-    { species: species_besouro_gorgulho.id, attribute: atpl_160, value: "2.3-4.9", sourceId: src_128 },
-    { species: species_besouro_gorgulho.id, attribute: atpl_161, value: "marrom, com quatro manchas marrom-avermelhadas nos élitros", sourceId: src_128 },
-    { species: species_besouro_gorgulho.id, attribute: atpl_162, value: "5-8", sourceId: src_128 },
-    { species: species_besouro_gorgulho.id, attribute: atpl_163, value: "300-400", sourceId: src_128 },
-    { species: species_besouro_gorgulho.id, attribute: atpl_164, value: "36", sourceId: src_128 },
-    { species: species_besouro_gorgulho.id, attribute: atpl_165, value: "400", sourceId: src_128 },
+    { species: species_besouro_gorgulho.id, attribute: atplg_100040, value: "0.23-0.49", sourceId: src_128 },
+    { species: species_besouro_gorgulho.id, attribute: atplg_100041, value: "0.42-0.67", sourceId: src_128 },
+    { species: species_besouro_gorgulho.id, attribute: atplg_100042, value: "300-400", sourceId: src_128 },
+    { species: species_besouro_gorgulho.id, attribute: atplg_100043, value: "36", sourceId: src_128 },
   ]);
 
   {
@@ -5558,35 +3643,15 @@ async function seed() {
     .returning();
   // ---- inseto-aquatico (Ranatra sp.) ----
 
-  const [tax_115Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Subordem", labelValue: "heteroptera", parent: tax_60, createdBy: user.id })
-    .returning();
-  const tax_115 = tax_115Row.id;
+  const tax_115 = await getOrCreateTaxon("Subordem", "heteroptera", tax_60, user.id);
 
-  const [tax_116Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Infraordem", labelValue: "nepomorpha", parent: tax_115, createdBy: user.id })
-    .returning();
-  const tax_116 = tax_116Row.id;
+  const tax_116 = await getOrCreateTaxon("Infraordem", "nepomorpha", tax_115, user.id);
 
-  const [tax_117Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "nepidae", parent: tax_116, createdBy: user.id })
-    .returning();
-  const tax_117 = tax_117Row.id;
+  const tax_117 = await getOrCreateTaxon("Família", "nepidae", tax_116, user.id);
 
-  const [tax_118Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Subfamília", labelValue: "ranatrinae", parent: tax_117, createdBy: user.id })
-    .returning();
-  const tax_118 = tax_118Row.id;
+  const tax_118 = await getOrCreateTaxon("Subfamília", "ranatrinae", tax_117, user.id);
 
-  const [tax_119Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "ranatra", parent: tax_118, createdBy: user.id })
-    .returning();
-  const tax_119 = tax_119Row.id;
+  const tax_119 = await getOrCreateTaxon("Gênero", "ranatra", tax_118, user.id);
 
   const [species_inseto_aquatico] = await db
     .insert(speciesTable)
@@ -5611,58 +3676,10 @@ async function seed() {
   }
   const src_133 = src_133Row.id;
 
-  let [atpl_166Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Diversidade de Ranatra na América do Sul"), eq(attributeTemplateTable.unit, "species")));
-  if (!atpl_166Row) {
-    [atpl_166Row] = await db.insert(attributeTemplateTable).values({ label: "Diversidade de Ranatra na América do Sul", unit: "species" }).returning();
-  }
-  const atpl_166 = atpl_166Row.id;
-
-  let [atpl_167Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Patas anteriores"), eq(attributeTemplateTable.unit, "category")));
-  if (!atpl_167Row) {
-    [atpl_167Row] = await db.insert(attributeTemplateTable).values({ label: "Patas anteriores", unit: "category" }).returning();
-  }
-  const atpl_167 = atpl_167Row.id;
-
-  let [atpl_168Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Apêndice caudal"), eq(attributeTemplateTable.unit, "category")));
-  if (!atpl_168Row) {
-    [atpl_168Row] = await db.insert(attributeTemplateTable).values({ label: "Apêndice caudal", unit: "category" }).returning();
-  }
-  const atpl_168 = atpl_168Row.id;
-
-  let [atpl_169Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Habitat"), eq(attributeTemplateTable.unit, "category")));
-  if (!atpl_169Row) {
-    [atpl_169Row] = await db.insert(attributeTemplateTable).values({ label: "Habitat", unit: "category" }).returning();
-  }
-  const atpl_169 = atpl_169Row.id;
-
-  let [atpl_170Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Dieta"), eq(attributeTemplateTable.unit, "category")));
-  if (!atpl_170Row) {
-    [atpl_170Row] = await db.insert(attributeTemplateTable).values({ label: "Dieta", unit: "category" }).returning();
-  }
-  const atpl_170 = atpl_170Row.id;
+  const atplg_100039 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
 
   await db.insert(attributeTable).values([
-    { species: species_inseto_aquatico.id, attribute: atpl_65, value: "2 a 6", sourceId: src_131 },
-    { species: species_inseto_aquatico.id, attribute: atpl_166, value: "aproximadamente 50", sourceId: src_131 },
-    { species: species_inseto_aquatico.id, attribute: atpl_167, value: "raptoriais, adaptadas para capturar presas", sourceId: src_132 },
-    { species: species_inseto_aquatico.id, attribute: atpl_168, value: "par de meias-tubos que formam um sifão respiratório (snorkel)", sourceId: src_132 },
-    { species: species_inseto_aquatico.id, attribute: atpl_169, value: "águas estagnadas ou de fluxo lento (lagoas, pântanos, canais e riachos)", sourceId: src_132 },
-    { species: species_inseto_aquatico.id, attribute: atpl_170, value: "predador de insetos, girinos e peixes pequenos, capturados com rostro perfurante", sourceId: src_131 },
+    { species: species_inseto_aquatico.id, attribute: atplg_100039, value: "2 a 6", sourceId: src_131 },
   ]);
 
   {
@@ -5740,17 +3757,9 @@ async function seed() {
     .returning();
   // ---- louva-a-deus (Mantidae) ----
 
-  const [tax_120Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "mantodea", parent: tax_59, createdBy: user.id })
-    .returning();
-  const tax_120 = tax_120Row.id;
+  const tax_120 = await getOrCreateTaxon("Ordem", "mantodea", tax_59, user.id);
 
-  const [tax_121Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "mantidae", parent: tax_120, createdBy: user.id })
-    .returning();
-  const tax_121 = tax_121Row.id;
+  const tax_121 = await getOrCreateTaxon("Família", "mantidae", tax_120, user.id);
 
   const [species_louva_a_deus] = await db
     .insert(speciesTable)
@@ -5769,58 +3778,14 @@ async function seed() {
   }
   const src_135 = src_135Row.id;
 
-  let [atpl_171Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Número de ovos por ooteca"), eq(attributeTemplateTable.unit, "egg")));
-  if (!atpl_171Row) {
-    [atpl_171Row] = await db.insert(attributeTemplateTable).values({ label: "Número de ovos por ooteca", unit: "egg" }).returning();
-  }
-  const atpl_171 = atpl_171Row.id;
-
-  let [atpl_172Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Expectativa de vida"), eq(attributeTemplateTable.unit, "month")));
-  if (!atpl_172Row) {
-    [atpl_172Row] = await db.insert(attributeTemplateTable).values({ label: "Expectativa de vida", unit: "month" }).returning();
-  }
-  const atpl_172 = atpl_172Row.id;
-
-  let [atpl_173Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Rotação da cabeça"), eq(attributeTemplateTable.unit, "degree")));
-  if (!atpl_173Row) {
-    [atpl_173Row] = await db.insert(attributeTemplateTable).values({ label: "Rotação da cabeça", unit: "degree" }).returning();
-  }
-  const atpl_173 = atpl_173Row.id;
-
-  let [atpl_174Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Ommatídios por olho composto"), eq(attributeTemplateTable.unit, "ommatidium")));
-  if (!atpl_174Row) {
-    [atpl_174Row] = await db.insert(attributeTemplateTable).values({ label: "Ommatídios por olho composto", unit: "ommatidium" }).returning();
-  }
-  const atpl_174 = atpl_174Row.id;
-
-  let [atpl_175Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Espécies estimadas no Brasil"), eq(attributeTemplateTable.unit, "species")));
-  if (!atpl_175Row) {
-    [atpl_175Row] = await db.insert(attributeTemplateTable).values({ label: "Espécies estimadas no Brasil", unit: "species" }).returning();
-  }
-  const atpl_175 = atpl_175Row.id;
+  const atplg_100036 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
+  const atplg_100037 = await getOrCreateAttributeTemplate("Ovos por postura", "unit");
+  const atplg_100038 = await getOrCreateAttributeTemplate("Longevidade média", "year");
 
   await db.insert(attributeTable).values([
-    { species: species_louva_a_deus.id, attribute: atpl_65, value: "0.8-17", sourceId: src_134 },
-    { species: species_louva_a_deus.id, attribute: atpl_171, value: "10-400", sourceId: src_134 },
-    { species: species_louva_a_deus.id, attribute: atpl_172, value: "12", sourceId: src_134 },
-    { species: species_louva_a_deus.id, attribute: atpl_173, value: "180", sourceId: src_135 },
-    { species: species_louva_a_deus.id, attribute: atpl_174, value: "10000", sourceId: src_135 },
-    { species: species_louva_a_deus.id, attribute: atpl_175, value: "700", sourceId: src_134 },
+    { species: species_louva_a_deus.id, attribute: atplg_100036, value: "0.8-17", sourceId: src_134 },
+    { species: species_louva_a_deus.id, attribute: atplg_100037, value: "10-400", sourceId: src_134 },
+    { species: species_louva_a_deus.id, attribute: atplg_100038, value: "1", sourceId: src_134 },
   ]);
 
   {
@@ -5866,17 +3831,9 @@ async function seed() {
     .returning();
   // ---- piolho-de-cobra (Diplopoda) ----
 
-  const [tax_122Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Subfilo", labelValue: "myriapoda", parent: tax_58, createdBy: user.id })
-    .returning();
-  const tax_122 = tax_122Row.id;
+  const tax_122 = await getOrCreateTaxon("Subfilo", "myriapoda", tax_58, user.id);
 
-  const [tax_123Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Classe", labelValue: "diplopoda", parent: tax_122, createdBy: user.id })
-    .returning();
-  const tax_123 = tax_123Row.id;
+  const tax_123 = await getOrCreateTaxon("Classe", "diplopoda", tax_122, user.id);
 
   const [species_piolho_de_cobra] = await db
     .insert(speciesTable)
@@ -5919,58 +3876,12 @@ async function seed() {
   }
   const src_141 = src_141Row.id;
 
-  let [atpl_176Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Pares de pernas"), eq(attributeTemplateTable.unit, "pair")));
-  if (!atpl_176Row) {
-    [atpl_176Row] = await db.insert(attributeTemplateTable).values({ label: "Pares de pernas", unit: "pair" }).returning();
-  }
-  const atpl_176 = atpl_176Row.id;
-
-  let [atpl_177Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento"), eq(attributeTemplateTable.unit, "millimeter")));
-  if (!atpl_177Row) {
-    [atpl_177Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento", unit: "millimeter" }).returning();
-  }
-  const atpl_177 = atpl_177Row.id;
-
-  let [atpl_178Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Hábito alimentar"), eq(attributeTemplateTable.unit, "none")));
-  if (!atpl_178Row) {
-    [atpl_178Row] = await db.insert(attributeTemplateTable).values({ label: "Hábito alimentar", unit: "none" }).returning();
-  }
-  const atpl_178 = atpl_178Row.id;
-
-  let [atpl_179Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Defesa química"), eq(attributeTemplateTable.unit, "none")));
-  if (!atpl_179Row) {
-    [atpl_179Row] = await db.insert(attributeTemplateTable).values({ label: "Defesa química", unit: "none" }).returning();
-  }
-  const atpl_179 = atpl_179Row.id;
-
-  let [atpl_180Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Distribuição geográfica"), eq(attributeTemplateTable.unit, "none")));
-  if (!atpl_180Row) {
-    [atpl_180Row] = await db.insert(attributeTemplateTable).values({ label: "Distribuição geográfica", unit: "none" }).returning();
-  }
-  const atpl_180 = atpl_180Row.id;
+  const atplg_100034 = await getOrCreateAttributeTemplate("Pares de pernas", "pair");
+  const atplg_100035 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
 
   await db.insert(attributeTable).values([
-    { species: species_piolho_de_cobra.id, attribute: atpl_176, value: "34 a 189", sourceId: src_136 },
-    { species: species_piolho_de_cobra.id, attribute: atpl_177, value: "2 a 300", sourceId: src_136 },
-    { species: species_piolho_de_cobra.id, attribute: atpl_110, value: "preto ou castanho, podendo apresentar padrões aposemáticos", sourceId: src_136 },
-    { species: species_piolho_de_cobra.id, attribute: atpl_178, value: "detritívoro, consome folhas podres e matéria vegetal em decomposição", sourceId: src_136 },
-    { species: species_piolho_de_cobra.id, attribute: atpl_179, value: "secreta benzoquinonas, fenóis, terpenoides e cianeto de hidrogênio através de ozóporos", sourceId: src_136 },
-    { species: species_piolho_de_cobra.id, attribute: atpl_180, value: "presente em todos os continentes, exceto a Antártida", sourceId: src_136 },
+    { species: species_piolho_de_cobra.id, attribute: atplg_100034, value: "34 a 189", sourceId: src_136 },
+    { species: species_piolho_de_cobra.id, attribute: atplg_100035, value: "0.2 a 30", sourceId: src_136 },
   ]);
 
   {
@@ -6032,35 +3943,15 @@ async function seed() {
     .returning();
   // ---- lacraia (Scolopendra viridicornis) ----
 
-  const [tax_124Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Classe", labelValue: "chilopoda", parent: tax_122, createdBy: user.id })
-    .returning();
-  const tax_124 = tax_124Row.id;
+  const tax_124 = await getOrCreateTaxon("Classe", "chilopoda", tax_122, user.id);
 
-  const [tax_125Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "scolopendromorpha", parent: tax_124, createdBy: user.id })
-    .returning();
-  const tax_125 = tax_125Row.id;
+  const tax_125 = await getOrCreateTaxon("Ordem", "scolopendromorpha", tax_124, user.id);
 
-  const [tax_126Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "scolopendridae", parent: tax_125, createdBy: user.id })
-    .returning();
-  const tax_126 = tax_126Row.id;
+  const tax_126 = await getOrCreateTaxon("Família", "scolopendridae", tax_125, user.id);
 
-  const [tax_127Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "scolopendra", parent: tax_126, createdBy: user.id })
-    .returning();
-  const tax_127 = tax_127Row.id;
+  const tax_127 = await getOrCreateTaxon("Gênero", "scolopendra", tax_126, user.id);
 
-  const [tax_128Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "scolopendra viridicornis", parent: tax_127, createdBy: user.id })
-    .returning();
-  const tax_128 = tax_128Row.id;
+  const tax_128 = await getOrCreateTaxon("Espécie", "scolopendra viridicornis", tax_127, user.id);
 
   const [species_lacraia] = await db
     .insert(speciesTable)
@@ -6079,58 +3970,10 @@ async function seed() {
   }
   const src_143 = src_143Row.id;
 
-  let [atpl_181Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_181Row) {
-    [atpl_181Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento", unit: "centimeter" }).returning();
-  }
-  const atpl_181 = atpl_181Row.id;
-
-  let [atpl_182Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Local de inoculação do veneno"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_182Row) {
-    [atpl_182Row] = await db.insert(attributeTemplateTable).values({ label: "Local de inoculação do veneno", unit: "" }).returning();
-  }
-  const atpl_182 = atpl_182Row.id;
-
-  let [atpl_183Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comportamento defensivo"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_183Row) {
-    [atpl_183Row] = await db.insert(attributeTemplateTable).values({ label: "Comportamento defensivo", unit: "" }).returning();
-  }
-  const atpl_183 = atpl_183Row.id;
-
-  let [atpl_184Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Composto bioativo do veneno"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_184Row) {
-    [atpl_184Row] = await db.insert(attributeTemplateTable).values({ label: "Composto bioativo do veneno", unit: "" }).returning();
-  }
-  const atpl_184 = atpl_184Row.id;
-
-  let [atpl_185Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Hábito"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_185Row) {
-    [atpl_185Row] = await db.insert(attributeTemplateTable).values({ label: "Hábito", unit: "" }).returning();
-  }
-  const atpl_185 = atpl_185Row.id;
+  const atplg_100033 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
 
   await db.insert(attributeTable).values([
-    { species: species_lacraia.id, attribute: atpl_181, value: "até quase 50", sourceId: src_143 },
-    { species: species_lacraia.id, attribute: atpl_20, value: "carnívora — artrópodes e, ocasionalmente, pequenos vertebrados como roedores, sapos, cobras e lagartos", sourceId: src_142 },
-    { species: species_lacraia.id, attribute: atpl_182, value: "forcípulas (apêndices modificados na região da cabeça), não na extremidade posterior do corpo", sourceId: src_143 },
-    { species: species_lacraia.id, attribute: atpl_183, value: "eleva as pernas terminais para atrair o ataque à extremidade posterior do corpo antes de picar com as forcípulas", sourceId: src_142 },
-    { species: species_lacraia.id, attribute: atpl_184, value: "lacraína — peptídeo com efeito antimicrobiano contra bactérias Gram-negativas, usado na medicina popular do nordeste brasileiro", sourceId: src_142 },
-    { species: species_lacraia.id, attribute: atpl_185, value: "terrestre e notívago (noturno), abrigando-se sob folhas e cascas de árvores em locais úmidos", sourceId: src_143 },
+    { species: species_lacraia.id, attribute: atplg_100033, value: "até quase 50", sourceId: src_143 },
   ]);
 
   {
@@ -6183,35 +4026,15 @@ async function seed() {
     .returning();
   // ---- aranhas (Trichonephila clavipes) ----
 
-  const [tax_129Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Classe", labelValue: "arachnida", parent: tax_58, createdBy: user.id })
-    .returning();
-  const tax_129 = tax_129Row.id;
+  const tax_129 = await getOrCreateTaxon("Classe", "arachnida", tax_58, user.id);
 
-  const [tax_130Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "araneae", parent: tax_129, createdBy: user.id })
-    .returning();
-  const tax_130 = tax_130Row.id;
+  const tax_130 = await getOrCreateTaxon("Ordem", "araneae", tax_129, user.id);
 
-  const [tax_131Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "nephilidae", parent: tax_130, createdBy: user.id })
-    .returning();
-  const tax_131 = tax_131Row.id;
+  const tax_131 = await getOrCreateTaxon("Família", "nephilidae", tax_130, user.id);
 
-  const [tax_132Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "trichonephila", parent: tax_131, createdBy: user.id })
-    .returning();
-  const tax_132 = tax_132Row.id;
+  const tax_132 = await getOrCreateTaxon("Gênero", "trichonephila", tax_131, user.id);
 
-  const [tax_133Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "trichonephila clavipes", parent: tax_132, createdBy: user.id })
-    .returning();
-  const tax_133 = tax_133Row.id;
+  const tax_133 = await getOrCreateTaxon("Espécie", "trichonephila clavipes", tax_132, user.id);
 
   const [species_aranhas] = await db
     .insert(speciesTable)
@@ -6230,67 +4053,14 @@ async function seed() {
   }
   const src_145 = src_145Row.id;
 
-  let [atpl_186Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento do corpo (fêmea)"), eq(attributeTemplateTable.unit, "millimeter")));
-  if (!atpl_186Row) {
-    [atpl_186Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento do corpo (fêmea)", unit: "millimeter" }).returning();
-  }
-  const atpl_186 = atpl_186Row.id;
-
-  let [atpl_187Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento do corpo (macho)"), eq(attributeTemplateTable.unit, "millimeter")));
-  if (!atpl_187Row) {
-    [atpl_187Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento do corpo (macho)", unit: "millimeter" }).returning();
-  }
-  const atpl_187 = atpl_187Row.id;
-
-  let [atpl_188Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Diâmetro máximo da teia"), eq(attributeTemplateTable.unit, "meter")));
-  if (!atpl_188Row) {
-    [atpl_188Row] = await db.insert(attributeTemplateTable).values({ label: "Diâmetro máximo da teia", unit: "meter" }).returning();
-  }
-  const atpl_188 = atpl_188Row.id;
-
-  let [atpl_189Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Tipos de seda produzidos"), eq(attributeTemplateTable.unit, "type")));
-  if (!atpl_189Row) {
-    [atpl_189Row] = await db.insert(attributeTemplateTable).values({ label: "Tipos de seda produzidos", unit: "type" }).returning();
-  }
-  const atpl_189 = atpl_189Row.id;
-
-  let [atpl_190Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Dieta"), eq(attributeTemplateTable.unit, "diet")));
-  if (!atpl_190Row) {
-    [atpl_190Row] = await db.insert(attributeTemplateTable).values({ label: "Dieta", unit: "diet" }).returning();
-  }
-  const atpl_190 = atpl_190Row.id;
-
-  let [atpl_191Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Status de conservação"), eq(attributeTemplateTable.unit, "status")));
-  if (!atpl_191Row) {
-    [atpl_191Row] = await db.insert(attributeTemplateTable).values({ label: "Status de conservação", unit: "status" }).returning();
-  }
-  const atpl_191 = atpl_191Row.id;
+  const atplg_100030 = await getOrCreateAttributeTemplate("Comprimento corporal (fêmea)", "centimeter");
+  const atplg_100031 = await getOrCreateAttributeTemplate("Comprimento corporal (macho)", "centimeter");
+  const atplg_100032 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "category");
 
   await db.insert(attributeTable).values([
-    { species: species_aranhas.id, attribute: atpl_186, value: "24 to 40", sourceId: src_144 },
-    { species: species_aranhas.id, attribute: atpl_187, value: "approximately 6", sourceId: src_144 },
-    { species: species_aranhas.id, attribute: atpl_188, value: "up to 2", sourceId: src_145 },
-    { species: species_aranhas.id, attribute: atpl_189, value: "7", sourceId: src_144 },
-    { species: species_aranhas.id, attribute: atpl_190, value: "flying insects (butterflies, moths, grasshoppers) and occasionally small birds", sourceId: src_145 },
-    { species: species_aranhas.id, attribute: atpl_191, value: "least concern", sourceId: src_144 },
+    { species: species_aranhas.id, attribute: atplg_100030, value: "2.4 to 4", sourceId: src_144 },
+    { species: species_aranhas.id, attribute: atplg_100031, value: "approximately 0.6", sourceId: src_144 },
+    { species: species_aranhas.id, attribute: atplg_100032, value: "LC", sourceId: src_144 },
   ]);
 
   {
@@ -6344,23 +4114,11 @@ async function seed() {
     .returning();
   // ---- aranha-alcapao (Actinopus sp.) ----
 
-  const [tax_134Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Infraordem", labelValue: "mygalomorphae", parent: tax_130, createdBy: user.id })
-    .returning();
-  const tax_134 = tax_134Row.id;
+  const tax_134 = await getOrCreateTaxon("Infraordem", "mygalomorphae", tax_130, user.id);
 
-  const [tax_135Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "actinopodidae", parent: tax_134, createdBy: user.id })
-    .returning();
-  const tax_135 = tax_135Row.id;
+  const tax_135 = await getOrCreateTaxon("Família", "actinopodidae", tax_134, user.id);
 
-  const [tax_136Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "actinopus", parent: tax_135, createdBy: user.id })
-    .returning();
-  const tax_136 = tax_136Row.id;
+  const tax_136 = await getOrCreateTaxon("Gênero", "actinopus", tax_135, user.id);
 
   const [species_aranha_alcapao] = await db
     .insert(speciesTable)
@@ -6409,58 +4167,10 @@ async function seed() {
   }
   const src_152 = src_152Row.id;
 
-  let [atpl_192Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Distribuição geográfica"), eq(attributeTemplateTable.unit, "n/a")));
-  if (!atpl_192Row) {
-    [atpl_192Row] = await db.insert(attributeTemplateTable).values({ label: "Distribuição geográfica", unit: "n/a" }).returning();
-  }
-  const atpl_192 = atpl_192Row.id;
-
-  let [atpl_193Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Número de espécies no gênero"), eq(attributeTemplateTable.unit, "species")));
-  if (!atpl_193Row) {
-    [atpl_193Row] = await db.insert(attributeTemplateTable).values({ label: "Número de espécies no gênero", unit: "species" }).returning();
-  }
-  const atpl_193 = atpl_193Row.id;
-
-  let [atpl_194Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Hábito de construção da toca"), eq(attributeTemplateTable.unit, "n/a")));
-  if (!atpl_194Row) {
-    [atpl_194Row] = await db.insert(attributeTemplateTable).values({ label: "Hábito de construção da toca", unit: "n/a" }).returning();
-  }
-  const atpl_194 = atpl_194Row.id;
-
-  let [atpl_195Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Estratégia de caça"), eq(attributeTemplateTable.unit, "n/a")));
-  if (!atpl_195Row) {
-    [atpl_195Row] = await db.insert(attributeTemplateTable).values({ label: "Estratégia de caça", unit: "n/a" }).returning();
-  }
-  const atpl_195 = atpl_195Row.id;
-
-  let [atpl_196Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Toxicidade da picada"), eq(attributeTemplateTable.unit, "n/a")));
-  if (!atpl_196Row) {
-    [atpl_196Row] = await db.insert(attributeTemplateTable).values({ label: "Toxicidade da picada", unit: "n/a" }).returning();
-  }
-  const atpl_196 = atpl_196Row.id;
+  const atplg_100029 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
 
   await db.insert(attributeTable).values([
-    { species: species_aranha_alcapao.id, attribute: atpl_192, value: "américa do sul, principalmente brasil", sourceId: src_147 },
-    { species: species_aranha_alcapao.id, attribute: atpl_193, value: "mais de 170", sourceId: src_149 },
-    { species: species_aranha_alcapao.id, attribute: atpl_160, value: "10 a 35", sourceId: src_148 },
-    { species: species_aranha_alcapao.id, attribute: atpl_194, value: "toca subterrânea coberta com alçapão de seda articulado, podendo atingir até 30 centímetros de profundidade", sourceId: src_148 },
-    { species: species_aranha_alcapao.id, attribute: atpl_195, value: "emboscada noturna de insetos próximos à abertura da toca", sourceId: src_148 },
-    { species: species_aranha_alcapao.id, attribute: atpl_196, value: "baixa periculosidade para humanos, com registros de picadas sem sintomas relevantes no brasil", sourceId: src_147 },
+    { species: species_aranha_alcapao.id, attribute: atplg_100029, value: "1 a 3.5", sourceId: src_148 },
   ]);
 
   {
@@ -6511,29 +4221,13 @@ async function seed() {
     .returning();
   // ---- escorpiao-amarelo (Tityus serrulatus) ----
 
-  const [tax_137Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "scorpiones", parent: tax_129, createdBy: user.id })
-    .returning();
-  const tax_137 = tax_137Row.id;
+  const tax_137 = await getOrCreateTaxon("Ordem", "scorpiones", tax_129, user.id);
 
-  const [tax_138Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "buthidae", parent: tax_137, createdBy: user.id })
-    .returning();
-  const tax_138 = tax_138Row.id;
+  const tax_138 = await getOrCreateTaxon("Família", "buthidae", tax_137, user.id);
 
-  const [tax_139Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "tityus", parent: tax_138, createdBy: user.id })
-    .returning();
-  const tax_139 = tax_139Row.id;
+  const tax_139 = await getOrCreateTaxon("Gênero", "tityus", tax_138, user.id);
 
-  const [tax_140Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "serrulatus", parent: tax_139, createdBy: user.id })
-    .returning();
-  const tax_140 = tax_140Row.id;
+  const tax_140 = await getOrCreateTaxon("Espécie", "serrulatus", tax_139, user.id);
 
   const [species_escorpiao_amarelo] = await db
     .insert(speciesTable)
@@ -6570,57 +4264,12 @@ async function seed() {
   }
   const src_157 = src_157Row.id;
 
-  let [atpl_197Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento máximo"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_197Row) {
-    [atpl_197Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento máximo", unit: "centimeter" }).returning();
-  }
-  const atpl_197 = atpl_197Row.id;
-
-  let [atpl_198Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Número de pernas"), eq(attributeTemplateTable.unit, "leg")));
-  if (!atpl_198Row) {
-    [atpl_198Row] = await db.insert(attributeTemplateTable).values({ label: "Número de pernas", unit: "leg" }).returning();
-  }
-  const atpl_198 = atpl_198Row.id;
-
-  let [atpl_199Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Filhotes por ninhada"), eq(attributeTemplateTable.unit, "individual")));
-  if (!atpl_199Row) {
-    [atpl_199Row] = await db.insert(attributeTemplateTable).values({ label: "Filhotes por ninhada", unit: "individual" }).returning();
-  }
-  const atpl_199 = atpl_199Row.id;
-
-  let [atpl_200Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Taxa de mortalidade (crianças e idosos)"), eq(attributeTemplateTable.unit, "percent")));
-  if (!atpl_200Row) {
-    [atpl_200Row] = await db.insert(attributeTemplateTable).values({ label: "Taxa de mortalidade (crianças e idosos)", unit: "percent" }).returning();
-  }
-  const atpl_200 = atpl_200Row.id;
-
-  let [atpl_201Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Casos de picada registrados no Brasil em 2018"), eq(attributeTemplateTable.unit, "case")));
-  if (!atpl_201Row) {
-    [atpl_201Row] = await db.insert(attributeTemplateTable).values({ label: "Casos de picada registrados no Brasil em 2018", unit: "case" }).returning();
-  }
-  const atpl_201 = atpl_201Row.id;
+  const atplg_100027 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
+  const atplg_100028 = await getOrCreateAttributeTemplate("Pares de pernas", "pair");
 
   await db.insert(attributeTable).values([
-    { species: species_escorpiao_amarelo.id, attribute: atpl_197, value: "7", sourceId: src_153 },
-    { species: species_escorpiao_amarelo.id, attribute: atpl_198, value: "8", sourceId: src_154 },
-    { species: species_escorpiao_amarelo.id, attribute: atpl_199, value: "20", sourceId: src_153 },
-    { species: species_escorpiao_amarelo.id, attribute: atpl_200, value: "1.0 a 2.0", sourceId: src_154 },
-    { species: species_escorpiao_amarelo.id, attribute: atpl_201, value: "140000", sourceId: src_154 },
+    { species: species_escorpiao_amarelo.id, attribute: atplg_100027, value: "7", sourceId: src_153 },
+    { species: species_escorpiao_amarelo.id, attribute: atplg_100028, value: "4", sourceId: src_154 },
   ]);
 
   {
@@ -6665,35 +4314,15 @@ async function seed() {
     .returning();
   // ---- opiliao (Mischonyx squalidus) ----
 
-  const [tax_141Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "opiliones", parent: tax_129, createdBy: user.id })
-    .returning();
-  const tax_141 = tax_141Row.id;
+  const tax_141 = await getOrCreateTaxon("Ordem", "opiliones", tax_129, user.id);
 
-  const [tax_142Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Subordem", labelValue: "laniatores", parent: tax_141, createdBy: user.id })
-    .returning();
-  const tax_142 = tax_142Row.id;
+  const tax_142 = await getOrCreateTaxon("Subordem", "laniatores", tax_141, user.id);
 
-  const [tax_143Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "gonyleptidae", parent: tax_142, createdBy: user.id })
-    .returning();
-  const tax_143 = tax_143Row.id;
+  const tax_143 = await getOrCreateTaxon("Família", "gonyleptidae", tax_142, user.id);
 
-  const [tax_144Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "mischonyx", parent: tax_143, createdBy: user.id })
-    .returning();
-  const tax_144 = tax_144Row.id;
+  const tax_144 = await getOrCreateTaxon("Gênero", "mischonyx", tax_143, user.id);
 
-  const [tax_145Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "mischonyx squalidus", parent: tax_144, createdBy: user.id })
-    .returning();
-  const tax_145 = tax_145Row.id;
+  const tax_145 = await getOrCreateTaxon("Espécie", "mischonyx squalidus", tax_144, user.id);
 
   const [species_opiliao] = await db
     .insert(speciesTable)
@@ -6730,60 +4359,7 @@ async function seed() {
   }
   const src_162 = src_162Row.id;
 
-  let [atpl_202Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Pares de glândulas odoríferas (ozóporos)"), eq(attributeTemplateTable.unit, "pair")));
-  if (!atpl_202Row) {
-    [atpl_202Row] = await db.insert(attributeTemplateTable).values({ label: "Pares de glândulas odoríferas (ozóporos)", unit: "pair" }).returning();
-  }
-  const atpl_202 = atpl_202Row.id;
-
-  let [atpl_203Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Pares de olhos"), eq(attributeTemplateTable.unit, "pair")));
-  if (!atpl_203Row) {
-    [atpl_203Row] = await db.insert(attributeTemplateTable).values({ label: "Pares de olhos", unit: "pair" }).returning();
-  }
-  const atpl_203 = atpl_203Row.id;
-
-  let [atpl_204Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento das pernas em relação ao corpo"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_204Row) {
-    [atpl_204Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento das pernas em relação ao corpo", unit: "" }).returning();
-  }
-  const atpl_204 = atpl_204Row.id;
-
-  let [atpl_205Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Desenvolvimento da coxa do quarto par de pernas"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_205Row) {
-    [atpl_205Row] = await db.insert(attributeTemplateTable).values({ label: "Desenvolvimento da coxa do quarto par de pernas", unit: "" }).returning();
-  }
-  const atpl_205 = atpl_205Row.id;
-
-  let [atpl_206Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Ocorrências registradas no Rio de Janeiro (GBIF)"), eq(attributeTemplateTable.unit, "occurrence")));
-  if (!atpl_206Row) {
-    [atpl_206Row] = await db.insert(attributeTemplateTable).values({ label: "Ocorrências registradas no Rio de Janeiro (GBIF)", unit: "occurrence" }).returning();
-  }
-  const atpl_206 = atpl_206Row.id;
-
-  await db.insert(attributeTable).values([
-    { species: species_opiliao.id, attribute: atpl_202, value: "1", sourceId: src_158 },
-    { species: species_opiliao.id, attribute: atpl_203, value: "1", sourceId: src_159 },
-    { species: species_opiliao.id, attribute: atpl_20, value: "onívora: insetos pequenos, matéria vegetal, fungos e detritos", sourceId: src_159 },
-    { species: species_opiliao.id, attribute: atpl_204, value: "excepcionalmente longas, muito maiores que o corpo", sourceId: src_158 },
-    { species: species_opiliao.id, attribute: atpl_205, value: "imensamente desenvolvida, superando o escudo dorsal em vista dorsal", sourceId: src_160 },
-    { species: species_opiliao.id, attribute: atpl_206, value: "67", sourceId: src_162 },
-  ]);
-
+  
   {
     const [pn] = await db
       .insert(popularNameTable)
@@ -6845,35 +4421,15 @@ async function seed() {
     .returning();
   // ---- carrapato-sapo (Amblyomma rotundatum) ----
 
-  const [tax_146Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "ixodida", parent: tax_129, createdBy: user.id })
-    .returning();
-  const tax_146 = tax_146Row.id;
+  const tax_146 = await getOrCreateTaxon("Ordem", "ixodida", tax_129, user.id);
 
-  const [tax_147Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "ixodidae", parent: tax_146, createdBy: user.id })
-    .returning();
-  const tax_147 = tax_147Row.id;
+  const tax_147 = await getOrCreateTaxon("Família", "ixodidae", tax_146, user.id);
 
-  const [tax_148Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Subfamília", labelValue: "amblyomminae", parent: tax_147, createdBy: user.id })
-    .returning();
-  const tax_148 = tax_148Row.id;
+  const tax_148 = await getOrCreateTaxon("Subfamília", "amblyomminae", tax_147, user.id);
 
-  const [tax_149Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "amblyomma", parent: tax_148, createdBy: user.id })
-    .returning();
-  const tax_149 = tax_149Row.id;
+  const tax_149 = await getOrCreateTaxon("Gênero", "amblyomma", tax_148, user.id);
 
-  const [tax_150Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "amblyomma rotundatum", parent: tax_149, createdBy: user.id })
-    .returning();
-  const tax_150 = tax_150Row.id;
+  const tax_150 = await getOrCreateTaxon("Espécie", "amblyomma rotundatum", tax_149, user.id);
 
   const [species_carrapato_sapo] = await db
     .insert(speciesTable)
@@ -6916,59 +4472,7 @@ async function seed() {
   }
   const src_168 = src_168Row.id;
 
-  let [atpl_207Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Reprodução"), eq(attributeTemplateTable.unit, "mode")));
-  if (!atpl_207Row) {
-    [atpl_207Row] = await db.insert(attributeTemplateTable).values({ label: "Reprodução", unit: "mode" }).returning();
-  }
-  const atpl_207 = atpl_207Row.id;
-
-  let [atpl_208Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Hospedeiros"), eq(attributeTemplateTable.unit, "type")));
-  if (!atpl_208Row) {
-    [atpl_208Row] = await db.insert(attributeTemplateTable).values({ label: "Hospedeiros", unit: "type" }).returning();
-  }
-  const atpl_208 = atpl_208Row.id;
-
-  let [atpl_209Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Distribuição geográfica"), eq(attributeTemplateTable.unit, "range")));
-  if (!atpl_209Row) {
-    [atpl_209Row] = await db.insert(attributeTemplateTable).values({ label: "Distribuição geográfica", unit: "range" }).returning();
-  }
-  const atpl_209 = atpl_209Row.id;
-
-  let [atpl_210Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Parasitismo em humanos"), eq(attributeTemplateTable.unit, "status")));
-  if (!atpl_210Row) {
-    [atpl_210Row] = await db.insert(attributeTemplateTable).values({ label: "Parasitismo em humanos", unit: "status" }).returning();
-  }
-  const atpl_210 = atpl_210Row.id;
-
-  let [atpl_211Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Escudo dorsal (scutum)"), eq(attributeTemplateTable.unit, "trait")));
-  if (!atpl_211Row) {
-    [atpl_211Row] = await db.insert(attributeTemplateTable).values({ label: "Escudo dorsal (scutum)", unit: "trait" }).returning();
-  }
-  const atpl_211 = atpl_211Row.id;
-
-  await db.insert(attributeTable).values([
-    { species: species_carrapato_sapo.id, attribute: atpl_207, value: "Partenogênese, com machos extremamente raros na população", sourceId: src_163 },
-    { species: species_carrapato_sapo.id, attribute: atpl_208, value: "Ectoparasita de anfíbios e répteis", sourceId: src_163 },
-    { species: species_carrapato_sapo.id, attribute: atpl_209, value: "Do sul dos Estados Unidos ao norte da Argentina, incluindo ilhas do Caribe", sourceId: src_166 },
-    { species: species_carrapato_sapo.id, attribute: atpl_210, value: "Raro; considerado parasita ocasional do ser humano", sourceId: src_166 },
-    { species: species_carrapato_sapo.id, attribute: atpl_211, value: "Presente e rígido, típico dos carrapatos duros (Ixodidae), com capítulo bucal projetado anteriormente", sourceId: src_165 },
-  ]);
-
+  
   {
     const [pn] = await db
       .insert(popularNameTable)
@@ -7005,23 +4509,11 @@ async function seed() {
     .returning();
   // ---- carrapato-ave (Argas miniatus) ----
 
-  const [tax_151Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "argasidae", parent: tax_146, createdBy: user.id })
-    .returning();
-  const tax_151 = tax_151Row.id;
+  const tax_151 = await getOrCreateTaxon("Família", "argasidae", tax_146, user.id);
 
-  const [tax_152Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "argas", parent: tax_151, createdBy: user.id })
-    .returning();
-  const tax_152 = tax_152Row.id;
+  const tax_152 = await getOrCreateTaxon("Gênero", "argas", tax_151, user.id);
 
-  const [tax_153Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "argas miniatus", parent: tax_152, createdBy: user.id })
-    .returning();
-  const tax_153 = tax_153Row.id;
+  const tax_153 = await getOrCreateTaxon("Espécie", "argas miniatus", tax_152, user.id);
 
   const [species_carrapato_ave] = await db
     .insert(speciesTable)
@@ -7058,49 +4550,10 @@ async function seed() {
   }
   const src_173 = src_173Row.id;
 
-  let [atpl_212Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Formato do corpo"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_212Row) {
-    [atpl_212Row] = await db.insert(attributeTemplateTable).values({ label: "Formato do corpo", unit: "" }).returning();
-  }
-  const atpl_212 = atpl_212Row.id;
-
-  let [atpl_213Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Hospedeiro principal"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_213Row) {
-    [atpl_213Row] = await db.insert(attributeTemplateTable).values({ label: "Hospedeiro principal", unit: "" }).returning();
-  }
-  const atpl_213 = atpl_213Row.id;
-
-  let [atpl_214Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Ano de descrição"), eq(attributeTemplateTable.unit, "year")));
-  if (!atpl_214Row) {
-    [atpl_214Row] = await db.insert(attributeTemplateTable).values({ label: "Ano de descrição", unit: "year" }).returning();
-  }
-  const atpl_214 = atpl_214Row.id;
-
-  let [atpl_215Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Ocorrências registradas no Brasil"), eq(attributeTemplateTable.unit, "record")));
-  if (!atpl_215Row) {
-    [atpl_215Row] = await db.insert(attributeTemplateTable).values({ label: "Ocorrências registradas no Brasil", unit: "record" }).returning();
-  }
-  const atpl_215 = atpl_215Row.id;
+  const atplg_100026 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
 
   await db.insert(attributeTable).values([
-    { species: species_carrapato_ave.id, attribute: atpl_160, value: "4-7", sourceId: src_169 },
-    { species: species_carrapato_ave.id, attribute: atpl_212, value: "oval, sem escudo dorsal rígido", sourceId: src_169 },
-    { species: species_carrapato_ave.id, attribute: atpl_31, value: "hematófago e noturno", sourceId: src_169 },
-    { species: species_carrapato_ave.id, attribute: atpl_213, value: "aves domésticas e silvestres", sourceId: src_169 },
-    { species: species_carrapato_ave.id, attribute: atpl_214, value: "1844", sourceId: src_169 },
-    { species: species_carrapato_ave.id, attribute: atpl_215, value: "27", sourceId: src_170 },
+    { species: species_carrapato_ave.id, attribute: atplg_100026, value: "0.4-0.7", sourceId: src_169 },
   ]);
 
   {
@@ -7164,17 +4617,9 @@ async function seed() {
     .returning();
   // ---- carrapato-bovino (Rhipicephalus microplus) ----
 
-  const [tax_154Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "rhipicephalus", parent: tax_147, createdBy: user.id })
-    .returning();
-  const tax_154 = tax_154Row.id;
+  const tax_154 = await getOrCreateTaxon("Gênero", "rhipicephalus", tax_147, user.id);
 
-  const [tax_155Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "rhipicephalus microplus", parent: tax_154, createdBy: user.id })
-    .returning();
-  const tax_155 = tax_155Row.id;
+  const tax_155 = await getOrCreateTaxon("Espécie", "rhipicephalus microplus", tax_154, user.id);
 
   const [species_carrapato_bovino] = await db
     .insert(speciesTable)
@@ -7217,58 +4662,12 @@ async function seed() {
   }
   const src_179 = src_179Row.id;
 
-  let [atpl_216Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Ovos produzidos por postura"), eq(attributeTemplateTable.unit, "egg")));
-  if (!atpl_216Row) {
-    [atpl_216Row] = await db.insert(attributeTemplateTable).values({ label: "Ovos produzidos por postura", unit: "egg" }).returning();
-  }
-  const atpl_216 = atpl_216Row.id;
-
-  let [atpl_217Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Taxa de eclosão dos ovos"), eq(attributeTemplateTable.unit, "percent")));
-  if (!atpl_217Row) {
-    [atpl_217Row] = await db.insert(attributeTemplateTable).values({ label: "Taxa de eclosão dos ovos", unit: "percent" }).returning();
-  }
-  const atpl_217 = atpl_217Row.id;
-
-  let [atpl_218Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Prevalência em bovinos no Brasil"), eq(attributeTemplateTable.unit, "percent")));
-  if (!atpl_218Row) {
-    [atpl_218Row] = await db.insert(attributeTemplateTable).values({ label: "Prevalência em bovinos no Brasil", unit: "percent" }).returning();
-  }
-  const atpl_218 = atpl_218Row.id;
-
-  let [atpl_219Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Perdas econômicas anuais no Brasil"), eq(attributeTemplateTable.unit, "usd")));
-  if (!atpl_219Row) {
-    [atpl_219Row] = await db.insert(attributeTemplateTable).values({ label: "Perdas econômicas anuais no Brasil", unit: "usd" }).returning();
-  }
-  const atpl_219 = atpl_219Row.id;
-
-  let [atpl_220Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Amplitude de distribuição latitudinal"), eq(attributeTemplateTable.unit, "degree")));
-  if (!atpl_220Row) {
-    [atpl_220Row] = await db.insert(attributeTemplateTable).values({ label: "Amplitude de distribuição latitudinal", unit: "degree" }).returning();
-  }
-  const atpl_220 = atpl_220Row.id;
+  const atplg_100024 = await getOrCreateAttributeTemplate("Duração do ciclo de vida", "day");
+  const atplg_100025 = await getOrCreateAttributeTemplate("Ovos por postura", "unit");
 
   await db.insert(attributeTable).values([
-    { species: species_carrapato_bovino.id, attribute: atpl_109, value: "65", sourceId: src_174 },
-    { species: species_carrapato_bovino.id, attribute: atpl_216, value: "1450", sourceId: src_174 },
-    { species: species_carrapato_bovino.id, attribute: atpl_217, value: "83.5", sourceId: src_174 },
-    { species: species_carrapato_bovino.id, attribute: atpl_218, value: "80", sourceId: src_174 },
-    { species: species_carrapato_bovino.id, attribute: atpl_219, value: "2000000000", sourceId: src_175 },
-    { species: species_carrapato_bovino.id, attribute: atpl_220, value: "32", sourceId: src_174 },
+    { species: species_carrapato_bovino.id, attribute: atplg_100024, value: "65", sourceId: src_174 },
+    { species: species_carrapato_bovino.id, attribute: atplg_100025, value: "1450", sourceId: src_174 },
   ]);
 
   {
@@ -7334,17 +4733,9 @@ async function seed() {
     .returning();
   // ---- carrapato-tamandua (Amblyomma pseudoconcolor) ----
 
-  const [tax_156Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "amblyomma", parent: tax_147, createdBy: user.id })
-    .returning();
-  const tax_156 = tax_156Row.id;
+  const tax_156 = await getOrCreateTaxon("Gênero", "amblyomma", tax_147, user.id);
 
-  const [tax_157Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "amblyomma pseudoconcolor", parent: tax_156, createdBy: user.id })
-    .returning();
-  const tax_157 = tax_157Row.id;
+  const tax_157 = await getOrCreateTaxon("Espécie", "amblyomma pseudoconcolor", tax_156, user.id);
 
   const [species_carrapato_tamandua] = await db
     .insert(speciesTable)
@@ -7369,51 +4760,7 @@ async function seed() {
   }
   const src_182 = src_182Row.id;
 
-  let [atpl_221Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Família"), eq(attributeTemplateTable.unit, "none")));
-  if (!atpl_221Row) {
-    [atpl_221Row] = await db.insert(attributeTemplateTable).values({ label: "Família", unit: "none" }).returning();
-  }
-  const atpl_221 = atpl_221Row.id;
-
-  let [atpl_222Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Hospedeiro primário"), eq(attributeTemplateTable.unit, "none")));
-  if (!atpl_222Row) {
-    [atpl_222Row] = await db.insert(attributeTemplateTable).values({ label: "Hospedeiro primário", unit: "none" }).returning();
-  }
-  const atpl_222 = atpl_222Row.id;
-
-  let [atpl_223Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Hospedeiro silvestre associado"), eq(attributeTemplateTable.unit, "none")));
-  if (!atpl_223Row) {
-    [atpl_223Row] = await db.insert(attributeTemplateTable).values({ label: "Hospedeiro silvestre associado", unit: "none" }).returning();
-  }
-  const atpl_223 = atpl_223Row.id;
-
-  let [atpl_224Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Instituição depositária de espécime testemunha"), eq(attributeTemplateTable.unit, "none")));
-  if (!atpl_224Row) {
-    [atpl_224Row] = await db.insert(attributeTemplateTable).values({ label: "Instituição depositária de espécime testemunha", unit: "none" }).returning();
-  }
-  const atpl_224 = atpl_224Row.id;
-
-  await db.insert(attributeTable).values([
-    { species: species_carrapato_tamandua.id, attribute: atpl_221, value: "Ixodidae (carrapato duro)", sourceId: src_181 },
-    { species: species_carrapato_tamandua.id, attribute: atpl_214, value: "1908", sourceId: src_181 },
-    { species: species_carrapato_tamandua.id, attribute: atpl_222, value: "tatus (Cingulata)", sourceId: src_180 },
-    { species: species_carrapato_tamandua.id, attribute: atpl_223, value: "tamanduá-bandeira (Myrmecophaga tridactyla)", sourceId: src_180 },
-    { species: species_carrapato_tamandua.id, attribute: atpl_180, value: "norte da Argentina ao Suriname, incluindo Brasil e Uruguai (região neotropical)", sourceId: src_180 },
-    { species: species_carrapato_tamandua.id, attribute: atpl_224, value: "Yale Peabody Museum (YPM ENT 286968)", sourceId: src_182 },
-  ]);
-
+  
   {
     const [pn] = await db
       .insert(popularNameTable)
@@ -7457,11 +4804,7 @@ async function seed() {
     .returning();
   // ---- ninhada-carrapato (Rhipicephalus sanguineus) ----
 
-  const [tax_158Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "rhipicephalus sanguineus", parent: tax_154, createdBy: user.id })
-    .returning();
-  const tax_158 = tax_158Row.id;
+  const tax_158 = await getOrCreateTaxon("Espécie", "rhipicephalus sanguineus", tax_154, user.id);
 
   const [species_ninhada_carrapato] = await db
     .insert(speciesTable)
@@ -7480,49 +4823,14 @@ async function seed() {
   }
   const src_184 = src_184Row.id;
 
-  let [atpl_225Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Ovos por postura (diário)"), eq(attributeTemplateTable.unit, "egg")));
-  if (!atpl_225Row) {
-    [atpl_225Row] = await db.insert(attributeTemplateTable).values({ label: "Ovos por postura (diário)", unit: "egg" }).returning();
-  }
-  const atpl_225 = atpl_225Row.id;
-
-  let [atpl_226Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Ovos por postura (máximo)"), eq(attributeTemplateTable.unit, "egg")));
-  if (!atpl_226Row) {
-    [atpl_226Row] = await db.insert(attributeTemplateTable).values({ label: "Ovos por postura (máximo)", unit: "egg" }).returning();
-  }
-  const atpl_226 = atpl_226Row.id;
-
-  let [atpl_227Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Duração da alimentação larval"), eq(attributeTemplateTable.unit, "day")));
-  if (!atpl_227Row) {
-    [atpl_227Row] = await db.insert(attributeTemplateTable).values({ label: "Duração da alimentação larval", unit: "day" }).returning();
-  }
-  const atpl_227 = atpl_227Row.id;
-
-  let [atpl_228Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Sobrevivência de larvas não alimentadas"), eq(attributeTemplateTable.unit, "month")));
-  if (!atpl_228Row) {
-    [atpl_228Row] = await db.insert(attributeTemplateTable).values({ label: "Sobrevivência de larvas não alimentadas", unit: "month" }).returning();
-  }
-  const atpl_228 = atpl_228Row.id;
+  const atplg_100021 = await getOrCreateAttributeTemplate("Ovos por postura", "unit");
+  const atplg_100022 = await getOrCreateAttributeTemplate("Período de incubação", "day");
+  const atplg_100023 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
 
   await db.insert(attributeTable).values([
-    { species: species_ninhada_carrapato.id, attribute: atpl_225, value: "2000-3000", sourceId: src_183 },
-    { species: species_ninhada_carrapato.id, attribute: atpl_226, value: "7000", sourceId: src_184 },
-    { species: species_ninhada_carrapato.id, attribute: atpl_92, value: "17-60", sourceId: src_183 },
-    { species: species_ninhada_carrapato.id, attribute: atpl_227, value: "5-15", sourceId: src_184 },
-    { species: species_ninhada_carrapato.id, attribute: atpl_125, value: "2.28-3.18", sourceId: src_184 },
-    { species: species_ninhada_carrapato.id, attribute: atpl_228, value: "8.5", sourceId: src_183 },
+    { species: species_ninhada_carrapato.id, attribute: atplg_100021, value: "7000", sourceId: src_184 },
+    { species: species_ninhada_carrapato.id, attribute: atplg_100022, value: "17-60", sourceId: src_183 },
+    { species: species_ninhada_carrapato.id, attribute: atplg_100023, value: "0.23-0.32", sourceId: src_184 },
   ]);
 
   {
@@ -7584,23 +4892,11 @@ async function seed() {
     .returning();
   // ---- ninhada-aranha (Lycosa erythrognatha) ----
 
-  const [tax_159Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "lycosidae", parent: tax_130, createdBy: user.id })
-    .returning();
-  const tax_159 = tax_159Row.id;
+  const tax_159 = await getOrCreateTaxon("Família", "lycosidae", tax_130, user.id);
 
-  const [tax_160Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "lycosa", parent: tax_159, createdBy: user.id })
-    .returning();
-  const tax_160 = tax_160Row.id;
+  const tax_160 = await getOrCreateTaxon("Gênero", "lycosa", tax_159, user.id);
 
-  const [tax_161Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "lycosa erythrognatha", parent: tax_160, createdBy: user.id })
-    .returning();
-  const tax_161 = tax_161Row.id;
+  const tax_161 = await getOrCreateTaxon("Espécie", "lycosa erythrognatha", tax_160, user.id);
 
   const [species_ninhada_aranha] = await db
     .insert(speciesTable)
@@ -7625,48 +4921,14 @@ async function seed() {
   }
   const src_187 = src_187Row.id;
 
-  let [atpl_229Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Número médio de ovos por postura"), eq(attributeTemplateTable.unit, "egg")));
-  if (!atpl_229Row) {
-    [atpl_229Row] = await db.insert(attributeTemplateTable).values({ label: "Número médio de ovos por postura", unit: "egg" }).returning();
-  }
-  const atpl_229 = atpl_229Row.id;
-
-  let [atpl_230Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Longevidade média"), eq(attributeTemplateTable.unit, "year")));
-  if (!atpl_230Row) {
-    [atpl_230Row] = await db.insert(attributeTemplateTable).values({ label: "Longevidade média", unit: "year" }).returning();
-  }
-  const atpl_230 = atpl_230Row.id;
-
-  let [atpl_231Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Mudas carregadas no dorso até dispersão"), eq(attributeTemplateTable.unit, "molt")));
-  if (!atpl_231Row) {
-    [atpl_231Row] = await db.insert(attributeTemplateTable).values({ label: "Mudas carregadas no dorso até dispersão", unit: "molt" }).returning();
-  }
-  const atpl_231 = atpl_231Row.id;
-
-  let [atpl_232Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Postura associada a risco de morte da fêmea"), eq(attributeTemplateTable.unit, "clutch")));
-  if (!atpl_232Row) {
-    [atpl_232Row] = await db.insert(attributeTemplateTable).values({ label: "Postura associada a risco de morte da fêmea", unit: "clutch" }).returning();
-  }
-  const atpl_232 = atpl_232Row.id;
+  const atplg_100018 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
+  const atplg_100019 = await getOrCreateAttributeTemplate("Ovos por postura", "unit");
+  const atplg_100020 = await getOrCreateAttributeTemplate("Longevidade média", "year");
 
   await db.insert(attributeTable).values([
-    { species: species_ninhada_aranha.id, attribute: atpl_7, value: "5", sourceId: src_185 },
-    { species: species_ninhada_aranha.id, attribute: atpl_229, value: "800", sourceId: src_185 },
-    { species: species_ninhada_aranha.id, attribute: atpl_230, value: "2.5", sourceId: src_185 },
-    { species: species_ninhada_aranha.id, attribute: atpl_231, value: "1", sourceId: src_185 },
-    { species: species_ninhada_aranha.id, attribute: atpl_232, value: "3", sourceId: src_185 },
+    { species: species_ninhada_aranha.id, attribute: atplg_100018, value: "5", sourceId: src_185 },
+    { species: species_ninhada_aranha.id, attribute: atplg_100019, value: "800", sourceId: src_185 },
+    { species: species_ninhada_aranha.id, attribute: atplg_100020, value: "2.5", sourceId: src_185 },
   ]);
 
   {
@@ -7721,41 +4983,17 @@ async function seed() {
     .returning();
   // ---- lagosta-filtradora (Atya gabonensis) ----
 
-  const [tax_162Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Classe", labelValue: "malacostraca", parent: tax_58, createdBy: user.id })
-    .returning();
-  const tax_162 = tax_162Row.id;
+  const tax_162 = await getOrCreateTaxon("Classe", "malacostraca", tax_58, user.id);
 
-  const [tax_163Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "decapoda", parent: tax_162, createdBy: user.id })
-    .returning();
-  const tax_163 = tax_163Row.id;
+  const tax_163 = await getOrCreateTaxon("Ordem", "decapoda", tax_162, user.id);
 
-  const [tax_164Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Infraordem", labelValue: "caridea", parent: tax_163, createdBy: user.id })
-    .returning();
-  const tax_164 = tax_164Row.id;
+  const tax_164 = await getOrCreateTaxon("Infraordem", "caridea", tax_163, user.id);
 
-  const [tax_165Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "atyidae", parent: tax_164, createdBy: user.id })
-    .returning();
-  const tax_165 = tax_165Row.id;
+  const tax_165 = await getOrCreateTaxon("Família", "atyidae", tax_164, user.id);
 
-  const [tax_166Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "atya", parent: tax_165, createdBy: user.id })
-    .returning();
-  const tax_166 = tax_166Row.id;
+  const tax_166 = await getOrCreateTaxon("Gênero", "atya", tax_165, user.id);
 
-  const [tax_167Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "atya gabonensis", parent: tax_166, createdBy: user.id })
-    .returning();
-  const tax_167 = tax_167Row.id;
+  const tax_167 = await getOrCreateTaxon("Espécie", "atya gabonensis", tax_166, user.id);
 
   const [species_lagosta_filtradora] = await db
     .insert(speciesTable)
@@ -7780,49 +5018,16 @@ async function seed() {
   }
   const src_190 = src_190Row.id;
 
-  let [atpl_233Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento máximo (macho)"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_233Row) {
-    [atpl_233Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento máximo (macho)", unit: "centimeter" }).returning();
-  }
-  const atpl_233 = atpl_233Row.id;
-
-  let [atpl_234Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento máximo (fêmea)"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_234Row) {
-    [atpl_234Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento máximo (fêmea)", unit: "centimeter" }).returning();
-  }
-  const atpl_234 = atpl_234Row.id;
-
-  let [atpl_235Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Faixa de temperatura da água"), eq(attributeTemplateTable.unit, "celsius")));
-  if (!atpl_235Row) {
-    [atpl_235Row] = await db.insert(attributeTemplateTable).values({ label: "Faixa de temperatura da água", unit: "celsius" }).returning();
-  }
-  const atpl_235 = atpl_235Row.id;
-
-  let [atpl_236Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Faixa de pH da água tolerada"), eq(attributeTemplateTable.unit, "ph")));
-  if (!atpl_236Row) {
-    [atpl_236Row] = await db.insert(attributeTemplateTable).values({ label: "Faixa de pH da água tolerada", unit: "ph" }).returning();
-  }
-  const atpl_236 = atpl_236Row.id;
+  const atplg_100014 = await getOrCreateAttributeTemplate("Comprimento corporal (macho)", "centimeter");
+  const atplg_100015 = await getOrCreateAttributeTemplate("Comprimento corporal (fêmea)", "centimeter");
+  const atplg_100016 = await getOrCreateAttributeTemplate("Faixa de temperatura tolerada", "celsius");
+  const atplg_100017 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "category");
 
   await db.insert(attributeTable).values([
-    { species: species_lagosta_filtradora.id, attribute: atpl_233, value: "14", sourceId: src_188 },
-    { species: species_lagosta_filtradora.id, attribute: atpl_234, value: "9", sourceId: src_188 },
-    { species: species_lagosta_filtradora.id, attribute: atpl_235, value: "23-29", sourceId: src_189 },
-    { species: species_lagosta_filtradora.id, attribute: atpl_236, value: "6.5-7.8", sourceId: src_189 },
-    { species: species_lagosta_filtradora.id, attribute: atpl_31, value: "filtrador detritívoro, retira microalgas e matéria orgânica suspensa usando fanões ramificados nas quelas anteriores", sourceId: src_188 },
-    { species: species_lagosta_filtradora.id, attribute: atpl_55, value: "pouco preocupante (LC)", sourceId: src_189 },
+    { species: species_lagosta_filtradora.id, attribute: atplg_100014, value: "14", sourceId: src_188 },
+    { species: species_lagosta_filtradora.id, attribute: atplg_100015, value: "9", sourceId: src_188 },
+    { species: species_lagosta_filtradora.id, attribute: atplg_100016, value: "23-29", sourceId: src_189 },
+    { species: species_lagosta_filtradora.id, attribute: atplg_100017, value: "LC", sourceId: src_189 },
   ]);
 
   {
@@ -7933,47 +5138,19 @@ async function seed() {
     .returning();
   // ---- camarao (Litopenaeus schmitti) ----
 
-  const [tax_168Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Subfilo", labelValue: "crustacea", parent: tax_58, createdBy: user.id })
-    .returning();
-  const tax_168 = tax_168Row.id;
+  const tax_168 = await getOrCreateTaxon("Subfilo", "crustacea", tax_58, user.id);
 
-  const [tax_169Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Classe", labelValue: "malacostraca", parent: tax_168, createdBy: user.id })
-    .returning();
-  const tax_169 = tax_169Row.id;
+  const tax_169 = await getOrCreateTaxon("Classe", "malacostraca", tax_168, user.id);
 
-  const [tax_170Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "decapoda", parent: tax_169, createdBy: user.id })
-    .returning();
-  const tax_170 = tax_170Row.id;
+  const tax_170 = await getOrCreateTaxon("Ordem", "decapoda", tax_169, user.id);
 
-  const [tax_171Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Subordem", labelValue: "dendrobranchiata", parent: tax_170, createdBy: user.id })
-    .returning();
-  const tax_171 = tax_171Row.id;
+  const tax_171 = await getOrCreateTaxon("Subordem", "dendrobranchiata", tax_170, user.id);
 
-  const [tax_172Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "penaeidae", parent: tax_171, createdBy: user.id })
-    .returning();
-  const tax_172 = tax_172Row.id;
+  const tax_172 = await getOrCreateTaxon("Família", "penaeidae", tax_171, user.id);
 
-  const [tax_173Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "litopenaeus", parent: tax_172, createdBy: user.id })
-    .returning();
-  const tax_173 = tax_173Row.id;
+  const tax_173 = await getOrCreateTaxon("Gênero", "litopenaeus", tax_172, user.id);
 
-  const [tax_174Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "litopenaeus schmitti", parent: tax_173, createdBy: user.id })
-    .returning();
-  const tax_174 = tax_174Row.id;
+  const tax_174 = await getOrCreateTaxon("Espécie", "litopenaeus schmitti", tax_173, user.id);
 
   const [species_camarao] = await db
     .insert(speciesTable)
@@ -8022,60 +5199,7 @@ async function seed() {
   }
   const src_197 = src_197Row.id;
 
-  let [atpl_237Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Distribuição regional ampliada"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_237Row) {
-    [atpl_237Row] = await db.insert(attributeTemplateTable).values({ label: "Distribuição regional ampliada", unit: "" }).returning();
-  }
-  const atpl_237 = atpl_237Row.id;
-
-  let [atpl_238Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Ambiente"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_238Row) {
-    [atpl_238Row] = await db.insert(attributeTemplateTable).values({ label: "Ambiente", unit: "" }).returning();
-  }
-  const atpl_238 = atpl_238Row.id;
-
-  let [atpl_239Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Autoridade e ano de descrição"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_239Row) {
-    [atpl_239Row] = await db.insert(attributeTemplateTable).values({ label: "Autoridade e ano de descrição", unit: "" }).returning();
-  }
-  const atpl_239 = atpl_239Row.id;
-
-  let [atpl_240Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Importância pesqueira"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_240Row) {
-    [atpl_240Row] = await db.insert(attributeTemplateTable).values({ label: "Importância pesqueira", unit: "" }).returning();
-  }
-  const atpl_240 = atpl_240Row.id;
-
-  let [atpl_241Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Registro fotográfico no litoral sudeste"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_241Row) {
-    [atpl_241Row] = await db.insert(attributeTemplateTable).values({ label: "Registro fotográfico no litoral sudeste", unit: "" }).returning();
-  }
-  const atpl_241 = atpl_241Row.id;
-
-  await db.insert(attributeTable).values([
-    { species: species_camarao.id, attribute: atpl_73, value: "Ocorre desde as Antilhas até o litoral brasileiro", sourceId: src_191 },
-    { species: species_camarao.id, attribute: atpl_237, value: "Caribe, América Central e América do Sul, em águas rasas; alopátrica em relação a Litopenaeus setiferus", sourceId: src_192 },
-    { species: species_camarao.id, attribute: atpl_238, value: "Marinho e salobro (estuarino)", sourceId: src_193 },
-    { species: species_camarao.id, attribute: atpl_239, value: "Burkenroad, 1936", sourceId: src_193 },
-    { species: species_camarao.id, attribute: atpl_240, value: "Importância comercial significativa para comunidades de pescadores artesanais", sourceId: src_191 },
-    { species: species_camarao.id, attribute: atpl_241, value: "Fotografado em São Sebastião (SP), próximo ao litoral fluminense, evidenciando ocorrência na região Sudeste do Brasil", sourceId: src_197 },
-  ]);
-
+  
   {
     const [pn] = await db
       .insert(popularNameTable)
@@ -8128,23 +5252,11 @@ async function seed() {
     .returning();
   // ---- siri (Callinectes danae) ----
 
-  const [tax_175Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "portunidae", parent: tax_163, createdBy: user.id })
-    .returning();
-  const tax_175 = tax_175Row.id;
+  const tax_175 = await getOrCreateTaxon("Família", "portunidae", tax_163, user.id);
 
-  const [tax_176Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "callinectes", parent: tax_175, createdBy: user.id })
-    .returning();
-  const tax_176 = tax_176Row.id;
+  const tax_176 = await getOrCreateTaxon("Gênero", "callinectes", tax_175, user.id);
 
-  const [tax_177Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "danae", parent: tax_176, createdBy: user.id })
-    .returning();
-  const tax_177 = tax_177Row.id;
+  const tax_177 = await getOrCreateTaxon("Espécie", "danae", tax_176, user.id);
 
   const [species_siri] = await db
     .insert(speciesTable)
@@ -8193,57 +5305,18 @@ async function seed() {
   }
   const src_204 = src_204Row.id;
 
-  let [atpl_242Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Largura máxima da carapaça (machos)"), eq(attributeTemplateTable.unit, "millimeter")));
-  if (!atpl_242Row) {
-    [atpl_242Row] = await db.insert(attributeTemplateTable).values({ label: "Largura máxima da carapaça (machos)", unit: "millimeter" }).returning();
-  }
-  const atpl_242 = atpl_242Row.id;
-
-  let [atpl_243Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Largura máxima da carapaça (fêmeas)"), eq(attributeTemplateTable.unit, "millimeter")));
-  if (!atpl_243Row) {
-    [atpl_243Row] = await db.insert(attributeTemplateTable).values({ label: "Largura máxima da carapaça (fêmeas)", unit: "millimeter" }).returning();
-  }
-  const atpl_243 = atpl_243Row.id;
-
-  let [atpl_244Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Longevidade estimada (machos)"), eq(attributeTemplateTable.unit, "year")));
-  if (!atpl_244Row) {
-    [atpl_244Row] = await db.insert(attributeTemplateTable).values({ label: "Longevidade estimada (machos)", unit: "year" }).returning();
-  }
-  const atpl_244 = atpl_244Row.id;
-
-  let [atpl_245Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Longevidade estimada (fêmeas)"), eq(attributeTemplateTable.unit, "year")));
-  if (!atpl_245Row) {
-    [atpl_245Row] = await db.insert(attributeTemplateTable).values({ label: "Longevidade estimada (fêmeas)", unit: "year" }).returning();
-  }
-  const atpl_245 = atpl_245Row.id;
-
-  let [atpl_246Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Profundidade máxima de ocorrência"), eq(attributeTemplateTable.unit, "meter")));
-  if (!atpl_246Row) {
-    [atpl_246Row] = await db.insert(attributeTemplateTable).values({ label: "Profundidade máxima de ocorrência", unit: "meter" }).returning();
-  }
-  const atpl_246 = atpl_246Row.id;
+  const atplg_100009 = await getOrCreateAttributeTemplate("Largura da carapaça (macho)", "centimeter");
+  const atplg_100010 = await getOrCreateAttributeTemplate("Largura da carapaça (fêmea)", "centimeter");
+  const atplg_100011 = await getOrCreateAttributeTemplate("Longevidade média (macho)", "year");
+  const atplg_100012 = await getOrCreateAttributeTemplate("Longevidade média (fêmea)", "year");
+  const atplg_100013 = await getOrCreateAttributeTemplate("Profundidade de ocorrência", "meter");
 
   await db.insert(attributeTable).values([
-    { species: species_siri.id, attribute: atpl_242, value: "120", sourceId: src_201 },
-    { species: species_siri.id, attribute: atpl_243, value: "113", sourceId: src_201 },
-    { species: species_siri.id, attribute: atpl_244, value: "2.3", sourceId: src_201 },
-    { species: species_siri.id, attribute: atpl_245, value: "2.5", sourceId: src_201 },
-    { species: species_siri.id, attribute: atpl_246, value: "100", sourceId: src_198 },
+    { species: species_siri.id, attribute: atplg_100009, value: "12", sourceId: src_201 },
+    { species: species_siri.id, attribute: atplg_100010, value: "11.3", sourceId: src_201 },
+    { species: species_siri.id, attribute: atplg_100011, value: "2.3", sourceId: src_201 },
+    { species: species_siri.id, attribute: atplg_100012, value: "2.5", sourceId: src_201 },
+    { species: species_siri.id, attribute: atplg_100013, value: "100", sourceId: src_198 },
   ]);
 
   {
@@ -8300,29 +5373,13 @@ async function seed() {
     .returning();
   // ---- caranguejo-1 (Ucides cordatus) ----
 
-  const [tax_178Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Infraordem", labelValue: "brachyura", parent: tax_170, createdBy: user.id })
-    .returning();
-  const tax_178 = tax_178Row.id;
+  const tax_178 = await getOrCreateTaxon("Infraordem", "brachyura", tax_170, user.id);
 
-  const [tax_179Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "ucididae", parent: tax_178, createdBy: user.id })
-    .returning();
-  const tax_179 = tax_179Row.id;
+  const tax_179 = await getOrCreateTaxon("Família", "ucididae", tax_178, user.id);
 
-  const [tax_180Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "ucides", parent: tax_179, createdBy: user.id })
-    .returning();
-  const tax_180 = tax_180Row.id;
+  const tax_180 = await getOrCreateTaxon("Gênero", "ucides", tax_179, user.id);
 
-  const [tax_181Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "ucides cordatus", parent: tax_180, createdBy: user.id })
-    .returning();
-  const tax_181 = tax_181Row.id;
+  const tax_181 = await getOrCreateTaxon("Espécie", "ucides cordatus", tax_180, user.id);
 
   const [species_caranguejo_1] = await db
     .insert(speciesTable)
@@ -8371,60 +5428,7 @@ async function seed() {
   }
   const src_211 = src_211Row.id;
 
-  let [atpl_247Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Coloração da carapaça (machos)"), eq(attributeTemplateTable.unit, "none")));
-  if (!atpl_247Row) {
-    [atpl_247Row] = await db.insert(attributeTemplateTable).values({ label: "Coloração da carapaça (machos)", unit: "none" }).returning();
-  }
-  const atpl_247 = atpl_247Row.id;
-
-  let [atpl_248Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Pinças"), eq(attributeTemplateTable.unit, "none")));
-  if (!atpl_248Row) {
-    [atpl_248Row] = await db.insert(attributeTemplateTable).values({ label: "Pinças", unit: "none" }).returning();
-  }
-  const atpl_248 = atpl_248Row.id;
-
-  let [atpl_249Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Profundidade máxima da toca"), eq(attributeTemplateTable.unit, "meter")));
-  if (!atpl_249Row) {
-    [atpl_249Row] = await db.insert(attributeTemplateTable).values({ label: "Profundidade máxima da toca", unit: "meter" }).returning();
-  }
-  const atpl_249 = atpl_249Row.id;
-
-  let [atpl_250Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Dieta"), eq(attributeTemplateTable.unit, "none")));
-  if (!atpl_250Row) {
-    [atpl_250Row] = await db.insert(attributeTemplateTable).values({ label: "Dieta", unit: "none" }).returning();
-  }
-  const atpl_250 = atpl_250Row.id;
-
-  let [atpl_251Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Família taxonômica"), eq(attributeTemplateTable.unit, "none")));
-  if (!atpl_251Row) {
-    [atpl_251Row] = await db.insert(attributeTemplateTable).values({ label: "Família taxonômica", unit: "none" }).returning();
-  }
-  const atpl_251 = atpl_251Row.id;
-
-  await db.insert(attributeTable).values([
-    { species: species_caranguejo_1.id, attribute: atpl_247, value: "azul-celeste a marrom-escuro (juvenil), ferruginosa a marrom-escuro (adulto)", sourceId: src_205 },
-    { species: species_caranguejo_1.id, attribute: atpl_248, value: "assimétricas: esquerda fina para cortar e se alimentar, direita maior para esmagar", sourceId: src_206 },
-    { species: species_caranguejo_1.id, attribute: atpl_249, value: "1.6", sourceId: src_206 },
-    { species: species_caranguejo_1.id, attribute: atpl_250, value: "herbívora, principalmente folhiço de mangue (folhas, casca e raízes)", sourceId: src_206 },
-    { species: species_caranguejo_1.id, attribute: atpl_180, value: "manguezais do litoral atlântico ocidental, da Florida (EUA) ao sul do Brasil", sourceId: src_205 },
-    { species: species_caranguejo_1.id, attribute: atpl_251, value: "ucididae, família monotípica estabelecida em 2005", sourceId: src_207 },
-  ]);
-
+  
   {
     const [pn] = await db
       .insert(popularNameTable)
@@ -8501,29 +5505,13 @@ async function seed() {
     .returning();
   // ---- caranguejo-2 (Cardisoma guanhumi) ----
 
-  const [tax_182Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Infraordem", labelValue: "brachyura", parent: tax_163, createdBy: user.id })
-    .returning();
-  const tax_182 = tax_182Row.id;
+  const tax_182 = await getOrCreateTaxon("Infraordem", "brachyura", tax_163, user.id);
 
-  const [tax_183Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "gecarcinidae", parent: tax_182, createdBy: user.id })
-    .returning();
-  const tax_183 = tax_183Row.id;
+  const tax_183 = await getOrCreateTaxon("Família", "gecarcinidae", tax_182, user.id);
 
-  const [tax_184Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "cardisoma", parent: tax_183, createdBy: user.id })
-    .returning();
-  const tax_184 = tax_184Row.id;
+  const tax_184 = await getOrCreateTaxon("Gênero", "cardisoma", tax_183, user.id);
 
-  const [tax_185Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "cardisoma guanhumi", parent: tax_184, createdBy: user.id })
-    .returning();
-  const tax_185 = tax_185Row.id;
+  const tax_185 = await getOrCreateTaxon("Espécie", "cardisoma guanhumi", tax_184, user.id);
 
   const [species_caranguejo_2] = await db
     .insert(speciesTable)
@@ -8542,40 +5530,14 @@ async function seed() {
   }
   const src_213 = src_213Row.id;
 
-  let [atpl_252Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Largura da carapaça"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_252Row) {
-    [atpl_252Row] = await db.insert(attributeTemplateTable).values({ label: "Largura da carapaça", unit: "centimeter" }).returning();
-  }
-  const atpl_252 = atpl_252Row.id;
-
-  let [atpl_253Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Habitat"), eq(attributeTemplateTable.unit, "none")));
-  if (!atpl_253Row) {
-    [atpl_253Row] = await db.insert(attributeTemplateTable).values({ label: "Habitat", unit: "none" }).returning();
-  }
-  const atpl_253 = atpl_253Row.id;
-
-  let [atpl_254Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Estado de conservação no Brasil"), eq(attributeTemplateTable.unit, "none")));
-  if (!atpl_254Row) {
-    [atpl_254Row] = await db.insert(attributeTemplateTable).values({ label: "Estado de conservação no Brasil", unit: "none" }).returning();
-  }
-  const atpl_254 = atpl_254Row.id;
+  const atplg_100006 = await getOrCreateAttributeTemplate("Largura da carapaça", "centimeter");
+  const atplg_100007 = await getOrCreateAttributeTemplate("Massa corporal", "gram");
+  const atplg_100008 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "category");
 
   await db.insert(attributeTable).values([
-    { species: species_caranguejo_2.id, attribute: atpl_252, value: "up to 15", sourceId: src_213 },
-    { species: species_caranguejo_2.id, attribute: atpl_46, value: "up to 500", sourceId: src_212 },
-    { species: species_caranguejo_2.id, attribute: atpl_110, value: "dark blue to brown or pale grey", sourceId: src_213 },
-    { species: species_caranguejo_2.id, attribute: atpl_253, value: "burrows in sandy transition zone between mangrove and restinga", sourceId: src_212 },
-    { species: species_caranguejo_2.id, attribute: atpl_250, value: "omnivorous, eats leaves, fruit, insects and carrion", sourceId: src_213 },
-    { species: species_caranguejo_2.id, attribute: atpl_254, value: "critically endangered, capture banned since 2017", sourceId: src_212 },
+    { species: species_caranguejo_2.id, attribute: atplg_100006, value: "up to 15", sourceId: src_213 },
+    { species: species_caranguejo_2.id, attribute: atplg_100007, value: "up to 500", sourceId: src_212 },
+    { species: species_caranguejo_2.id, attribute: atplg_100008, value: "CR", sourceId: src_212 },
   ]);
 
   {
@@ -8653,35 +5615,15 @@ async function seed() {
     .returning();
   // ---- tatuzinho-jardim (Armadillidium vulgare) ----
 
-  const [tax_186Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "isopoda", parent: tax_162, createdBy: user.id })
-    .returning();
-  const tax_186 = tax_186Row.id;
+  const tax_186 = await getOrCreateTaxon("Ordem", "isopoda", tax_162, user.id);
 
-  const [tax_187Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Subordem", labelValue: "oniscidea", parent: tax_186, createdBy: user.id })
-    .returning();
-  const tax_187 = tax_187Row.id;
+  const tax_187 = await getOrCreateTaxon("Subordem", "oniscidea", tax_186, user.id);
 
-  const [tax_188Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "armadillidiidae", parent: tax_187, createdBy: user.id })
-    .returning();
-  const tax_188 = tax_188Row.id;
+  const tax_188 = await getOrCreateTaxon("Família", "armadillidiidae", tax_187, user.id);
 
-  const [tax_189Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "armadillidium", parent: tax_188, createdBy: user.id })
-    .returning();
-  const tax_189 = tax_189Row.id;
+  const tax_189 = await getOrCreateTaxon("Gênero", "armadillidium", tax_188, user.id);
 
-  const [tax_190Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "armadillidium vulgare", parent: tax_189, createdBy: user.id })
-    .returning();
-  const tax_190 = tax_190Row.id;
+  const tax_190 = await getOrCreateTaxon("Espécie", "armadillidium vulgare", tax_189, user.id);
 
   const [species_tatuzinho_jardim] = await db
     .insert(speciesTable)
@@ -8718,58 +5660,14 @@ async function seed() {
   }
   const src_218 = src_218Row.id;
 
-  let [atpl_255Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Comprimento do corpo adulto"), eq(attributeTemplateTable.unit, "millimeter")));
-  if (!atpl_255Row) {
-    [atpl_255Row] = await db.insert(attributeTemplateTable).values({ label: "Comprimento do corpo adulto", unit: "millimeter" }).returning();
-  }
-  const atpl_255 = atpl_255Row.id;
-
-  let [atpl_256Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Longevidade em cativeiro"), eq(attributeTemplateTable.unit, "year")));
-  if (!atpl_256Row) {
-    [atpl_256Row] = await db.insert(attributeTemplateTable).values({ label: "Longevidade em cativeiro", unit: "year" }).returning();
-  }
-  const atpl_256 = atpl_256Row.id;
-
-  let [atpl_257Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Espessura do exoesqueleto"), eq(attributeTemplateTable.unit, "micrometer")));
-  if (!atpl_257Row) {
-    [atpl_257Row] = await db.insert(attributeTemplateTable).values({ label: "Espessura do exoesqueleto", unit: "micrometer" }).returning();
-  }
-  const atpl_257 = atpl_257Row.id;
-
-  let [atpl_258Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Ninhadas por fêmea por temporada"), eq(attributeTemplateTable.unit, "brood")));
-  if (!atpl_258Row) {
-    [atpl_258Row] = await db.insert(attributeTemplateTable).values({ label: "Ninhadas por fêmea por temporada", unit: "brood" }).returning();
-  }
-  const atpl_258 = atpl_258Row.id;
-
-  let [atpl_259Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Perda de colheita em feijão causada pela espécie"), eq(attributeTemplateTable.unit, "percent")));
-  if (!atpl_259Row) {
-    [atpl_259Row] = await db.insert(attributeTemplateTable).values({ label: "Perda de colheita em feijão causada pela espécie", unit: "percent" }).returning();
-  }
-  const atpl_259 = atpl_259Row.id;
+  const atplg_100003 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
+  const atplg_100004 = await getOrCreateAttributeTemplate("Longevidade máxima", "year");
+  const atplg_100005 = await getOrCreateAttributeTemplate("Pares de pernas", "pair");
 
   await db.insert(attributeTable).values([
-    { species: species_tatuzinho_jardim.id, attribute: atpl_255, value: "8.5-18", sourceId: src_215 },
-    { species: species_tatuzinho_jardim.id, attribute: atpl_256, value: "até 3", sourceId: src_215 },
-    { species: species_tatuzinho_jardim.id, attribute: atpl_176, value: "7", sourceId: src_215 },
-    { species: species_tatuzinho_jardim.id, attribute: atpl_257, value: "40", sourceId: src_215 },
-    { species: species_tatuzinho_jardim.id, attribute: atpl_258, value: "até 3, com até 40 filhotes cada", sourceId: src_215 },
-    { species: species_tatuzinho_jardim.id, attribute: atpl_259, value: "até 80", sourceId: src_214 },
+    { species: species_tatuzinho_jardim.id, attribute: atplg_100003, value: "0.85-1.8", sourceId: src_215 },
+    { species: species_tatuzinho_jardim.id, attribute: atplg_100004, value: "até 3", sourceId: src_215 },
+    { species: species_tatuzinho_jardim.id, attribute: atplg_100005, value: "7", sourceId: src_215 },
   ]);
 
   {
@@ -8814,41 +5712,17 @@ async function seed() {
     .returning();
   // ---- bolacha-da-praia (Mellita quinquiesperforata) ----
 
-  const [tax_191Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Filo", labelValue: "echinodermata", parent: tax_1, createdBy: user.id })
-    .returning();
-  const tax_191 = tax_191Row.id;
+  const tax_191 = await getOrCreateTaxon("Filo", "echinodermata", tax_1, user.id);
 
-  const [tax_192Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Classe", labelValue: "echinoidea", parent: tax_191, createdBy: user.id })
-    .returning();
-  const tax_192 = tax_192Row.id;
+  const tax_192 = await getOrCreateTaxon("Classe", "echinoidea", tax_191, user.id);
 
-  const [tax_193Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Ordem", labelValue: "clypeasteroida", parent: tax_192, createdBy: user.id })
-    .returning();
-  const tax_193 = tax_193Row.id;
+  const tax_193 = await getOrCreateTaxon("Ordem", "clypeasteroida", tax_192, user.id);
 
-  const [tax_194Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Família", labelValue: "mellitidae", parent: tax_193, createdBy: user.id })
-    .returning();
-  const tax_194 = tax_194Row.id;
+  const tax_194 = await getOrCreateTaxon("Família", "mellitidae", tax_193, user.id);
 
-  const [tax_195Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Gênero", labelValue: "mellita", parent: tax_194, createdBy: user.id })
-    .returning();
-  const tax_195 = tax_195Row.id;
+  const tax_195 = await getOrCreateTaxon("Gênero", "mellita", tax_194, user.id);
 
-  const [tax_196Row] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "mellita quinquiesperforata", parent: tax_195, createdBy: user.id })
-    .returning();
-  const tax_196 = tax_196Row.id;
+  const tax_196 = await getOrCreateTaxon("Espécie", "mellita quinquiesperforata", tax_195, user.id);
 
   const [species_bolacha_da_praia] = await db
     .insert(speciesTable)
@@ -8873,40 +5747,12 @@ async function seed() {
   }
   const src_221 = src_221Row.id;
 
-  let [atpl_260Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Diâmetro"), eq(attributeTemplateTable.unit, "centimeter")));
-  if (!atpl_260Row) {
-    [atpl_260Row] = await db.insert(attributeTemplateTable).values({ label: "Diâmetro", unit: "centimeter" }).returning();
-  }
-  const atpl_260 = atpl_260Row.id;
-
-  let [atpl_261Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Simetria corporal"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_261Row) {
-    [atpl_261Row] = await db.insert(attributeTemplateTable).values({ label: "Simetria corporal", unit: "" }).returning();
-  }
-  const atpl_261 = atpl_261Row.id;
-
-  let [atpl_262Row] = await db
-    .select()
-    .from(attributeTemplateTable)
-    .where(and(eq(attributeTemplateTable.label, "Composição do esqueleto"), eq(attributeTemplateTable.unit, "")));
-  if (!atpl_262Row) {
-    [atpl_262Row] = await db.insert(attributeTemplateTable).values({ label: "Composição do esqueleto", unit: "" }).returning();
-  }
-  const atpl_262 = atpl_262Row.id;
+  const atplg_100001 = await getOrCreateAttributeTemplate("Diâmetro corporal", "centimeter");
+  const atplg_100002 = await getOrCreateAttributeTemplate("Profundidade de ocorrência", "meter");
 
   await db.insert(attributeTable).values([
-    { species: species_bolacha_da_praia.id, attribute: atpl_260, value: "5 to 10", sourceId: src_219 },
-    { species: species_bolacha_da_praia.id, attribute: atpl_53, value: "0 to 180", sourceId: src_219 },
-    { species: species_bolacha_da_praia.id, attribute: atpl_261, value: "radial in adults, bilateral in larvae", sourceId: src_220 },
-    { species: species_bolacha_da_praia.id, attribute: atpl_161, value: "brownish, grayish or greenish", sourceId: src_219 },
-    { species: species_bolacha_da_praia.id, attribute: atpl_20, value: "copepods, algae, seaweed, small shellfish", sourceId: src_220 },
-    { species: species_bolacha_da_praia.id, attribute: atpl_262, value: "calcium carbonate", sourceId: src_220 },
+    { species: species_bolacha_da_praia.id, attribute: atplg_100001, value: "5 to 10", sourceId: src_219 },
+    { species: species_bolacha_da_praia.id, attribute: atplg_100002, value: "0 to 180", sourceId: src_219 },
   ]);
 
   {

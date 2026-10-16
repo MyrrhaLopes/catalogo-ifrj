@@ -1,8 +1,8 @@
 
 # TODO:
-1. - [ ] Implementar gerenciamento de fontes para atributos e artigos;
-2. - [ ] Implementar gerenciamento de mídias, página de galeria, componente de visualização de imagens de artigo (abstrair de página de galeria);
-3. - [ ] Implementar refatoração de ui para deixar responsivo e modo mobile;
+1. - [x] Implementar gerenciamento de fontes para atributos e artigos;
+2. - [x] Implementar gerenciamento de mídias, página de galeria, componente de visualização de imagens de artigo (abstrair de página de galeria);
+3. - [x] Implementar refatoração de ui para deixar responsivo e modo mobile;
 # Descrição geral
 ## Objetivo do projeto
 

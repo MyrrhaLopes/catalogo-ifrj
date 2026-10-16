@@ -1,20 +1,19 @@
 import "dotenv/config";
-import { sql, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "./drizzle.ts";
 import {
   usersTable,
-  taxonomyTable,
   speciesTable,
   specimenTable,
   articleTable,
   popularNameTable,
   speciesPopularNamePivot,
-  attributeTemplateTable,
   attributeTable,
   sourceTable,
   imageTable,
   articleSourcesPivotTable,
 } from "./schema.ts";
+import { getOrCreateAttributeTemplate, getOrCreateTaxon, getOrCreateTaxonomyRoot } from "./seeds/seed-helpers.ts";
 import bcrypt from "bcrypt";
 
 const simpleArticleContent = {
@@ -137,14 +136,9 @@ async function seed() {
     console.log("Usuário já existe, continuando seed com usuário existente.");
   }
 
-  // 2. Nó raiz auto-referente
-  const rootResult = await db.execute(sql`
-    WITH seq AS (SELECT nextval('taxonomies_id_seq') AS id)
-    INSERT INTO taxonomies (id, label, label_value, created_by, parent)
-    SELECT seq.id, 'Reino', 'animalia', ${user.id}::uuid, seq.id FROM seq
-    RETURNING id
-  `);
-  const rootId = Number((rootResult.rows[0] as { id: unknown }).id);
+  // 2. Nó raiz auto-referente (reutiliza se já existir — evita duas raízes
+  // "Reino/animalia" quando este seed roda junto com db:seed:catalogo)
+  const rootId = await getOrCreateTaxonomyRoot("Reino", "animalia", user.id);
 
   // 3. Hierarquia taxonômica
   const sharedTaxa = [
@@ -157,36 +151,26 @@ async function seed() {
 
   let parentId = rootId;
   for (const t of sharedTaxa) {
-    const [inserted] = await db
-      .insert(taxonomyTable)
-      .values({ ...t, parent: parentId, createdBy: user.id })
-      .returning();
-    parentId = inserted.id;
+    parentId = await getOrCreateTaxon(t.label, t.labelValue, parentId, user.id);
   }
   const genusId = parentId;
 
   // 4a. Espécie simples
-  const [speciesNode1] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "noronhanum", parent: genusId, createdBy: user.id })
-    .returning();
+  const speciesNode1Id = await getOrCreateTaxon("Espécie", "noronhanum", genusId, user.id);
 
   const [species1] = await db
     .insert(speciesTable)
-    .values({ speciesRoot: speciesNode1.id, createdBy: user.id })
+    .values({ speciesRoot: speciesNode1Id, createdBy: user.id })
     .returning();
 
   await db.insert(articleTable).values({ species: species1.id, content: simpleArticleContent });
 
   // 4b. Espécie completa
-  const [speciesNode2] = await db
-    .insert(taxonomyTable)
-    .values({ label: "Espécie", labelValue: "bifasciatum", parent: genusId, createdBy: user.id })
-    .returning();
+  const speciesNode2Id = await getOrCreateTaxon("Espécie", "bifasciatum", genusId, user.id);
 
   const [species2] = await db
     .insert(speciesTable)
-    .values({ speciesRoot: speciesNode2.id, createdBy: user.id })
+    .values({ speciesRoot: speciesNode2Id, createdBy: user.id })
     .returning();
 
   // 5. Fontes (antes do artigo e dos atributos)
@@ -210,27 +194,17 @@ async function seed() {
     .values({ url: "https://www.iucnredlist.org/species/190834/1952966" })
     .returning();
 
-  // 6. Templates de atributos
-  const [templateComprimento] = await db
-    .insert(attributeTemplateTable)
-    .values({ label: "Comprimento máximo", unit: "meter" })
-    .returning();
-
-  const [templateProfundidade] = await db
-    .insert(attributeTemplateTable)
-    .values({ label: "Profundidade máxima", unit: "meter" })
-    .returning();
-
-  const [templateHabitat] = await db
-    .insert(attributeTemplateTable)
-    .values({ label: "Profundidade média de habitat", unit: "meter" })
-    .returning();
+  // 6. Templates de atributos — genéricos e compartilháveis entre espécies
+  // (ver src/backend/db/seeds/seed-helpers.ts: nunca criar um template para
+  // um fato ultra-específico de uma única espécie).
+  const templateComprimento = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
+  const templateProfundidade = await getOrCreateAttributeTemplate("Profundidade de ocorrência", "meter");
 
   // 7. Atributos de species2 com fontes por instância
   await db.insert(attributeTable).values([
-    { species: species2.id, attribute: templateComprimento.id, value: "0.30", sourceId: sourceFishBase.id },
-    { species: species2.id, attribute: templateProfundidade.id, value: "40", sourceId: sourceIucn.id },
-    { species: species2.id, attribute: templateHabitat.id, value: "8", sourceId: sourceFishBase.id },
+    { species: species2.id, attribute: templateComprimento, value: "30", sourceId: sourceFishBase.id },
+    { species: species2.id, attribute: templateProfundidade, value: "40", sourceId: sourceIucn.id },
+    { species: species2.id, attribute: templateProfundidade, value: "8", sourceId: sourceFishBase.id },
   ]);
 
   // 8. Artigo completo com citações inline [cite:id]

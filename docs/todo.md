@@ -1,0 +1,3 @@
+
+
+Quero que conserte o seed inicial pois creio que a árvore taxonomica está sendo criada com duplicatas, pois na aplicação mostra dois niveis reino = Animalia. Também quero que altere os atributos das espécies, pos foi a tabela não foi feita para o tipo de informação que o seed está colocando. A tabela está sendo usada para manter dados genéricos de cada espécie em específico. Quero que, na realidade, a tabela de atributos somente guarde atributos que podem ser compartilhados entre diferentes espécies, e não informações ultra-específicas de uma só espécie. Por exemplo, um bom caso de atributo é `tamanho macho`, de unidade centímetros.
