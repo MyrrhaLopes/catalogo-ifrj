@@ -80,6 +80,15 @@ export async function getTaxonomyAffectedSpecies(nodeId: number): Promise<Affect
 
 export type AttributeTemplateItem = { id: number; label: string; unit: string };
 
+const attributeTemplateResponseSchema = z.object({
+  template: z.object({ id: z.number(), label: z.string(), unit: z.string() }),
+});
+
+async function parseAttributeTemplateResponse(res: Response): Promise<AttributeTemplateItem> {
+  const { template } = attributeTemplateResponseSchema.parse(await res.json());
+  return template;
+}
+
 export async function getDistinctUnits(): Promise<string[]> {
   const res = await apiFetch("/api/v1/attribute-templates/units");
   const { units } = z.object({ units: z.array(z.string()) }).parse(await res.json());
@@ -93,10 +102,7 @@ export async function createAttributeTemplate(
     method: "POST",
     body: JSON.stringify(data),
   });
-  const { template } = z
-    .object({ template: z.object({ id: z.number(), label: z.string(), unit: z.string() }) })
-    .parse(await res.json());
-  return template;
+  return parseAttributeTemplateResponse(res);
 }
 
 export async function deleteAttributeTemplate(id: number): Promise<void> {
@@ -119,10 +125,7 @@ export async function updateAttributeTemplate(
     method: "PATCH",
     body: JSON.stringify(patch),
   });
-  const { template } = z
-    .object({ template: z.object({ id: z.number(), label: z.string(), unit: z.string() }) })
-    .parse(await res.json());
-  return template;
+  return parseAttributeTemplateResponse(res);
 }
 
 export async function updateSpeciesAttributes(

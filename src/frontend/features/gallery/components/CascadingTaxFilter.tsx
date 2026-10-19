@@ -1,4 +1,5 @@
 import type { EnrichedImage } from "../gallery.api";
+import { filterByTaxonomyPath } from "../utils/filterTaxonomy";
 
 type Props = {
   allImages: EnrichedImage[];
@@ -7,27 +8,24 @@ type Props = {
   onChange: (path: string[]) => void;
 };
 
+function getNodeValue(img: EnrichedImage, label: string): string | undefined {
+  const node = img.taxonomyPath.find((n) => n.label === label);
+  return node ? node.labelValue : undefined;
+}
+
+function extractLevelOptions(imgs: EnrichedImage[], label: string | undefined): string[] {
+  if (!label) return [];
+  const values = imgs.map((img) => getNodeValue(img, label)).filter(Boolean) as string[];
+  return Array.from(new Set(values)).sort();
+}
+
 export function CascadingTaxFilter({ allImages, taxLabels, taxPath, onChange }: Props) {
   const lastSelectedIndex = taxPath.reduce((max, val, i) => (val ? i : max), -1);
   const visibleLabels = taxLabels.slice(0, lastSelectedIndex + 2);
 
   function getOptionsForLevel(levelIndex: number): string[] {
-    let imgs = allImages;
-    for (let i = 0; i < levelIndex; i++) {
-      const label = taxLabels[i];
-      const val = taxPath[i];
-      if (label && val) {
-        imgs = imgs.filter((img) => img.taxonomyPath.find((n) => n.label === label)?.labelValue === val);
-      }
-    }
-    const label = taxLabels[levelIndex];
-    const seen = new Set<string>();
-    const opts: string[] = [];
-    for (const img of imgs) {
-      const val = img.taxonomyPath.find((n) => n.label === label)?.labelValue;
-      if (val && !seen.has(val)) { seen.add(val); opts.push(val); }
-    }
-    return opts.sort();
+    const imgs = filterByTaxonomyPath(allImages, taxLabels, taxPath, levelIndex);
+    return extractLevelOptions(imgs, taxLabels[levelIndex]);
   }
 
   function handleSelect(levelIndex: number, value: string) {

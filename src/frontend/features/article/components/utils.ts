@@ -1,13 +1,8 @@
 import type { ArticleContent } from "@/backend/http/features/article/article.schema";
-import type { ArticleBlock, TextBlock } from "./types";
+import type { ArticleBlock, SourceMaps, TextBlock } from "./types";
 
 export type Heading = { level: number; text: string; id: string };
 export type Source = { index: number; id: number | null; label: string; url: string };
-
-export type SourceMaps = {
-  byId: Map<number, number>;   // sourceId  → display index
-  byUrl: Map<string, number>;  // sourceUrl → display index
-};
 
 const CITE_RE = /\[cite:(\d+)\]/g;
 
@@ -52,7 +47,7 @@ export function extractHeadings(textBlocks: TextBlock[]): Heading[] {
 }
 
 /** Retorna os IDs das fontes inline na ordem de primeira aparição no conteúdo. */
-export function collectInlineCitationIds(content: ArticleContent): number[] {
+function collectInlineCitationIds(content: ArticleContent): number[] {
   const seen = new Set<number>();
   const ordered: number[] = [];
   for (const block of collectAllTextBlocks(content)) {

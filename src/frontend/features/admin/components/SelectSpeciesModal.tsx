@@ -24,22 +24,7 @@ import { cn } from "@/lib/utils";
 import type { Specimen } from "@/frontend/features/specimens/specimen.api";
 import type { SpeciesSearchResult } from "@/backend/http/features/species/species.schema";
 
-// ────────────────────────────────────────────────────────────────────
-// Helpers
-// ────────────────────────────────────────────────────────────────────
-
-function getScientificName(taxonomyPath: SpeciesSearchResult["taxonomyPath"]): string {
-  const last = taxonomyPath.at(-1);
-  const secondLast = taxonomyPath.at(-2);
-  if (last?.label === "Espécie" && secondLast) {
-    return `${secondLast.labelValue} ${last.labelValue}`;
-  }
-  return last?.labelValue ?? "—";
-}
-
-function buildTaxonomyBreadcrumb(taxonomyPath: SpeciesSearchResult["taxonomyPath"]): string {
-  return taxonomyPath.map((n) => n.labelValue).join(" > ") || "—";
-}
+import { getScientificName, buildTaxonomyBreadcrumb } from "@/frontend/shared/utils/taxonomy";
 
 // ────────────────────────────────────────────────────────────────────
 // Currently-linked species chip

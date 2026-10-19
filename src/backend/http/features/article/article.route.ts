@@ -10,13 +10,20 @@ import { authorizeUser } from "../../middleware/authorizeUser";
 
 export const articleRouter = Router();
 
+function sendArticleResult(
+  res: import("express").Response,
+  result: Awaited<ReturnType<typeof ARTICLE_SERVICE.getById>>,
+) {
+  if (!result.article) {
+    return res.status(404).json({ message: "artigo não encontrado" });
+  }
+  return res.status(200).json(result);
+}
+
 articleRouter.get("/articles/", async (req, res, next) => {
   try {
     const { speciesId } = speciesIdQuerySchema.parse(req.query);
-    const { article, images, sources } = await ARTICLE_SERVICE.getBySpecies(speciesId);
-    if (!article)
-      return res.status(404).json({ message: "artigo não encontrado" });
-    return res.status(200).json({ article, images, sources });
+    return sendArticleResult(res, await ARTICLE_SERVICE.getBySpecies(speciesId));
   } catch (err) {
     next(err);
   }
@@ -25,10 +32,7 @@ articleRouter.get("/articles/", async (req, res, next) => {
 articleRouter.get("/articles/:articleId", async (req, res, next) => {
   try {
     const { articleId } = articleIdParamSchema.parse(req.params);
-    const { article, images, sources } = await ARTICLE_SERVICE.getById(articleId);
-    if (!article)
-      return res.status(404).json({ message: "artigo não encontrado" });
-    return res.status(200).json({ article, images, sources });
+    return sendArticleResult(res, await ARTICLE_SERVICE.getById(articleId));
   } catch (err) {
     next(err);
   }

@@ -12,7 +12,7 @@ export async function registerUser(data: UserRegisterInput): Promise<void> {
       body: JSON.stringify(data),
     });
   } catch (e) {
-    if (e instanceof ApiError && e.status === 409) throw new Error("Email já cadastrado");
+    if (e instanceof ApiError && e.status === 409) throw new Error("Email já cadastrado", { cause: e });
     throw e;
   }
 }
@@ -24,7 +24,7 @@ export async function loginUser(data: UserLoginInput): Promise<void> {
       body: JSON.stringify(data),
     });
   } catch (e) {
-    if (e instanceof ApiError && e.status === 401) throw new Error("Credenciais inválidas");
+    if (e instanceof ApiError && e.status === 401) throw new Error("Credenciais inválidas", { cause: e });
     throw e;
   }
 }

@@ -9,7 +9,7 @@ import {
 } from "@/backend/db/schema";
 import { eq, inArray, sql } from "drizzle-orm";
 
-export type GalleryImageData = {
+type GalleryImageData = {
   id: number;
   url: string;
   alt: string | null;

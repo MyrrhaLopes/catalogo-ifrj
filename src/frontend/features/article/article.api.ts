@@ -1,24 +1,11 @@
-import { articleWithImagesSchema } from "@/backend/http/features/article/article.schema";
 import type {
   ArticleContent,
   Article,
-  ArticleImage,
-  ArticleWithImages,
   ArticleSource,
 } from "@/backend/http/features/article/article.schema";
-import { apiFetch, ApiError } from "@/frontend/shared/api/client";
+import { apiFetch } from "@/frontend/shared/api/client";
 
-export type { ArticleContent, Article, ArticleImage, ArticleWithImages, ArticleSource };
-
-export async function getArticleBySpecies(speciesId: number): Promise<ArticleWithImages> {
-  try {
-    const res = await apiFetch(`/api/v1/articles/?speciesId=${speciesId}`);
-    return articleWithImagesSchema.parse(await res.json());
-  } catch (e) {
-    if (e instanceof ApiError && e.status === 404) throw new Error("Artigo não encontrado");
-    throw e;
-  }
-}
+export type { ArticleContent, Article, ArticleSource };
 
 export async function createArticle(
   speciesId: number,

@@ -106,76 +106,23 @@ export const SPECIES_SERVICE = {
 
     if (!options.withTaxonomy) return { ...species, specimens: specimenRows };
 
-    // Walk taxonomy tree upward to build breadcrumb (cycle-safe via visited set)
-    const taxonomyPath: Array<{ id: number; label: string; labelValue: string }> = [];
-    const visited = new Set<number>();
-    let currentId: number | null = species.speciesRoot;
-
-    while (currentId !== null && !visited.has(currentId)) {
-      visited.add(currentId);
-      const [node] = await db
-        .select({
-          id: taxonomyTable.id,
-          label: taxonomyTable.label,
-          labelValue: taxonomyTable.labelValue,
-          parent: taxonomyTable.parent,
-        })
-        .from(taxonomyTable)
-        .where(eq(taxonomyTable.id, currentId));
-
-      if (!node) break;
-      taxonomyPath.unshift({ id: node.id, label: node.label, labelValue: node.labelValue });
-      currentId = node.parent === currentId ? null : node.parent;
-    }
-
-    const popularNames = await db
-      .select({
-        id: popularNameTable.id,
-        name: popularNameTable.name,
-        origin: popularNameTable.origin,
-      })
-      .from(popularNameTable)
-      .innerJoin(
-        speciesPopularNamePivot,
-        eq(popularNameTable.id, speciesPopularNamePivot.popularNameId),
-      )
-      .where(eq(speciesPopularNamePivot.speciesId, specieId));
-
-    const attributes = await db
-      .select({
-        label: attributeTemplateTable.label,
-        value: attributeTable.value,
-        unit: attributeTemplateTable.unit,
-        sourceId: attributeTable.sourceId,
-        sourceUrl: sourceTable.url,
-      })
-      .from(attributeTable)
-      .innerJoin(
-        attributeTemplateTable,
-        eq(attributeTable.attribute, attributeTemplateTable.id),
-      )
-      .leftJoin(sourceTable, eq(attributeTable.sourceId, sourceTable.id))
-      .where(eq(attributeTable.species, specieId));
-
-    const thumbnailImage = species.thumbnailImageId
-      ? await db
-          .select()
-          .from(imageTable)
-          .where(eq(imageTable.id, species.thumbnailImageId))
-          .limit(1)
-          .then((rows) => rows[0] ?? null)
-      : null;
+    const [taxonomyPath, popularNames, attributes, thumbnailImage] = await Promise.all([
+      walkTaxonomyPath(species.speciesRoot),
+      fetchPopularNamesBySpeciesIds([specieId]),
+      fetchAttributesBySpeciesIds([specieId]),
+      fetchThumbnailImage(species.thumbnailImageId),
+    ]);
 
     return {
       ...species,
       specimens: specimenRows,
       taxonomyPath,
-      popularNames,
-      attributes: attributes.map((a) => ({
-        ...a,
-        sourceId: a.sourceId ?? null,
-        sourceUrl: a.sourceUrl ?? null,
+      popularNames: (popularNames.get(specieId) ?? []).map(({ id, name, origin }) => ({
+        id,
+        name,
+        origin,
       })),
+      attributes: attributes.get(specieId) ?? [],
       thumbnailImage,
     };
   },
@@ -235,66 +182,7 @@ export const SPECIES_SERVICE = {
     const { q, page, pageSize, taxNodes, attrs } = params;
     const offset = (page - 1) * pageSize;
 
-    // Build WHERE conditions
-    const conditions: SQL[] = [];
-
-    if (q) {
-      const qp = `%${q}%`;
-      conditions.push(sql`(
-        EXISTS (
-          SELECT 1 FROM tax_path tp2
-          WHERE tp2.species_id = s.id
-            AND (tp2.label_value ILIKE ${qp} OR tp2.label ILIKE ${qp})
-        )
-        OR EXISTS (
-          SELECT 1 FROM species_popular_name_pivot piv
-          INNER JOIN popular_names pn ON pn.id = piv.popular_name_id
-          WHERE piv.species_id = s.id AND pn.name ILIKE ${qp}
-        )
-        OR EXISTS (
-          SELECT 1 FROM articles a
-          WHERE a.species = s.id AND CAST(a.content AS TEXT) ILIKE ${qp}
-        )
-      )`);
-    }
-
-    for (const nodeId of taxNodes ?? []) {
-      conditions.push(sql`EXISTS (
-        SELECT 1 FROM tax_path tp_f
-        WHERE tp_f.species_id = s.id AND tp_f.node_id = ${nodeId}
-      )`);
-    }
-
-    for (const attr of attrs ?? []) {
-      const op = attr.operator ?? "=";
-      if (op === ">") {
-        conditions.push(sql`EXISTS (
-          SELECT 1 FROM attributes attr_f
-          WHERE attr_f.species = s.id
-            AND attr_f.attribute = ${attr.templateId}
-            AND CAST(attr_f.value AS NUMERIC) > ${attr.valueInBaseUnit}
-        )`);
-      } else if (op === "<") {
-        conditions.push(sql`EXISTS (
-          SELECT 1 FROM attributes attr_f
-          WHERE attr_f.species = s.id
-            AND attr_f.attribute = ${attr.templateId}
-            AND CAST(attr_f.value AS NUMERIC) < ${attr.valueInBaseUnit}
-        )`);
-      } else {
-        conditions.push(sql`EXISTS (
-          SELECT 1 FROM attributes attr_f
-          WHERE attr_f.species = s.id
-            AND attr_f.attribute = ${attr.templateId}
-            AND CAST(attr_f.value AS NUMERIC) = ${attr.valueInBaseUnit}
-        )`);
-      }
-    }
-
-    const whereClause =
-      conditions.length > 0
-        ? conditions.reduce((acc, cond) => sql`${acc} AND ${cond}`)
-        : sql`TRUE`;
+    const whereClause = buildSearchWhereClause(q, taxNodes, attrs);
 
     const searchRows = await db.execute(sql`
       WITH RECURSIVE tax_path AS (
@@ -344,115 +232,60 @@ export const SPECIES_SERVICE = {
       ORDER BY species_id, depth DESC
     `);
 
-    // Batch: popular names
-    const popRows = await db
-      .select({
-        speciesId: speciesPopularNamePivot.speciesId,
-        id: popularNameTable.id,
-        name: popularNameTable.name,
-        origin: popularNameTable.origin,
-      })
-      .from(popularNameTable)
-      .innerJoin(
-        speciesPopularNamePivot,
-        eq(popularNameTable.id, speciesPopularNamePivot.popularNameId),
-      )
-      .where(inArray(speciesPopularNamePivot.speciesId, speciesIds));
-
-    // Batch: attributes
-    const attrRows = await db
-      .select({
-        speciesId: attributeTable.species,
-        label: attributeTemplateTable.label,
-        value: attributeTable.value,
-        unit: attributeTemplateTable.unit,
-        sourceId: attributeTable.sourceId,
-        sourceUrl: sourceTable.url,
-      })
-      .from(attributeTable)
-      .innerJoin(
-        attributeTemplateTable,
-        eq(attributeTable.attribute, attributeTemplateTable.id),
-      )
-      .leftJoin(sourceTable, eq(attributeTable.sourceId, sourceTable.id))
-      .where(inArray(attributeTable.species, speciesIds));
-
-    // Batch: article thumbnail + excerpt
-    const articleRows = await db.execute(sql`
-      SELECT
-        a.species AS species_id,
-        (
-          SELECT img.url
-          FROM images img
-          WHERE img.article = a.id
-          ORDER BY img.id
-          LIMIT 1
-        ) AS thumbnail,
-        LEFT((
-          SELECT elem->>'content'
-          FROM jsonb_array_elements(
-            COALESCE(
-              a.content->'sections'->'center',
-              a.content->'sections'->'left',
-              a.content->'sections'->'right',
-              '[]'::jsonb
-            )
-          ) AS elem
-          WHERE elem->>'type' = 'text'
-          LIMIT 1
-        ), 300) AS excerpt
-      FROM articles a
-      WHERE a.species = ANY(${idsLiteral}::int[])
-    `);
-
-    // Batch: specimens via direct FK
-    const pivotRows = await db
-      .select({
-        speciesId: specimenTable.speciesId,
-        specimenId: specimenTable.id,
-        specimenCode: specimenTable.code,
-        specimenLot: specimenTable.lot,
-        specimenShelf: specimenTable.shelf,
-      })
-      .from(specimenTable)
-      .where(inArray(specimenTable.speciesId, speciesIds));
-
-    // Batch: speciesRoot per species
-    const speciesMetaRows = await db
-      .select({ id: speciesTable.id, speciesRoot: speciesTable.speciesRoot })
-      .from(speciesTable)
-      .where(inArray(speciesTable.id, speciesIds));
+    const [popBySpecies, attrBySpecies, articleRows, pivotRows, speciesMetaRows] = await Promise.all([
+      fetchPopularNamesBySpeciesIds(speciesIds),
+      fetchAttributesBySpeciesIds(speciesIds),
+      db.execute(sql`
+        SELECT
+          a.species AS species_id,
+          (
+            SELECT img.url
+            FROM images img
+            WHERE img.article = a.id
+            ORDER BY img.id
+            LIMIT 1
+          ) AS thumbnail,
+          LEFT((
+            SELECT elem->>'content'
+            FROM jsonb_array_elements(
+              COALESCE(
+                a.content->'sections'->'center',
+                a.content->'sections'->'left',
+                a.content->'sections'->'right',
+                '[]'::jsonb
+              )
+            ) AS elem
+            WHERE elem->>'type' = 'text'
+            LIMIT 1
+          ), 300) AS excerpt
+        FROM articles a
+        WHERE a.species = ANY(${idsLiteral}::int[])
+      `),
+      db
+        .select({
+          speciesId: specimenTable.speciesId,
+          specimenId: specimenTable.id,
+          specimenCode: specimenTable.code,
+          specimenLot: specimenTable.lot,
+          specimenShelf: specimenTable.shelf,
+        })
+        .from(specimenTable)
+        .where(inArray(specimenTable.speciesId, speciesIds)),
+      db
+        .select({ id: speciesTable.id, speciesRoot: speciesTable.speciesRoot })
+        .from(speciesTable)
+        .where(inArray(speciesTable.id, speciesIds)),
+    ]);
 
     const speciesRootMap = new Map(speciesMetaRows.map((r) => [r.id, r.speciesRoot]));
 
-    // Group fetched data by speciesId
     type PathRow = { species_id: number; id: number; label: string; labelValue: string };
-    const pathsBySpecies = new Map<number, PathRow[]>();
-    for (const r of pathRows.rows as PathRow[]) {
-      const list = pathsBySpecies.get(r.species_id) ?? [];
-      list.push(r);
-      pathsBySpecies.set(r.species_id, list);
-    }
-
-    const popBySpecies = new Map<number, typeof popRows>();
-    for (const r of popRows) {
-      const list = popBySpecies.get(r.speciesId!) ?? [];
-      list.push(r);
-      popBySpecies.set(r.speciesId!, list);
-    }
-
-    const attrBySpecies = new Map<number, typeof attrRows>();
-    for (const r of attrRows) {
-      const list = attrBySpecies.get(r.speciesId!) ?? [];
-      list.push(r);
-      attrBySpecies.set(r.speciesId!, list);
-    }
+    const pathsBySpecies = groupByKey(pathRows.rows as PathRow[], (r) => r.species_id);
 
     type ArticleRow = { species_id: number; thumbnail: string | null; excerpt: string | null };
-    const articleBySpecies = new Map<number, ArticleRow>();
-    for (const r of articleRows.rows as ArticleRow[]) {
-      articleBySpecies.set(r.species_id, r);
-    }
+    const articleBySpecies = new Map(
+      (articleRows.rows as ArticleRow[]).map((r) => [r.species_id, r]),
+    );
 
     const pivotBySpecies = new Map<number, { id: number; code: string; lot: number | null; shelf: number | null }[]>();
     for (const r of pivotRows) {
@@ -478,13 +311,7 @@ export const SPECIES_SERVICE = {
         name: p.name,
         origin: p.origin,
       })),
-      attributes: (attrBySpecies.get(sid) ?? []).map((a) => ({
-        label: a.label,
-        value: a.value,
-        unit: a.unit,
-        sourceId: a.sourceId ?? null,
-        sourceUrl: a.sourceUrl ?? null,
-      })),
+      attributes: attrBySpecies.get(sid) ?? [],
       thumbnail: articleBySpecies.get(sid)?.thumbnail ?? null,
       excerpt: articleBySpecies.get(sid)?.excerpt ?? null,
     }));
@@ -492,3 +319,174 @@ export const SPECIES_SERVICE = {
     return { species, total, page, pageSize };
   },
 };
+
+function groupByKey<T>(items: T[], getKey: (item: T) => number | null | undefined): Map<number, T[]> {
+  const map = new Map<number, T[]>();
+  for (const item of items) {
+    const key = getKey(item);
+    if (key == null) continue;
+    const list = map.get(key) ?? [];
+    list.push(item);
+    map.set(key, list);
+  }
+  return map;
+}
+
+async function fetchPopularNamesBySpeciesIds(speciesIds: number[]) {
+  const rows = await db
+    .select({
+      speciesId: speciesPopularNamePivot.speciesId,
+      id: popularNameTable.id,
+      name: popularNameTable.name,
+      origin: popularNameTable.origin,
+    })
+    .from(popularNameTable)
+    .innerJoin(
+      speciesPopularNamePivot,
+      eq(popularNameTable.id, speciesPopularNamePivot.popularNameId),
+    )
+    .where(inArray(speciesPopularNamePivot.speciesId, speciesIds));
+
+  return groupByKey(rows, (r) => r.speciesId);
+}
+
+async function fetchAttributesBySpeciesIds(speciesIds: number[]) {
+  const rows = await db
+    .select({
+      speciesId: attributeTable.species,
+      label: attributeTemplateTable.label,
+      value: attributeTable.value,
+      unit: attributeTemplateTable.unit,
+      sourceId: attributeTable.sourceId,
+      sourceUrl: sourceTable.url,
+    })
+    .from(attributeTable)
+    .innerJoin(
+      attributeTemplateTable,
+      eq(attributeTable.attribute, attributeTemplateTable.id),
+    )
+    .leftJoin(sourceTable, eq(attributeTable.sourceId, sourceTable.id))
+    .where(inArray(attributeTable.species, speciesIds));
+
+  const map = new Map<
+    number,
+    Array<{
+      label: string;
+      value: string;
+      unit: string;
+      sourceId: number | null;
+      sourceUrl: string | null;
+    }>
+  >();
+  for (const r of rows) {
+    if (r.speciesId == null) continue;
+    const list = map.get(r.speciesId) ?? [];
+    list.push({
+      label: r.label,
+      value: r.value,
+      unit: r.unit,
+      sourceId: r.sourceId ?? null,
+      sourceUrl: r.sourceUrl ?? null,
+    });
+    map.set(r.speciesId, list);
+  }
+  return map;
+}
+
+async function walkTaxonomyPath(rootId: number | null) {
+  const taxonomyPath: Array<{ id: number; label: string; labelValue: string }> = [];
+  const visited = new Set<number>();
+  let currentId: number | null = rootId;
+
+  while (currentId !== null && !visited.has(currentId)) {
+    visited.add(currentId);
+    const [node] = await db
+      .select({
+        id: taxonomyTable.id,
+        label: taxonomyTable.label,
+        labelValue: taxonomyTable.labelValue,
+        parent: taxonomyTable.parent,
+      })
+      .from(taxonomyTable)
+      .where(eq(taxonomyTable.id, currentId));
+
+    if (!node) break;
+    taxonomyPath.unshift({ id: node.id, label: node.label, labelValue: node.labelValue });
+    currentId = node.parent === currentId ? null : node.parent;
+  }
+
+  return taxonomyPath;
+}
+
+async function fetchThumbnailImage(thumbnailImageId: number | null) {
+  if (!thumbnailImageId) return null;
+  const rows = await db
+    .select()
+    .from(imageTable)
+    .where(eq(imageTable.id, thumbnailImageId))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+function buildAttrFilterCondition(attr: {
+  templateId: number;
+  valueInBaseUnit: number;
+  operator?: "=" | ">" | "<";
+}): SQL {
+  const op = attr.operator ?? "=";
+  const comparison =
+    op === ">"
+      ? sql`CAST(attr_f.value AS NUMERIC) > ${attr.valueInBaseUnit}`
+      : op === "<"
+        ? sql`CAST(attr_f.value AS NUMERIC) < ${attr.valueInBaseUnit}`
+        : sql`CAST(attr_f.value AS NUMERIC) = ${attr.valueInBaseUnit}`;
+  return sql`EXISTS (
+    SELECT 1 FROM attributes attr_f
+    WHERE attr_f.species = s.id
+      AND attr_f.attribute = ${attr.templateId}
+      AND ${comparison}
+  )`;
+}
+
+function buildSearchWhereClause(
+  q?: string,
+  taxNodes?: number[],
+  attrs?: Array<{ templateId: number; valueInBaseUnit: number; operator?: "=" | ">" | "<" }>,
+): SQL {
+  const conditions: SQL[] = [];
+
+  if (q) {
+    const qp = `%${q}%`;
+    conditions.push(sql`(
+      EXISTS (
+        SELECT 1 FROM tax_path tp2
+        WHERE tp2.species_id = s.id
+          AND (tp2.label_value ILIKE ${qp} OR tp2.label ILIKE ${qp})
+      )
+      OR EXISTS (
+        SELECT 1 FROM species_popular_name_pivot piv
+        INNER JOIN popular_names pn ON pn.id = piv.popular_name_id
+        WHERE piv.species_id = s.id AND pn.name ILIKE ${qp}
+      )
+      OR EXISTS (
+        SELECT 1 FROM articles a
+        WHERE a.species = s.id AND CAST(a.content AS TEXT) ILIKE ${qp}
+      )
+    )`);
+  }
+
+  for (const nodeId of taxNodes ?? []) {
+    conditions.push(sql`EXISTS (
+      SELECT 1 FROM tax_path tp_f
+      WHERE tp_f.species_id = s.id AND tp_f.node_id = ${nodeId}
+    )`);
+  }
+
+  for (const attr of attrs ?? []) {
+    conditions.push(buildAttrFilterCondition(attr));
+  }
+
+  return conditions.length > 0
+    ? conditions.reduce((acc, cond) => sql`${acc} AND ${cond}`)
+    : sql`TRUE`;
+}

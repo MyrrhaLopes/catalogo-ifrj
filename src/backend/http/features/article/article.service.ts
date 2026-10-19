@@ -11,32 +11,28 @@ import type { ArticleContent } from "./article.schema";
 
 const CITE_RE = /\[cite:(\d+)\]/g;
 
+function flattenSectionBlocks(
+  section: ArticleContent["sections"][keyof ArticleContent["sections"]],
+) {
+  if (!section) return [];
+  return section.flatMap((item) => {
+    if (typeof item !== "object") return [];
+    return item.type === "column" ? item.columns.flat() : [item];
+  });
+}
+
+function extractBlockTexts(content: ArticleContent): string[] {
+  return Object.values(content.sections)
+    .flatMap(flattenSectionBlocks)
+    .filter((block) => block.type === "text")
+    .map((block) => block.content);
+}
+
 export function extractSourceIds(content: ArticleContent): number[] {
-  const seen = new Set<number>();
-  const ordered: number[] = [];
-  const sections = Object.values(content.sections);
-  for (const section of sections) {
-    if (!section) continue;
-    for (const item of section) {
-      if (typeof item !== "object") continue;
-      const blocks = item.type === "column"
-        ? item.columns.flat()
-        : [item];
-      for (const block of blocks) {
-        if (block.type !== "text") continue;
-        CITE_RE.lastIndex = 0;
-        let match: RegExpExecArray | null;
-        while ((match = CITE_RE.exec(block.content)) !== null) {
-          const id = Number(match[1]);
-          if (!seen.has(id)) {
-            seen.add(id);
-            ordered.push(id);
-          }
-        }
-      }
-    }
-  }
-  return ordered;
+  const ids = extractBlockTexts(content).flatMap((text) =>
+    Array.from(text.matchAll(CITE_RE), (m) => Number(m[1])),
+  );
+  return [...new Set(ids)];
 }
 
 async function syncPivot(articleId: number, sourceIds: number[]) {
@@ -60,6 +56,17 @@ async function fetchSources(articleId: number) {
   return rows;
 }
 
+async function buildArticleResponse(article: typeof articleTable.$inferSelect | undefined) {
+  if (!article) return { article: null, images: [], sources: [] };
+
+  const [imageRows, sources] = await Promise.all([
+    db.select().from(imageTable).where(eq(imageTable.article, article.id)),
+    fetchSources(article.id),
+  ]);
+
+  const images = imageRows.map((img) => ({ ...img, speciesId: article.species }));
+  return { article, images, sources };
+}
 
 export const ARTICLE_SERVICE = {
   getById: async (articleId: number) => {
@@ -67,17 +74,7 @@ export const ARTICLE_SERVICE = {
       .select()
       .from(articleTable)
       .where(eq(articleTable.id, articleId));
-
-    if (!article) return { article: null, images: [], sources: [] };
-
-    const [imageRows, sources] = await Promise.all([
-      db.select().from(imageTable).where(eq(imageTable.article, article.id)),
-      fetchSources(article.id),
-    ]);
-
-    const images = imageRows.map((img) => ({ ...img, speciesId: article.species }));
-
-    return { article, images, sources };
+    return buildArticleResponse(article);
   },
 
   getBySpecies: async (speciesId: number) => {
@@ -85,17 +82,7 @@ export const ARTICLE_SERVICE = {
       .select()
       .from(articleTable)
       .where(eq(articleTable.species, speciesId));
-
-    if (!article) return { article: null, images: [], sources: [] };
-
-    const [imageRows, sources] = await Promise.all([
-      db.select().from(imageTable).where(eq(imageTable.article, article.id)),
-      fetchSources(article.id),
-    ]);
-
-    const images = imageRows.map((img) => ({ ...img, speciesId: article.species }));
-
-    return { article, images, sources };
+    return buildArticleResponse(article);
   },
 
   create: async (speciesId: number, content: ArticleContent) => {

@@ -2,7 +2,6 @@ import "dotenv/config";
 import { eq } from "drizzle-orm";
 import { db } from "../drizzle.ts";
 import {
-  usersTable,
   speciesTable,
   specimenTable,
   articleTable,
@@ -13,8 +12,13 @@ import {
   imageTable,
   articleSourcesPivotTable,
 } from "../schema.ts";
-import { getOrCreateAttributeTemplate, getOrCreateTaxon, getOrCreateTaxonomyRoot } from "./seed-helpers.ts";
-import bcrypt from "bcrypt";
+import {
+  getOrCreateAttributeTemplate,
+  getOrCreateSeedUser,
+  getOrCreateTaxon,
+  getOrCreateTaxonomyRoot,
+  runSeedScript,
+} from "./seed-helpers.ts";
 
 function buildArticleContent_esponja_do_mar(sourceIds: Record<string, number>) {
   return { "sections": { "left": ["TOC"], "center": [{ "type": "text", "content": `# Esponja-do-mar
@@ -597,26 +601,15 @@ A espécie ocorre ao longo do Oceano Atlântico ocidental, desde a Carolina do N
 Não foi localizada avaliação formal do status de conservação de *Mellita quinquiesperforata* pela União Internacional para a Conservação da Natureza (IUCN) nas fontes consultadas. Exemplares mortos (testas) são comumente encontrados depositados em praias arenosas após a decomposição das partes moles, o que não indica necessariamente risco à população viva da espécie ${sourceIds["wikipedia-en"]}.` }, "SOURCES"], "right": ["PROPERTIES"] } };
 }
 
+async function linkPopularName(speciesId: number, name: string, origin = "pt-BR") {
+  const [pn] = await db.insert(popularNameTable).values({ name, origin }).returning();
+  await db.insert(speciesPopularNamePivot).values({ speciesId, popularNameId: pn.id });
+}
+
 async function seed() {
   console.log("Seeding especies do catalogo...");
 
-  let [user] = await db
-    .insert(usersTable)
-    .values({
-      name: "Admin Seed",
-      email: "seed@ifrj.edu.br",
-      passwordHash: await bcrypt.hash("senha123", 10),
-    })
-    .onConflictDoNothing()
-    .returning();
-
-  if (!user) {
-    [user] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.email, "seed@ifrj.edu.br"));
-    console.log("Usuario seed ja existe, continuando com usuario existente.");
-  }
+  const user = await getOrCreateSeedUser();
 
   // ---- esponja-do-mar (Porifera) ----
 
@@ -2782,29 +2775,9 @@ async function seed() {
     { species: species_ovo_mosca.id, attribute: atplg_100070, value: "less than 1", sourceId: src_79 },
   ]);
 
-  {
-    const [pn] = await db
-      .insert(popularNameTable)
-      .values({ name: "Mosca doméstica", origin: "pt-BR" })
-      .returning();
-    await db.insert(speciesPopularNamePivot).values({ speciesId: species_ovo_mosca.id, popularNameId: pn.id });
-  }
-
-  {
-    const [pn] = await db
-      .insert(popularNameTable)
-      .values({ name: "Mosca-de-casa", origin: "pt-BR" })
-      .returning();
-    await db.insert(speciesPopularNamePivot).values({ speciesId: species_ovo_mosca.id, popularNameId: pn.id });
-  }
-
-  {
-    const [pn] = await db
-      .insert(popularNameTable)
-      .values({ name: "Ovo de mosca", origin: "pt-BR" })
-      .returning();
-    await db.insert(speciesPopularNamePivot).values({ speciesId: species_ovo_mosca.id, popularNameId: pn.id });
-  }
+  await linkPopularName(species_ovo_mosca.id, "Mosca doméstica");
+  await linkPopularName(species_ovo_mosca.id, "Mosca-de-casa");
+  await linkPopularName(species_ovo_mosca.id, "Ovo de mosca");
 
   function buildSourceIds_ovo_mosca() {
     return { "wikipedia-housefly": src_79, "ufl-featured-creatures-housefly": src_96, "wikimedia-housefly-lifecycle": src_97, "wikimedia-psm-chrysalis-egg": src_98 };
@@ -3173,29 +3146,9 @@ async function seed() {
     { species: species_pupa_mosca.id, attribute: atplg_100056, value: "1.3 a 1.5", sourceId: src_115 },
   ]);
 
-  {
-    const [pn] = await db
-      .insert(popularNameTable)
-      .values({ name: "Mosca-doméstica", origin: "pt-BR" })
-      .returning();
-    await db.insert(speciesPopularNamePivot).values({ speciesId: species_pupa_mosca.id, popularNameId: pn.id });
-  }
-
-  {
-    const [pn] = await db
-      .insert(popularNameTable)
-      .values({ name: "Mosca-de-casa", origin: "pt-BR" })
-      .returning();
-    await db.insert(speciesPopularNamePivot).values({ speciesId: species_pupa_mosca.id, popularNameId: pn.id });
-  }
-
-  {
-    const [pn] = await db
-      .insert(popularNameTable)
-      .values({ name: "Housefly", origin: "en" })
-      .returning();
-    await db.insert(speciesPopularNamePivot).values({ speciesId: species_pupa_mosca.id, popularNameId: pn.id });
-  }
+  await linkPopularName(species_pupa_mosca.id, "Mosca-doméstica");
+  await linkPopularName(species_pupa_mosca.id, "Mosca-de-casa");
+  await linkPopularName(species_pupa_mosca.id, "Housefly", "en");
 
   function buildSourceIds_pupa_mosca() {
     return { "wikipedia-pt-musca-domestica": src_114, "wikipedia-en-musca-domestica": src_115 };
@@ -3242,21 +3195,8 @@ async function seed() {
     { species: species_mosca.id, attribute: atplg_100053, value: "7 to 10", sourceId: src_79 },
   ]);
 
-  {
-    const [pn] = await db
-      .insert(popularNameTable)
-      .values({ name: "Mosca-doméstica", origin: "pt-BR" })
-      .returning();
-    await db.insert(speciesPopularNamePivot).values({ speciesId: species_mosca.id, popularNameId: pn.id });
-  }
-
-  {
-    const [pn] = await db
-      .insert(popularNameTable)
-      .values({ name: "Mosca-de-casa", origin: "pt-BR" })
-      .returning();
-    await db.insert(speciesPopularNamePivot).values({ speciesId: species_mosca.id, popularNameId: pn.id });
-  }
+  await linkPopularName(species_mosca.id, "Mosca-doméstica");
+  await linkPopularName(species_mosca.id, "Mosca-de-casa");
 
   function buildSourceIds_mosca() {
     return { "wikipedia-pt-musca-domestica": src_114, "wikipedia-en-housefly": src_79 };
@@ -5820,9 +5760,4 @@ async function seed() {
   console.log("specimen ids:", specimenIds);
 }
 
-seed()
-  .catch((err) => {
-    console.error(err);
-    process.exit(1);
-  })
-  .finally(() => process.exit(0));
+runSeedScript(seed);

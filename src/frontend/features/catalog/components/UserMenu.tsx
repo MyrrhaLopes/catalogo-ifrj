@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { UserCircle } from "lucide-react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   DropdownMenu,
@@ -12,11 +12,11 @@ import {
 import { Button } from "@/frontend/components/ui/button";
 import useAuth from "@/frontend/shared/hooks/useAuth";
 import { logoutUser } from "@/frontend/shared/api/users";
-import { router } from "@/frontend/router";
 import { DeleteAccountDialog } from "./DeleteAccountDialog";
 
 export function UserMenu() {
   const navigate = useNavigate();
+  const router = useRouter();
   const { data: user } = useAuth();
   const queryClient = useQueryClient();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);

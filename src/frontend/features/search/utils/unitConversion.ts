@@ -21,8 +21,8 @@ const UNIT_ALIAS: Record<string, string> = {
 const LENGTH_FACTORS: Record<string, number> = { mm: 0.001, cm: 0.01, m: 1, km: 1000 };
 const TIME_FACTORS: Record<string, number> = { s: 1 / 60, min: 1, h: 60 };
 
-export const LENGTH_DISPLAY_UNITS = ["mm", "cm", "m", "km"] as const;
-export const TIME_DISPLAY_UNITS = ["s", "min", "h"] as const;
+const LENGTH_DISPLAY_UNITS = ["mm", "cm", "m", "km"] as const;
+const TIME_DISPLAY_UNITS = ["s", "min", "h"] as const;
 
 function resolveUnit(unit: string): string {
   return UNIT_ALIAS[unit.toLowerCase().trim()] ?? unit.toLowerCase().trim();

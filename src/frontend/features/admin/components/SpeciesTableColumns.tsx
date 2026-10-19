@@ -1,19 +1,8 @@
 import { useState } from "react";
 import { tableFeatures, createColumnHelper } from "@tanstack/react-table";
 import { Link, useNavigate } from "@tanstack/react-router";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/frontend/components/ui/alert-dialog";
 import { Button } from "@/frontend/components/ui/button";
-import { BookOpen, ImageIcon, Loader2, Lock, Pencil, Trash2, X } from "lucide-react";
+import { BookOpen, ImageIcon, Pencil, X } from "lucide-react";
 import { useDeleteSpecies, useUpdateSpeciesAttributes, useSetSpeciesThumbnail } from "../hooks/useAdminSpecies";
 import { useUpdateSpecimen } from "@/frontend/features/specimens/hooks/useAdminSpecimen";
 import { useAttributeTemplates } from "@/frontend/features/species/hooks/useAttributeTemplates";
@@ -21,22 +10,11 @@ import type { SpeciesSearchResult } from "@/backend/http/features/species/specie
 import { EditSpeciesAttributesModal } from "./EditSpeciesAttributesModal";
 import { ImagePickerModal } from "@/frontend/features/images/components/ImagePickerModal";
 import type { GalleryImage } from "@/frontend/features/images/images.api";
+import { getScientificName, buildTaxonomyBreadcrumb } from "@/frontend/shared/utils/taxonomy";
+import { ConfirmDeleteButton, CreatedAtCell, LockedCell } from "./AdminTableShared";
 
 export const features = tableFeatures({});
-export const columnHelper = createColumnHelper<typeof features, SpeciesSearchResult>();
-
-export function getScientificName(taxonomyPath: SpeciesSearchResult["taxonomyPath"]): string {
-  const last = taxonomyPath.at(-1);
-  const secondLast = taxonomyPath.at(-2);
-  if (last?.label === "Espécie" && secondLast) {
-    return `${secondLast.labelValue} ${last.labelValue}`;
-  }
-  return last?.labelValue ?? "—";
-}
-
-function buildTaxonomyBreadcrumb(taxonomyPath: SpeciesSearchResult["taxonomyPath"]): string {
-  return taxonomyPath.map((n) => n.labelValue).join(" > ") || "—";
-}
+const columnHelper = createColumnHelper<typeof features, SpeciesSearchResult>();
 
 function ThumbnailCell({ species }: { species: SpeciesSearchResult }) {
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -64,12 +42,14 @@ function ThumbnailCell({ species }: { species: SpeciesSearchResult }) {
       >
         <Pencil className="h-3 w-3" />
       </button>
-      <ImagePickerModal
-        speciesId={species.id}
-        open={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        onSelect={handleSelect}
-      />
+      {pickerOpen && (
+        <ImagePickerModal
+          speciesId={species.id}
+          open={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          onSelect={handleSelect}
+        />
+      )}
     </div>
   );
 }
@@ -95,15 +75,6 @@ function TaxonomyCell({ species }: { species: SpeciesSearchResult }) {
     >
       {path}
     </button>
-  );
-}
-
-function LockedCell({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="flex items-center gap-1 text-muted-foreground">
-      <Lock className="h-3 w-3 shrink-0" />
-      {children}
-    </span>
   );
 }
 
@@ -206,11 +177,13 @@ function AttributesEditCell({ species }: { species: SpeciesSearchResult }) {
         <Pencil className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
       </div>
 
-      <EditSpeciesAttributesModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        species={species}
-      />
+      {modalOpen && (
+        <EditSpeciesAttributesModal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          species={species}
+        />
+      )}
     </>
   );
 }
@@ -219,41 +192,17 @@ function DeleteCell({ species }: { species: SpeciesSearchResult }) {
   const deleteMutation = useDeleteSpecies();
 
   return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="text-destructive border-destructive/40 hover:bg-red-500 hover:text-white hover:border-red-500"
-        >
-          <Trash2 className="h-4 w-4 mr-1" />
-          Excluir
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Excluir espécie</AlertDialogTitle>
-          <AlertDialogDescription>
-            Tem certeza que deseja excluir a espécie <strong>#{species.id}</strong>? Esta ação não
-            pode ser desfeita.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={() => deleteMutation.mutate(species.id)}
-            disabled={deleteMutation.isPending}
-            className="bg-destructive hover:bg-destructive/90"
-          >
-            {deleteMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              "Excluir"
-            )}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDeleteButton
+      title="Excluir espécie"
+      description={
+        <>
+          Tem certeza que deseja excluir a espécie <strong>#{species.id}</strong>? Esta ação não
+          pode ser desfeita.
+        </>
+      }
+      isPending={deleteMutation.isPending}
+      onConfirm={() => deleteMutation.mutate(species.id)}
+    />
   );
 }
 
@@ -289,13 +238,10 @@ export const columns = columnHelper.columns([
     header: "Atributos",
     cell: (ctx) => <AttributesEditCell species={ctx.row.original} />,
   }),
-  columnHelper.accessor("createdAt", {
+  columnHelper.accessor((row) => row.createdAt, {
+    id: "createdAt",
     header: "Criado em",
-    cell: (ctx) => {
-      const v = ctx.getValue();
-      if (!v) return <LockedCell>—</LockedCell>;
-      return <LockedCell>{new Date(v).toLocaleDateString("pt-BR")}</LockedCell>;
-    },
+    cell: (ctx) => <CreatedAtCell value={ctx.getValue()} />,
   }),
   columnHelper.display({
     id: "actions",

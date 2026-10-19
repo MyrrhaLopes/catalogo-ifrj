@@ -20,7 +20,7 @@ export const registerRoute = createRoute({
   component: RegisterPage,
 });
 
-export function RegisterPage() {
+function RegisterPage() {
   const navigate = useNavigate();
   const { mutate, isPending, error } = useRegisterUser();
 

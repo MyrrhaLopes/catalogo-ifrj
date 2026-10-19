@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { apiFetch } from "@/frontend/shared/api/client";
 
-export const enrichedImageSchema = z.object({
+const enrichedImageSchema = z.object({
   id: z.number(),
   url: z.string(),
   alt: z.string().nullable(),

@@ -28,7 +28,7 @@ export const loginRoute = createRoute({
   component: LoginPage,
 });
 
-export function LoginPage() {
+function LoginPage() {
   const { mutate, isPending, error } = useLoginUser();
   const navigate = useNavigate();
   const queryClient = useQueryClient();

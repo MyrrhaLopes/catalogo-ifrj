@@ -25,8 +25,6 @@ const adminSearchSchema = z.object({
   selectedSpecimenId: z.coerce.number().int().positive().optional(),
 });
 
-export type AdminSearch = z.infer<typeof adminSearchSchema>;
-
 export const adminRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin",

@@ -6,6 +6,7 @@ import { useGetFavorites } from "../features/favorite/hooks/useGetFavorites";
 import { getSpeciesDetails } from "../features/species/species.api";
 import type { SpeciesDetails } from "../features/species/species.api";
 import useAuth from "../shared/hooks/useAuth";
+import { getScientificName } from "@/frontend/shared/utils/taxonomy";
 
 export const favoritesRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -57,12 +58,7 @@ function FavoritesPage() {
 }
 
 function FavoriteCard({ species }: { species: SpeciesDetails }) {
-  const lastNode = species.taxonomyPath.at(-1);
-  const secondLastNode = species.taxonomyPath.at(-2);
-  const scientificName =
-    lastNode?.label === "Espécie" && secondLastNode
-      ? `${secondLastNode.labelValue} ${lastNode.labelValue}`
-      : (lastNode?.labelValue ?? "Espécie");
+  const scientificName = getScientificName(species.taxonomyPath, "Espécie");
   const popularName = species.popularNames[0]?.name;
 
   return (

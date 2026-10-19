@@ -1,20 +1,9 @@
 import { useState } from "react";
-import { GripVertical, Eye, EyeOff, Trash2, FileText, Database, List } from "lucide-react";
+import { GripVertical, Eye, EyeOff, FileText, Database, List } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/frontend/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/frontend/components/ui/alert-dialog";
-import { buttonVariants } from "@/frontend/components/ui/button";
+import { ConfirmDeleteIconButton } from "@/frontend/features/admin/components/AdminTableShared";
 import { cn } from "@/lib/utils";
 import type { DraftItem, SectionKey } from "../../hooks/useArticleEditor";
 import type { ArticleBlock } from "../types";
@@ -37,7 +26,7 @@ type Props = {
   onToggleDefault: () => void;
 };
 
-export function EditorBlockItem({ item, sectionKey: _sectionKey, speciesId, onRemove, onUpdate, onToggleDefault }: Props) {
+export function EditorBlockItem({ item, speciesId, onRemove, onUpdate, onToggleDefault }: Props) {
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const {
@@ -101,35 +90,16 @@ export function EditorBlockItem({ item, sectionKey: _sectionKey, speciesId, onRe
               )}
             </Button>
           ) : (
-            <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-              <AlertDialogTrigger asChild>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6 text-destructive hover:text-destructive"
-                  title="Remover bloco"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Remover bloco?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta ação não pode ser desfeita.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    className={buttonVariants({ variant: "destructive" })}
-                    onClick={() => { setDeleteOpen(false); onRemove(); }}
-                  >
-                    Remover
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmDeleteIconButton
+              title="Remover bloco?"
+              confirmLabel="Remover"
+              buttonClassName="h-6 w-6 text-destructive hover:text-destructive"
+              iconClassName="h-3 w-3"
+              buttonTitle="Remover bloco"
+              open={deleteOpen}
+              onOpenChange={setDeleteOpen}
+              onConfirm={onRemove}
+            />
           )}
         </div>
       </div>

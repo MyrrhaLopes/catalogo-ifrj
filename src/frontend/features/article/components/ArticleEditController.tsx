@@ -32,14 +32,20 @@ export function ArticleEditController({ id, editor }: ArticleEditControllerProps
     return null;
   }
 
-  function handleDragOver(event: DragOverEvent) {
-    const { active, over } = event;
-    if (!over) return;
-    const aId = String(active.id);
-    const oId = String(over.id);
+  function resolveDragEndpoints(event: { active: { id: string | number }; over: { id: string | number } | null }) {
+    if (!event.over) return null;
+    const aId = String(event.active.id);
+    const oId = String(event.over.id);
     const fromContainer = findContainer(aId);
     const toContainer = findContainer(oId);
-    if (!fromContainer || !toContainer || fromContainer === toContainer) return;
+    if (!fromContainer || !toContainer) return null;
+    return { aId, oId, fromContainer, toContainer };
+  }
+
+  function handleDragOver(event: DragOverEvent) {
+    const endpoints = resolveDragEndpoints(event);
+    if (!endpoints || endpoints.fromContainer === endpoints.toContainer) return;
+    const { aId, oId, fromContainer, toContainer } = endpoints;
     editor.setSections((prev: DraftSections) => {
       const fromItems = [...prev[fromContainer]];
       const toItems = [...prev[toContainer]];
@@ -53,14 +59,10 @@ export function ArticleEditController({ id, editor }: ArticleEditControllerProps
   }
 
   function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
     setActiveId(null);
-    if (!over) return;
-    const aId = String(active.id);
-    const oId = String(over.id);
-    const fromContainer = findContainer(aId);
-    const toContainer = findContainer(oId);
-    if (!fromContainer || !toContainer || fromContainer !== toContainer) return;
+    const endpoints = resolveDragEndpoints(event);
+    if (!endpoints || endpoints.fromContainer !== endpoints.toContainer) return;
+    const { aId, oId, fromContainer, toContainer } = endpoints;
     const fromIdx = editor.sections[fromContainer].findIndex((i) => i.id === aId);
     const toIdx = editor.sections[toContainer].findIndex((i) => i.id === oId);
     if (fromIdx !== toIdx) {

@@ -4,7 +4,6 @@ import {
   attributeTemplateSchema,
 } from "@/backend/http/features/species/species.schema";
 import type {
-  SpeciesBase,
   SpeciesWithTaxonomy,
   SearchResponse,
   SpeciesSearchResult,
@@ -22,7 +21,7 @@ import { getImagesBySpecies } from "@/frontend/features/images/images.api";
 import type { GalleryImage } from "@/frontend/features/images/images.api";
 import { apiFetch, ApiError } from "@/frontend/shared/api/client";
 
-export type { SpeciesBase, SpeciesWithTaxonomy, SearchResponse, SpeciesSearchResult, AttributeTemplate, TaxonomyNode, GalleryImage };
+export type { SpeciesWithTaxonomy, SearchResponse, SpeciesSearchResult, AttributeTemplate, TaxonomyNode, GalleryImage };
 export { setSpeciesThumbnail } from "@/frontend/features/images/images.api";
 
 export type SpeciesDetails = Omit<SpeciesWithTaxonomy, "thumbnailImage"> & {
@@ -37,7 +36,7 @@ export async function getSpeciesDetails(id: number): Promise<SpeciesDetails> {
   try {
     speciesRes = await apiFetch(`/api/v1/species/${id}?withTaxonomy=true`);
   } catch (e) {
-    if (e instanceof ApiError && e.status === 404) throw new Error("Espécie não encontrada");
+    if (e instanceof ApiError && e.status === 404) throw new Error("Espécie não encontrada", { cause: e });
     throw e;
   }
 

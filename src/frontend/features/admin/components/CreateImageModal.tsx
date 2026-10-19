@@ -12,17 +12,10 @@ import { Label } from "@/frontend/components/ui/label";
 import { Loader2, Globe, Camera } from "lucide-react";
 import { useCreateImage } from "../hooks/useAdminImages";
 import { useSpeciesList } from "../hooks/useAdminSpecies";
-import type { SpeciesSearchResult } from "@/backend/http/features/species/species.schema";
+import { getScientificName } from "@/frontend/shared/utils/taxonomy";
 
 const SELECT_CLS =
   "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring";
-
-function getScientificName(taxonomyPath: SpeciesSearchResult["taxonomyPath"]): string {
-  const last = taxonomyPath.at(-1);
-  const secondLast = taxonomyPath.at(-2);
-  if (last?.label === "Espécie" && secondLast) return `${secondLast.labelValue} ${last.labelValue}`;
-  return last?.labelValue ?? "Espécie";
-}
 
 type Props = {
   open: boolean;

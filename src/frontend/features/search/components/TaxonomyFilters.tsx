@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { X } from "lucide-react";
 import { useTaxonomy } from "@/frontend/features/species/hooks/useTaxonomy";
 import type { TaxonomyNode } from "@/frontend/features/species/species.api";
@@ -19,8 +20,11 @@ function getDistinctLabels(nodes: TaxonomyNode[]): string[] {
   return order;
 }
 
-function isDescendantOf(nodeId: number, ancestorId: number, nodes: TaxonomyNode[]): boolean {
-  const byId = new Map(nodes.map((n) => [n.id, n]));
+function isDescendantOf(
+  nodeId: number,
+  ancestorId: number,
+  byId: Map<number, TaxonomyNode>,
+): boolean {
   const visited = new Set<number>();
   let current = byId.get(nodeId);
   while (current && !visited.has(current.id)) {
@@ -34,10 +38,10 @@ function isDescendantOf(nodeId: number, ancestorId: number, nodes: TaxonomyNode[
 
 export function TaxonomyFilters({ selectedIds, onChange }: Props) {
   const { data: nodes = [], isLoading } = useTaxonomy();
+  const labels = useMemo(() => getDistinctLabels(nodes), [nodes]);
+  const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
   if (isLoading) return <p className="text-xs text-neutral-400">Carregando...</p>;
-
-  const labels = getDistinctLabels(nodes);
 
   function getSelectedAtLabel(label: string): number | null {
     const atLabel = nodes.filter((n) => n.label === label);
@@ -60,7 +64,7 @@ export function TaxonomyFilters({ selectedIds, onChange }: Props) {
     const candidates = nodes.filter((n) => n.label === label);
     if (ancestorId === null) return candidates;
     return candidates.filter(
-      (n) => n.parent === ancestorId || isDescendantOf(n.id, ancestorId!, nodes),
+      (n) => n.parent === ancestorId || isDescendantOf(n.id, ancestorId!, byId),
     );
   }
 

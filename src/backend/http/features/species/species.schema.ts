@@ -2,36 +2,32 @@ import { z } from "zod";
 import { imageSchema } from "@/backend/http/features/article/article.schema";
 
 // Response schemas
-export const taxonomyNodeSchema = z.object({
+const taxonomyNodeSchema = z.object({
   id: z.number(),
   label: z.string(),
   labelValue: z.string(),
 });
-export type TaxonomyNode = z.infer<typeof taxonomyNodeSchema>;
 
-export const popularNameSchema = z.object({
+const popularNameSchema = z.object({
   id: z.number(),
   name: z.string(),
   origin: z.string().nullable(),
 });
-export type PopularName = z.infer<typeof popularNameSchema>;
 
-export const speciesAttributeSchema = z.object({
+const speciesAttributeSchema = z.object({
   label: z.string(),
   value: z.string(),
   unit: z.string(),
   sourceId: z.number().nullable(),
   sourceUrl: z.string().nullable(),
 });
-export type SpeciesAttribute = z.infer<typeof speciesAttributeSchema>;
 
-export const linkedSpecimenSchema = z.object({
+const linkedSpecimenSchema = z.object({
   id: z.number(),
   code: z.string(),
   lot: z.number().nullable(),
   shelf: z.number().nullable(),
 });
-export type LinkedSpecimen = z.infer<typeof linkedSpecimenSchema>;
 
 export const speciesBaseSchema = z.object({
   id: z.number(),
@@ -42,21 +38,13 @@ export const speciesBaseSchema = z.object({
 });
 export type SpeciesBase = z.infer<typeof speciesBaseSchema>;
 
-export const specimenIdParamSchema = z.object({
-  specimenId: z.coerce.number().int().positive(),
-});
-
-export const speciesWithTaxonomySchema = speciesBaseSchema.extend({
+const speciesWithTaxonomySchema = speciesBaseSchema.extend({
   taxonomyPath: z.array(taxonomyNodeSchema),
   popularNames: z.array(popularNameSchema),
   attributes: z.array(speciesAttributeSchema),
   thumbnailImage: imageSchema.nullable().optional(),
 });
 export type SpeciesWithTaxonomy = z.infer<typeof speciesWithTaxonomySchema>;
-
-export const speciesListResponseSchema = z.object({
-  species: z.array(speciesBaseSchema),
-});
 
 export const speciesResponseSchema = z.object({
   species: speciesWithTaxonomySchema,
@@ -88,7 +76,7 @@ export const attributeTemplateSchema = z.object({
 });
 export type AttributeTemplate = z.infer<typeof attributeTemplateSchema>;
 
-export const speciesSearchResultSchema = speciesWithTaxonomySchema.extend({
+const speciesSearchResultSchema = speciesWithTaxonomySchema.extend({
   thumbnail: z.string().nullable(),
   excerpt: z.string().nullable(),
 });

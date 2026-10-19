@@ -35,6 +35,11 @@ taxonomyRouter.get("/taxonomy/:id/affected-species", async (req, res, next) => {
   }
 });
 
+function sendNodeOr404(res: import("express").Response, node: unknown) {
+  if (!node) return res.status(404).json({ message: "Nó taxonômico não encontrado" });
+  return res.status(200).json({ node });
+}
+
 taxonomyRouter.patch("/taxonomy/:id", authorizeUser, async (req, res, next) => {
   try {
     const { id } = idParamSchema.parse(req.params);
@@ -43,9 +48,7 @@ taxonomyRouter.patch("/taxonomy/:id", authorizeUser, async (req, res, next) => {
     if (hasCycle) {
       return res.status(409).json({ message: "Operação criaria um ciclo na árvore taxonômica" });
     }
-    const node = await TAXONOMY_SERVICE.updateNodeParent(id, parentId);
-    if (!node) return res.status(404).json({ message: "Nó taxonômico não encontrado" });
-    return res.status(200).json({ node });
+    return sendNodeOr404(res, await TAXONOMY_SERVICE.updateNodeParent(id, parentId));
   } catch (err) {
     next(err);
   }
@@ -55,9 +58,7 @@ taxonomyRouter.put("/taxonomy/:id", authorizeUser, async (req, res, next) => {
   try {
     const { id } = idParamSchema.parse(req.params);
     const { label, labelValue } = updateTaxonomyNodeLabelSchema.parse(req.body);
-    const node = await TAXONOMY_SERVICE.updateNodeLabel(id, label, labelValue);
-    if (!node) return res.status(404).json({ message: "Nó taxonômico não encontrado" });
-    return res.status(200).json({ node });
+    return sendNodeOr404(res, await TAXONOMY_SERVICE.updateNodeLabel(id, label, labelValue));
   } catch (err) {
     next(err);
   }

@@ -2,6 +2,33 @@ import { db } from "@/backend/db/drizzle";
 import { specimenTable, type SpecimenTableInsert } from "@/backend/db/schema";
 import { desc, eq, ilike } from "drizzle-orm";
 
+const specimenSelect = {
+  id: specimenTable.id,
+  code: specimenTable.code,
+  lot: specimenTable.lot,
+  shelf: specimenTable.shelf,
+  createdAt: specimenTable.createdAt,
+  linkedSpeciesId: specimenTable.speciesId,
+};
+
+function mapSpecimenRow(row: {
+  id: number;
+  code: string;
+  lot: number | null;
+  shelf: number | null;
+  createdAt: Date | null;
+  linkedSpeciesId: number | null;
+}) {
+  return {
+    id: row.id,
+    code: row.code,
+    lot: row.lot,
+    shelf: row.shelf,
+    createdAt: row.createdAt?.toISOString() ?? null,
+    linkedSpeciesId: row.linkedSpeciesId ?? null,
+  };
+}
+
 export const SPECIMEN_SERVICE = {
   registerSpecimen: async (values: SpecimenTableInsert) => {
     const [newSpecimen] = await db.insert(specimenTable).values(values).returning();
@@ -10,74 +37,30 @@ export const SPECIMEN_SERVICE = {
 
   listSpecimens: async () => {
     const rows = await db
-      .select({
-        id: specimenTable.id,
-        code: specimenTable.code,
-        lot: specimenTable.lot,
-        shelf: specimenTable.shelf,
-        createdAt: specimenTable.createdAt,
-        linkedSpeciesId: specimenTable.speciesId,
-      })
+      .select(specimenSelect)
       .from(specimenTable)
       .orderBy(desc(specimenTable.id));
 
-    return rows.map((row) => ({
-      id: row.id,
-      code: row.code,
-      lot: row.lot,
-      shelf: row.shelf,
-      createdAt: row.createdAt?.toISOString() ?? null,
-      linkedSpeciesId: row.linkedSpeciesId ?? null,
-    }));
+    return rows.map(mapSpecimenRow);
   },
 
   searchSpecimens: async (q: string) => {
     const rows = await db
-      .select({
-        id: specimenTable.id,
-        code: specimenTable.code,
-        lot: specimenTable.lot,
-        shelf: specimenTable.shelf,
-        createdAt: specimenTable.createdAt,
-        linkedSpeciesId: specimenTable.speciesId,
-      })
+      .select(specimenSelect)
       .from(specimenTable)
       .where(ilike(specimenTable.code, `%${q}%`))
       .orderBy(desc(specimenTable.id));
 
-    return rows.map((row) => ({
-      id: row.id,
-      code: row.code,
-      lot: row.lot,
-      shelf: row.shelf,
-      createdAt: row.createdAt?.toISOString() ?? null,
-      linkedSpeciesId: row.linkedSpeciesId ?? null,
-    }));
+    return rows.map(mapSpecimenRow);
   },
 
   getSpecimenById: async (id: number) => {
     const [row] = await db
-      .select({
-        id: specimenTable.id,
-        code: specimenTable.code,
-        lot: specimenTable.lot,
-        shelf: specimenTable.shelf,
-        createdAt: specimenTable.createdAt,
-        linkedSpeciesId: specimenTable.speciesId,
-      })
+      .select(specimenSelect)
       .from(specimenTable)
       .where(eq(specimenTable.id, id));
 
-    if (!row) return null;
-
-    return {
-      id: row.id,
-      code: row.code,
-      lot: row.lot,
-      shelf: row.shelf,
-      createdAt: row.createdAt?.toISOString() ?? null,
-      linkedSpeciesId: row.linkedSpeciesId ?? null,
-    };
+    return row ? mapSpecimenRow(row) : null;
   },
 
   updateSpecimen: async (

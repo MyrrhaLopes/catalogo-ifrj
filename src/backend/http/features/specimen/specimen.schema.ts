@@ -13,7 +13,7 @@ export const specimenUpdateSchema = z.object({
   speciesId: z.number().int().positive().nullable().optional(),
 });
 
-export const specimenSchema = z.object({
+const specimenSchema = z.object({
   id: z.number(),
   code: z.string(),
   lot: z.number().nullable(),

@@ -24,12 +24,15 @@ specimenRouter.get("/specimens/", async (req, res, next) => {
   }
 });
 
+function sendSpecimenOr404(res: import("express").Response, specimen: unknown) {
+  if (!specimen) return res.status(404).json({ message: "espécime não encontrado" });
+  return res.status(200).json({ specimen });
+}
+
 specimenRouter.get("/specimens/:id", async (req, res, next) => {
   try {
     const { id } = idParamSchema.parse(req.params);
-    const specimen = await SPECIMEN_SERVICE.getSpecimenById(id);
-    if (!specimen) return res.status(404).json({ message: "espécime não encontrado" });
-    return res.status(200).json({ specimen });
+    return sendSpecimenOr404(res, await SPECIMEN_SERVICE.getSpecimenById(id));
   } catch (err) {
     next(err);
   }
@@ -54,9 +57,7 @@ specimenRouter.patch("/specimens/:id", authorizeUser, async (req, res, next) => 
   try {
     const { id } = idParamSchema.parse(req.params);
     const patch = specimenUpdateSchema.parse(req.body);
-    const specimen = await SPECIMEN_SERVICE.updateSpecimen(id, patch);
-    if (!specimen) return res.status(404).json({ message: "espécime não encontrado" });
-    return res.status(200).json({ specimen });
+    return sendSpecimenOr404(res, await SPECIMEN_SERVICE.updateSpecimen(id, patch));
   } catch (err) {
     next(err);
   }

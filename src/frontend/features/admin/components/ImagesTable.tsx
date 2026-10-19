@@ -1,29 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { tableFeatures, createColumnHelper, useTable } from "@tanstack/react-table";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/frontend/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/frontend/components/ui/alert-dialog";
-import { Button, buttonVariants } from "@/frontend/components/ui/button";
-import { ImageIcon, Loader2, Lock, Pencil, Plus, Trash2 } from "lucide-react";
+import { Button } from "@/frontend/components/ui/button";
+import { ImageIcon, Loader2, Pencil, Plus } from "lucide-react";
 import { useImagesList, useDeleteImage, useUpdateImage } from "../hooks/useAdminImages";
 import { CreateImageModal } from "./CreateImageModal";
 import type { GalleryImage } from "@/frontend/features/images/images.api";
+import { AdminDataTable, ConfirmDeleteIconButton, CreatedAtCell, LockedCell } from "./AdminTableShared";
 
 // ── AltTextCell ─────────────────────────────────────────────────────
 // Floating textarea that uses position:fixed to escape table overflow-auto.
@@ -122,28 +104,12 @@ function DeleteCell({ image }: { image: GalleryImage }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive">
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Excluir imagem?</AlertDialogTitle>
-          <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction
-            className={buttonVariants({ variant: "destructive" })}
-            onClick={() => { setOpen(false); deleteMutation.mutate(image.id); }}
-          >
-            Excluir
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDeleteIconButton
+      title="Excluir imagem?"
+      open={open}
+      onOpenChange={setOpen}
+      onConfirm={() => deleteMutation.mutate(image.id)}
+    />
   );
 }
 
@@ -168,12 +134,7 @@ const columns = columnHelper.columns([
   }),
   columnHelper.accessor("id", {
     header: "ID",
-    cell: (ctx) => (
-      <span className="flex items-center gap-1 text-muted-foreground text-xs">
-        <Lock className="h-3 w-3 shrink-0" />
-        {ctx.getValue()}
-      </span>
-    ),
+    cell: (ctx) => <LockedCell className="text-xs">{ctx.getValue()}</LockedCell>,
   }),
   columnHelper.accessor("url", {
     header: "URL",
@@ -195,12 +156,7 @@ const columns = columnHelper.columns([
   }),
   columnHelper.accessor("createdAt", {
     header: "Adicionada em",
-    cell: (ctx) => (
-      <span className="flex items-center gap-1 text-muted-foreground text-xs">
-        <Lock className="h-3 w-3 shrink-0" />
-        {new Date(ctx.getValue()).toLocaleDateString("pt-BR")}
-      </span>
-    ),
+    cell: (ctx) => <CreatedAtCell value={ctx.getValue()} className="text-xs" />,
   }),
   columnHelper.display({
     id: "actions",
@@ -238,40 +194,11 @@ export function ImagesTable() {
         </Button>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((hg) => (
-              <TableRow key={hg.id}>
-                {hg.headers.map((h) => (
-                  <TableHead key={h.id}>
-                    {h.isPlaceholder ? null : <table.FlexRender header={h} />}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="text-center text-muted-foreground text-sm py-8">
-                  Nenhuma imagem cadastrada.
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getAllCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      <table.FlexRender cell={cell} />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <AdminDataTable
+        table={table}
+        colCount={columns.length}
+        emptyMessage="Nenhuma imagem cadastrada."
+      />
 
       <CreateImageModal open={createOpen} onOpenChange={setCreateOpen} />
     </div>

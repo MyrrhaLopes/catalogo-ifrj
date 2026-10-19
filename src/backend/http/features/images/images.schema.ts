@@ -8,7 +8,7 @@ export const speciesIdQuerySchema = z.object({
   speciesId: z.coerce.number().int().positive().optional(),
 });
 
-export const imageTypeSchema = z.enum(["online", "acervo"]);
+const imageTypeSchema = z.enum(["online", "acervo"]);
 
 export const createImageSchema = z.object({
   url: z.string().url(),

@@ -22,20 +22,13 @@ import { useAttributeTemplates } from "@/frontend/features/species/hooks/useAttr
 import { useUpdateSpeciesAttributes } from "../hooks/useAdminSpecies";
 import type { SpeciesSearchResult } from "@/backend/http/features/species/species.schema";
 
+import { getScientificName } from "@/frontend/shared/utils/taxonomy";
+
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   species: SpeciesSearchResult | null;
 };
-
-function getScientificName(taxonomyPath: SpeciesSearchResult["taxonomyPath"]): string {
-  const last = taxonomyPath.at(-1);
-  const secondLast = taxonomyPath.at(-2);
-  if (last?.label === "Espécie" && secondLast) {
-    return `${secondLast.labelValue} ${last.labelValue}`;
-  }
-  return last?.labelValue ?? `#${last?.id ?? "—"}`;
-}
 
 export function EditSpeciesAttributesModal({ open, onOpenChange, species }: Props) {
   const { data: templates = [], isLoading } = useAttributeTemplates();

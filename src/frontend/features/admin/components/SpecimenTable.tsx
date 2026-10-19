@@ -1,32 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { tableFeatures, createColumnHelper, useTable } from "@tanstack/react-table";
 import { useNavigate } from "@tanstack/react-router";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/frontend/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/frontend/components/ui/alert-dialog";
-import { Button } from "@/frontend/components/ui/button";
 import { Input } from "@/frontend/components/ui/input";
-import { Loader2, Lock, Pencil, Trash2 } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { useSpecimenList, useUpdateSpecimen, useDeleteSpecimen } from "@/frontend/features/specimens/hooks/useAdminSpecimen";
 import { cn } from "@/lib/utils";
 import type { Specimen } from "@/frontend/features/specimens/specimen.api";
 import { SelectSpeciesModal } from "./SelectSpeciesModal";
+import { AdminDataTable, ConfirmDeleteButton, CreatedAtCell, LockedCell } from "./AdminTableShared";
 
 // ────────────────────────────────────────────────────────────────────
 // Inline editable cell
@@ -99,19 +80,6 @@ function EditableCell({ specimenId, field, value, type = "text", className }: Ed
 }
 
 // ────────────────────────────────────────────────────────────────────
-// Read-only (locked) cell
-// ────────────────────────────────────────────────────────────────────
-
-function LockedCell({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="flex items-center gap-1 text-muted-foreground">
-      <Lock className="h-3 w-3 shrink-0" />
-      {children}
-    </span>
-  );
-}
-
-// ────────────────────────────────────────────────────────────────────
 // Linked species cell
 // ────────────────────────────────────────────────────────────────────
 
@@ -151,11 +119,13 @@ function LinkedSpeciesCell({ specimen }: { specimen: Specimen }) {
         </span>
         <Pencil className="h-3 w-3 text-muted-foreground shrink-0" />
       </div>
-      <SelectSpeciesModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        specimen={specimen}
-      />
+      {modalOpen && (
+        <SelectSpeciesModal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          specimen={specimen}
+        />
+      )}
     </>
   );
 }
@@ -168,41 +138,17 @@ function DeleteCell({ specimen }: { specimen: Specimen }) {
   const deleteMutation = useDeleteSpecimen();
 
   return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="text-destructive border-destructive/40 hover:bg-red-500 hover:text-white hover:border-red-500"
-        >
-          <Trash2 className="h-4 w-4 mr-1" />
-          Excluir
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Excluir espécime</AlertDialogTitle>
-          <AlertDialogDescription>
-            Tem certeza que deseja excluir o espécime{" "}
-            <strong>{specimen.code}</strong>? Esta ação não pode ser desfeita.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={() => deleteMutation.mutate(specimen.id)}
-            disabled={deleteMutation.isPending}
-            className="bg-destructive hover:bg-destructive/90"
-          >
-            {deleteMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              "Excluir"
-            )}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDeleteButton
+      title="Excluir espécime"
+      description={
+        <>
+          Tem certeza que deseja excluir o espécime <strong>{specimen.code}</strong>? Esta ação não
+          pode ser desfeita.
+        </>
+      }
+      isPending={deleteMutation.isPending}
+      onConfirm={() => deleteMutation.mutate(specimen.id)}
+    />
   );
 }
 
@@ -268,11 +214,7 @@ const columns = columnHelper.columns([
   }),
   columnHelper.accessor("createdAt", {
     header: "Criado em",
-    cell: (ctx) => {
-      const v = ctx.getValue();
-      if (!v) return <LockedCell>—</LockedCell>;
-      return <LockedCell>{new Date(v).toLocaleDateString("pt-BR")}</LockedCell>;
-    },
+    cell: (ctx) => <CreatedAtCell value={ctx.getValue()} />,
   }),
   columnHelper.display({
     id: "actions",
@@ -291,99 +233,20 @@ type SpecimenTableProps = {
 
 export function SpecimenTable({ selectedSpecimenId }: SpecimenTableProps) {
   const { data: specimens = [], isLoading, isError } = useSpecimenList();
-  const selectedRowRef = useRef<HTMLTableRowElement | null>(null);
-  const tableRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (selectedSpecimenId != null && selectedRowRef.current) {
-      selectedRowRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, [selectedSpecimenId, specimens]);
-
-  useEffect(() => {
-    if (selectedSpecimenId == null) return;
-
-    const clear = () =>
-      void navigate({ to: "/admin", search: { section: "specimen" } });
-
-    const timer = setTimeout(clear, 2000);
-
-    function handleClick(e: MouseEvent) {
-      if (tableRef.current && !tableRef.current.contains(e.target as Node)) {
-        clear();
-      }
-    }
-
-    document.addEventListener("click", handleClick);
-
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener("click", handleClick);
-    };
-  }, [selectedSpecimenId, navigate]);
-
   const table = useTable({ features, data: specimens, columns });
 
-  if (isLoading) {
-    return (
-      <div className="flex h-40 items-center justify-center text-muted-foreground">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-        Carregando espécimes…
-      </div>
-    );
-  }
-
-  if (isError) {
-    return <div className="p-4 text-sm text-destructive">Erro ao carregar espécimes.</div>;
-  }
-
   return (
-    <div ref={tableRef} className="rounded-md border">
-      <Table>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
-                  {header.isPlaceholder ? null : <table.FlexRender header={header} />}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows.length === 0 ? (
-            <TableRow>
-              <TableCell
-                colSpan={columns.length}
-                className="py-8 text-center text-muted-foreground"
-              >
-                Nenhum espécime cadastrado
-              </TableCell>
-            </TableRow>
-          ) : (
-            table.getRowModel().rows.map((row) => {
-              const isSelected = row.original.id === selectedSpecimenId;
-              return (
-                <TableRow
-                  key={row.id}
-                  ref={isSelected ? selectedRowRef : undefined}
-                  className={cn(
-                    isSelected && "bg-primary/10 ring-1 ring-inset ring-primary",
-                  )}
-                >
-                  {row.getAllCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      <table.FlexRender cell={cell} />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              );
-            })
-          )}
-        </TableBody>
-      </Table>
-    </div>
+    <AdminDataTable
+      table={table}
+      colCount={columns.length}
+      emptyMessage="Nenhum espécime cadastrado"
+      isLoading={isLoading}
+      loadingMessage="Carregando espécimes…"
+      isError={isError}
+      errorMessage="Erro ao carregar espécimes."
+      selectedId={selectedSpecimenId}
+      clearSection="specimen"
+      data={specimens}
+    />
   );
 }

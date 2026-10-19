@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -11,7 +11,6 @@ import {
 } from "@/frontend/components/ui/dialog";
 import { Input } from "@/frontend/components/ui/input";
 import { deleteAccount } from "@/frontend/shared/api/users";
-import { router } from "@/frontend/router";
 
 const CONFIRM_PHRASE = "Confirmo que desejo deletar minha conta";
 
@@ -22,6 +21,7 @@ type Props = {
 
 export function DeleteAccountDialog({ open, onOpenChange }: Props) {
   const navigate = useNavigate();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [confirmText, setConfirmText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);

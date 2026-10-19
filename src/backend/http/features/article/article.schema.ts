@@ -58,16 +58,15 @@ export const imageSchema = z.object({
   speciesId: z.number().nullable(),
   createdAt: z.string(),
 });
-export type ArticleImage = z.infer<typeof imageSchema>;
 
-export const articleSchema = z.object({
+const articleSchema = z.object({
   id: z.number(),
   content: articleContent,
   createdAt: z.string(),
 });
 export type Article = z.infer<typeof articleSchema>;
 
-export const articleSourceSchema = z.object({
+const articleSourceSchema = z.object({
   id: z.number(),
   url: z.string(),
 });
@@ -78,7 +77,6 @@ export const articleWithImagesSchema = z.object({
   images: z.array(imageSchema),
   sources: z.array(articleSourceSchema).default([]),
 });
-export type ArticleWithImages = z.infer<typeof articleWithImagesSchema>;
 
 // Request schemas (used by route handlers)
 export const speciesIdQuerySchema = z.object({

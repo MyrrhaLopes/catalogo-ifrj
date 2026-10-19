@@ -5,13 +5,6 @@ export const createAttributeTemplateSchema = z.object({
   unit: z.string().min(1),
 });
 
-export const attributeTemplateResponseSchema = z.object({
-  id: z.number(),
-  label: z.string(),
-  unit: z.string(),
-});
-export type AttributeTemplateResponse = z.infer<typeof attributeTemplateResponseSchema>;
-
 export const updateAttributeTemplateSchema = z.object({
   label: z.string().min(1).optional(),
   unit: z.string().min(1).optional(),

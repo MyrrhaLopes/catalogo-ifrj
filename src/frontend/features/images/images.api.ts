@@ -1,22 +1,11 @@
 import { z } from "zod";
+import { imageSchema } from "@/backend/http/features/article/article.schema";
 import { apiFetch } from "@/frontend/shared/api/client";
 
-export const galleryImageSchema = z.object({
-  id: z.number(),
-  url: z.string(),
-  alt: z.string().nullable(),
-  article: z.number().nullable(),
-  type: z.enum(["online", "acervo"]).default("online"),
-  source: z.string().nullable(),
-  credit: z.string().nullable(),
-  specimenId: z.number().nullable(),
-  speciesId: z.number().nullable(),
-  createdAt: z.string(),
-});
-export type GalleryImage = z.infer<typeof galleryImageSchema>;
+export type GalleryImage = z.infer<typeof imageSchema>;
 
 const imagesResponseSchema = z.object({
-  images: z.array(galleryImageSchema),
+  images: z.array(imageSchema),
 });
 
 export async function getImagesBySpecies(speciesId: number): Promise<GalleryImage[]> {

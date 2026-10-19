@@ -1,24 +1,7 @@
 import { tableFeatures, createColumnHelper, useTable } from "@tanstack/react-table";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/frontend/components/ui/table";
-import { Loader2, Lock } from "lucide-react";
 import { useUsers } from "../hooks/useAdminUsers";
 import type { UserListItem } from "@/backend/http/features/users/user.schema";
-
-function LockedCell({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="flex items-center gap-1 text-muted-foreground">
-      <Lock className="h-3 w-3 shrink-0" />
-      {children}
-    </span>
-  );
-}
+import { AdminDataTable, CreatedAtCell, LockedCell } from "./AdminTableShared";
 
 const features = tableFeatures({});
 const columnHelper = createColumnHelper<typeof features, UserListItem>();
@@ -45,11 +28,7 @@ const columns = columnHelper.columns([
   }),
   columnHelper.accessor("createdAt", {
     header: "Criado em",
-    cell: (ctx) => {
-      const v = ctx.getValue();
-      if (!v) return <LockedCell>—</LockedCell>;
-      return <LockedCell>{new Date(v).toLocaleDateString("pt-BR")}</LockedCell>;
-    },
+    cell: (ctx) => <CreatedAtCell value={ctx.getValue()} />,
   }),
 ]);
 
@@ -62,53 +41,15 @@ export function UsersTable() {
     columns,
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-40 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin mr-2" />
-        Carregando usuários…
-      </div>
-    );
-  }
-
-  if (isError) {
-    return <div className="text-destructive text-sm p-4">Erro ao carregar usuários.</div>;
-  }
-
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
-                  {header.isPlaceholder ? null : <table.FlexRender header={header} />}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="text-center text-muted-foreground py-8">
-                Nenhum usuário cadastrado
-              </TableCell>
-            </TableRow>
-          ) : (
-            table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
-                {row.getAllCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    <table.FlexRender cell={cell} />
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+    <AdminDataTable
+      table={table}
+      colCount={columns.length}
+      emptyMessage="Nenhum usuário cadastrado"
+      isLoading={isLoading}
+      loadingMessage="Carregando usuários…"
+      isError={isError}
+      errorMessage="Erro ao carregar usuários."
+    />
   );
 }
