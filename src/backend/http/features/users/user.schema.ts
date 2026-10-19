@@ -1,7 +1,7 @@
 import z from "zod";
 
-export const PASSWORD_MIN_LENGTH = 8;
-export const PASSWORD_MAX_LENGTH = 72;
+export const PASSWORD_MIN_LENGTH = 12;
+export const PASSWORD_MAX_LENGTH = 18;
 
 export type PasswordRule = {
   id: string;
@@ -45,7 +45,7 @@ export const PASSWORD_RULES: PasswordRule[] = [
   },
 ];
 
-const passwordSchema = PASSWORD_RULES.reduce(
+export const passwordSchema = PASSWORD_RULES.reduce(
   (schema, rule) => schema.refine(rule.test, rule.message),
   z.string({ error: "Informe a senha" }),
 );
@@ -57,12 +57,7 @@ export const userRegisterSchema = z.object({
   password: passwordSchema,
 });
 
-// O login não reaplica os requisitos de senha: contas criadas fora do fluxo de
-// registro (ex: create-admin) podem ter senhas que não seguem as regras atuais.
-export const userLoginSchema = z.object({
-  email: emailSchema,
-  password: z.string({ error: "Informe a senha" }).min(1, "Informe a senha"),
-});
+export const userLoginSchema = userRegisterSchema;
 
 export type UserRegisterInput = z.infer<typeof userRegisterSchema>;
 export type UserLoginInput = z.infer<typeof userLoginSchema>;

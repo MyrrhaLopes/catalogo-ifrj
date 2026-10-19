@@ -7,8 +7,16 @@ import { FormErrorAlert } from "./FormErrorAlert";
 import { PasswordRequirements } from "./PasswordRequirements";
 
 export function RegisterForm() {
-  const { fieldProps, fieldErrors, formError, password, showPasswordErrors, isPending, onSubmit } =
-    useRegisterForm();
+  const {
+    fieldProps,
+    fieldErrors,
+    passwordInvalid,
+    formError,
+    password,
+    showPasswordErrors,
+    isPending,
+    onSubmit,
+  } = useRegisterForm();
 
   return (
     <form onSubmit={onSubmit} noValidate>
@@ -29,6 +37,7 @@ export function RegisterForm() {
           autoComplete="new-password"
           placeholder="••••••••"
           error={fieldErrors.password}
+          invalid={passwordInvalid}
           hint={<PasswordRequirements password={password} showErrors={showPasswordErrors} />}
           {...fieldProps("password")}
         />

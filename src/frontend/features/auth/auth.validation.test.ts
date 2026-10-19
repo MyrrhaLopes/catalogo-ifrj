@@ -4,11 +4,11 @@ import {
   hasFieldErrors,
   validateEmail,
   validateLoginForm,
-  validateNewPassword,
+  validatePassword,
   validateRegisterForm,
 } from "./auth.validation";
 
-const VALID_PASSWORD = "Senha@123";
+const VALID_PASSWORD = "Senha@123456";
 
 describe("validateEmail", () => {
   it.each([
@@ -27,26 +27,30 @@ describe("validateEmail", () => {
   });
 });
 
-describe("validateNewPassword", () => {
+describe("validatePassword", () => {
   it("exige senha preenchida", () => {
-    expect(validateNewPassword("")).toBe("Informe a senha");
+    expect(validatePassword("")).toBe("Informe a senha");
   });
 
-  it("usa a mensagem específica quando falta um único requisito", () => {
-    expect(validateNewPassword("Senha1234")).toBe(
-      "A senha precisa de pelo menos um caractere especial",
-    );
-  });
-
-  it("lista todos os requisitos não atendidos", () => {
-    expect(validateNewPassword("abc")).toBe(
-      "A senha não atende aos requisitos: entre 8 e 72 caracteres, uma letra maiúscula, um número, um caractere especial (ex: ! @ # $ %)",
-    );
-  });
+  it.each(["abc", "Senha1234567", "Senha@1", "Senha@1234567890abc"])(
+    "rejeita %j, que não atende a algum requisito",
+    (password) => {
+      expect(validatePassword(password)).toBe("A senha não atende aos requisitos");
+    },
+  );
 
   it("aceita senha que atende a todos os requisitos", () => {
-    expect(validateNewPassword(VALID_PASSWORD)).toBeUndefined();
+    expect(validatePassword(VALID_PASSWORD)).toBeUndefined();
     expect(getUnmetPasswordRules(VALID_PASSWORD)).toEqual([]);
+  });
+
+  it("lista os requisitos não atendidos para o checklist", () => {
+    expect(getUnmetPasswordRules("abc").map((r) => r.id)).toEqual([
+      "length",
+      "uppercase",
+      "number",
+      "special",
+    ]);
   });
 });
 
@@ -58,8 +62,11 @@ describe("validateLoginForm", () => {
     });
   });
 
-  it("não aplica os requisitos de senha no login", () => {
-    expect(validateLoginForm({ email: "a@b.com", password: "fraca" })).toEqual({});
+  it("bloqueia senha fora dos requisitos também no login", () => {
+    expect(validateLoginForm({ email: "a@b.com", password: "fraca" })).toEqual({
+      password: "A senha não atende aos requisitos",
+    });
+    expect(validateLoginForm({ email: "a@b.com", password: VALID_PASSWORD })).toEqual({});
   });
 });
 
@@ -73,13 +80,13 @@ describe("validateRegisterForm", () => {
   it("detecta email inválido e senha fraca", () => {
     const errors = validateRegisterForm({ ...valid, email: "x", password: "abc", confirmPassword: "abc" });
     expect(errors.email).toBe("Não é um e-mail válido");
-    expect(errors.password).toMatch(/^A senha não atende aos requisitos/);
+    expect(errors.password).toBe("A senha não atende aos requisitos");
     expect(errors.confirmPassword).toBeUndefined();
   });
 
   it("exige confirmação e que ela coincida com a senha", () => {
     expect(validateRegisterForm({ ...valid, confirmPassword: "" }).confirmPassword).toBe("Confirme a senha");
-    expect(validateRegisterForm({ ...valid, confirmPassword: "Outra@123" }).confirmPassword).toBe(
+    expect(validateRegisterForm({ ...valid, confirmPassword: "Outra@123456" }).confirmPassword).toBe(
       "As senhas não coincidem",
     );
   });

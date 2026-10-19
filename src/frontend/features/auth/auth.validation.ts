@@ -25,24 +25,20 @@ export function getUnmetPasswordRules(password: string): PasswordRule[] {
   return PASSWORD_RULES.filter((rule) => !rule.test(password));
 }
 
-function lowerFirst(text: string): string {
-  return text.charAt(0).toLowerCase() + text.slice(1);
-}
-
-export function validateNewPassword(password: string): string | undefined {
+// O detalhe de cada requisito é exibido pelo checklist (PasswordRequirements);
+// esta mensagem serve para bloquear o envio e marcar o campo como inválido.
+export function validatePassword(password: string): string | undefined {
   if (!password) return "Informe a senha";
-  const unmet = getUnmetPasswordRules(password);
-  if (unmet.length === 0) return undefined;
-  if (unmet.length === 1) return unmet[0].message;
-  return `A senha não atende aos requisitos: ${unmet.map((r) => lowerFirst(r.label)).join(", ")}`;
+  if (getUnmetPasswordRules(password).length > 0) return "A senha não atende aos requisitos";
+  return undefined;
 }
 
 export function validateLoginForm(values: FormValues<LoginField>): FieldErrors<LoginField> {
   const errors: FieldErrors<LoginField> = {};
   const email = validateEmail(values.email);
   if (email) errors.email = email;
-  // No login só exigimos a senha preenchida: contas antigas/admin podem não seguir as regras atuais.
-  if (!values.password) errors.password = "Informe a senha";
+  const password = validatePassword(values.password);
+  if (password) errors.password = password;
   return errors;
 }
 
@@ -52,7 +48,7 @@ export function validateRegisterForm(
   const errors: FieldErrors<RegisterField> = {};
   const email = validateEmail(values.email);
   if (email) errors.email = email;
-  const password = validateNewPassword(values.password);
+  const password = validatePassword(values.password);
   if (password) errors.password = password;
   if (!values.confirmPassword) errors.confirmPassword = "Confirme a senha";
   else if (values.confirmPassword !== values.password) {

@@ -7,7 +7,16 @@ import { FormErrorAlert } from "./FormErrorAlert";
 import { PasswordRequirements } from "./PasswordRequirements";
 
 export function LoginForm() {
-  const { fieldProps, fieldErrors, formError, isPending, onSubmit } = useLoginForm();
+  const {
+    fieldProps,
+    fieldErrors,
+    passwordInvalid,
+    formError,
+    password,
+    showPasswordErrors,
+    isPending,
+    onSubmit,
+  } = useLoginForm();
 
   return (
     <form onSubmit={onSubmit} noValidate>
@@ -28,7 +37,14 @@ export function LoginForm() {
           autoComplete="current-password"
           placeholder="••••••••"
           error={fieldErrors.password}
-          hint={<PasswordRequirements title="Lembrete: sua senha contém" />}
+          invalid={passwordInvalid}
+          hint={
+            <PasswordRequirements
+              title="Lembrete: sua senha deve conter:"
+              password={password}
+              showErrors={showPasswordErrors}
+            />
+          }
           {...fieldProps("password")}
         />
         <FormErrorAlert message={formError} />

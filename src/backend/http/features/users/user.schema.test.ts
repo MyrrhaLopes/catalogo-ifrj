@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PASSWORD_RULES, userLoginSchema, userRegisterSchema } from "./user.schema";
 
-const VALID_PASSWORD = "Senha@123";
+const VALID_PASSWORD = "Senha@123456";
 
 function issueMessages(input: unknown, schema = userRegisterSchema) {
   const result = schema.safeParse(input);
@@ -10,9 +10,11 @@ function issueMessages(input: unknown, schema = userRegisterSchema) {
 
 describe("PASSWORD_RULES", () => {
   it.each([
-    ["length", "Ab1!", false],
-    ["length", "Abcdef1!", true],
-    ["length", `A1!${"a".repeat(70)}`, false],
+    ["length", "Abcdef1!", false],
+    ["length", "Abcdefgh1!x", false],
+    ["length", "Abcdefgh1!xy", true],
+    ["length", "Abcdefgh1!xyzwvuts", true],
+    ["length", "Abcdefgh1!xyzwvutsr", false],
     ["uppercase", "abcdef1!", false],
     ["uppercase", "Abcdef1!", true],
     ["lowercase", "ABCDEF1!", false],
@@ -39,7 +41,7 @@ describe("userRegisterSchema", () => {
   it("reporta todos os requisitos de senha não atendidos de uma vez", () => {
     const messages = issueMessages({ email: "a@b.com", password: "abc" });
     expect(messages).toEqual([
-      "password: A senha deve ter entre 8 e 72 caracteres",
+      "password: A senha deve ter entre 12 e 18 caracteres",
       "password: A senha precisa de pelo menos uma letra maiúscula",
       "password: A senha precisa de pelo menos um número",
       "password: A senha precisa de pelo menos um caractere especial",
@@ -57,14 +59,10 @@ describe("userRegisterSchema", () => {
 });
 
 describe("userLoginSchema", () => {
-  it("não aplica os requisitos de senha no login", () => {
-    expect(userLoginSchema.safeParse({ email: "a@b.com", password: "fraca" }).success).toBe(true);
-  });
-
-  it("exige senha preenchida e email válido", () => {
-    expect(issueMessages({ email: "x", password: "" }, userLoginSchema)).toEqual([
-      "email: Informe um e-mail válido",
-      "password: Informe a senha",
+  it("aplica os mesmos requisitos de senha do registro", () => {
+    expect(userLoginSchema.safeParse({ email: "a@b.com", password: "Senha@123456" }).success).toBe(true);
+    expect(issueMessages({ email: "a@b.com", password: "Curta@1" }, userLoginSchema)).toEqual([
+      "password: A senha deve ter entre 12 e 18 caracteres",
     ]);
   });
 });

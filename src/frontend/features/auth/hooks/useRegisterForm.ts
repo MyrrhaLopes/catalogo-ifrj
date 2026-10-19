@@ -30,9 +30,13 @@ export function useRegisterForm() {
     );
   });
 
+  const { password: passwordError, ...clientErrors } = form.errors;
+
   return {
     fieldProps: form.fieldProps,
-    fieldErrors: { ...serverError.fieldErrors, ...form.errors },
+    fieldErrors: { ...serverError.fieldErrors, ...clientErrors },
+    // O erro de senha do cliente não vira texto: o checklist de requisitos já o detalha.
+    passwordInvalid: Boolean(passwordError ?? serverError.fieldErrors.password),
     formError: serverError.message,
     password: form.values.password,
     showPasswordErrors: form.submitted || Boolean(form.touched.password),

@@ -44,14 +44,14 @@ async function post(path: string, body: unknown) {
 
 describe("POST /users/", () => {
   it("retorna 400 com erros por campo para email inválido (não 409)", async () => {
-    const { status, body } = await post("/users/", { email: "invalido", password: "Senha@123" });
+    const { status, body } = await post("/users/", { email: "invalido", password: "Senha@123456" });
     expect(status).toBe(400);
     expect(body.errors.fieldErrors).toEqual({ email: ["Informe um e-mail válido"] });
     expect(USER_SERVICE.registerUser).not.toHaveBeenCalled();
   });
 
   it("retorna 400 listando os requisitos de senha não atendidos", async () => {
-    const { status, body } = await post("/users/", { email: "a@b.com", password: "Senhafraca" });
+    const { status, body } = await post("/users/", { email: "a@b.com", password: "Senhafracaxyz" });
     expect(status).toBe(400);
     expect(body.errors.fieldErrors.password).toEqual([
       "A senha precisa de pelo menos um número",
@@ -61,7 +61,7 @@ describe("POST /users/", () => {
 
   it("retorna 409 quando o email já existe", async () => {
     vi.mocked(USER_SERVICE.registerUser).mockRejectedValue(new Error("email already exists"));
-    const { status, body } = await post("/users/", { email: "a@b.com", password: "Senha@123" });
+    const { status, body } = await post("/users/", { email: "a@b.com", password: "Senha@123456" });
     expect(status).toBe(409);
     expect(body).toEqual({ message: "Este e-mail já está cadastrado" });
   });
@@ -69,23 +69,30 @@ describe("POST /users/", () => {
   it("retorna 500 para erros inesperados", async () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.mocked(USER_SERVICE.registerUser).mockRejectedValue(new Error("db down"));
-    const { status } = await post("/users/", { email: "a@b.com", password: "Senha@123" });
+    const { status } = await post("/users/", { email: "a@b.com", password: "Senha@123456" });
     expect(status).toBe(500);
   });
 
   it("retorna 201 no sucesso", async () => {
     vi.mocked(USER_SERVICE.registerUser).mockResolvedValue({ id: "1", email: "a@b.com" });
-    const { status } = await post("/users/", { email: "a@b.com", password: "Senha@123" });
+    const { status } = await post("/users/", { email: "a@b.com", password: "Senha@123456" });
     expect(status).toBe(201);
   });
 });
 
 describe("POST /sessions/", () => {
-  it("não aplica requisitos de senha no login", async () => {
+  it("cria a sessão com credenciais válidas", async () => {
     vi.mocked(USER_SERVICE.loginUser).mockResolvedValue("session-id");
-    const { status } = await post("/sessions/", { email: "admin@b.com", password: "fraca" });
+    const { status } = await post("/sessions/", { email: "a@b.com", password: "Senha@123456" });
     expect(status).toBe(201);
-    expect(USER_SERVICE.loginUser).toHaveBeenCalledWith("admin@b.com", "fraca");
+    expect(USER_SERVICE.loginUser).toHaveBeenCalledWith("a@b.com", "Senha@123456");
+  });
+
+  it("retorna 400 para senha fora dos requisitos, sem consultar o serviço", async () => {
+    const { status, body } = await post("/sessions/", { email: "a@b.com", password: "fraca" });
+    expect(status).toBe(400);
+    expect(body.errors.fieldErrors.password).toBeDefined();
+    expect(USER_SERVICE.loginUser).not.toHaveBeenCalled();
   });
 
   it("retorna 400 para email inválido ou senha vazia", async () => {
@@ -98,7 +105,7 @@ describe("POST /sessions/", () => {
     "retorna 401 genérico quando o serviço lança %j",
     async (message) => {
       vi.mocked(USER_SERVICE.loginUser).mockRejectedValue(new Error(message));
-      const { status, body } = await post("/sessions/", { email: "a@b.com", password: "x" });
+      const { status, body } = await post("/sessions/", { email: "a@b.com", password: "Senha@123456" });
       expect(status).toBe(401);
       expect(body).toEqual({ message: "E-mail ou senha incorretos" });
     },

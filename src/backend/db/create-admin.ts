@@ -3,12 +3,21 @@ import bcrypt from "bcrypt";
 import { db } from "./drizzle.ts";
 import { usersTable } from "./schema.ts";
 import { eq } from "drizzle-orm";
+import { passwordSchema } from "../http/features/users/user.schema.ts";
 
 const EMAIL = process.env.ADMIN_EMAIL;
 const PASSWORD = process.env.ADMIN_PASSWORD;
 
 if (!EMAIL || !PASSWORD) {
   console.error("Defina ADMIN_EMAIL e ADMIN_PASSWORD antes de rodar este script.");
+  process.exit(1);
+}
+
+// O login aplica os mesmos requisitos de senha; um admin fora das regras não conseguiria entrar.
+const passwordCheck = passwordSchema.safeParse(PASSWORD);
+if (!passwordCheck.success) {
+  console.error("ADMIN_PASSWORD não atende aos requisitos de senha:");
+  for (const issue of passwordCheck.error.issues) console.error(`- ${issue.message}`);
   process.exit(1);
 }
 
