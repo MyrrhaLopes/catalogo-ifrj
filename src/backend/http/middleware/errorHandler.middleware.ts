@@ -10,7 +10,7 @@ export function errorHandler(
   if (err instanceof ZodError) {
     res.status(400).json({
       status: "fail",
-      message: "Validation error",
+      message: "Dados inválidos",
       errors: z.flattenError(err),
     });
     return;

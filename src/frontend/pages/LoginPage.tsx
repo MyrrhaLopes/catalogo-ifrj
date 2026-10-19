@@ -1,26 +1,13 @@
-import { createRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createRoute } from "@tanstack/react-router";
 import { rootRoute } from "../rootRoute";
 import { PageShell } from "../components/layout/PageShell";
-import { Button } from "@/frontend/components/ui/button";
-import { Input } from "@/frontend/components/ui/input";
-import { Label } from "@/frontend/components/ui/label";
 import {
   Card,
-  CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/frontend/components/ui/card";
-import useLoginUser from "../shared/hooks/useLoginUser";
-import { useQueryClient } from "@tanstack/react-query";
-import useAuth from "../shared/hooks/useAuth";
-import { useEffect } from "react";
-import {
-  getLocalFavorites,
-  setLocalFavorites,
-  syncFavoritesApi,
-} from "../features/favorite/favorite.api";
+import { LoginForm } from "@/frontend/features/auth/components/LoginForm";
 
 export const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -29,35 +16,6 @@ export const loginRoute = createRoute({
 });
 
 function LoginPage() {
-  const { mutate, isPending, error } = useLoginUser();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { data: user } = useAuth();
-
-  useEffect(() => {
-    if (user) {
-      navigate({ to: '/' });
-    }
-  }, [user]);
-
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const form = new FormData(e.currentTarget);
-    mutate(
-      { email: form.get('email') as string, password: form.get('password') as string },
-      {
-        onSuccess: async () => {
-          const localFavorites = getLocalFavorites();
-          if (localFavorites.length > 0) {
-            await syncFavoritesApi(localFavorites).catch(() => null);
-            setLocalFavorites([]);
-          }
-          queryClient.invalidateQueries({ queryKey: ['auth', 'current_user'] });
-        }
-      }
-    )
-  }
-
   return (
     <PageShell className="bg-neutral-100">
       <div className="flex flex-1 items-center justify-center px-4">
@@ -68,51 +26,7 @@ function LoginPage() {
               Acesse sua conta para gerenciar o catálogo
             </CardDescription>
           </CardHeader>
-
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  name="email"
-                  placeholder="seu@email.com"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-              {error && (
-                <p className="text-sm text-red-600">{error.message}</p>
-              )}
-            </CardContent>
-
-            <CardFooter className="flex flex-col gap-3">
-              <Button type="submit" className="w-full" disabled={isPending}>
-                Entrar
-              </Button>
-
-              <p className="text-sm text-neutral-500 text-center">
-                Não tem uma conta?{" "}
-                <Link
-                  to="/register"
-                  className="text-neutral-900 font-medium underline underline-offset-4 hover:text-neutral-700"
-                >
-                  Cadastre-se
-                </Link>
-              </p>
-            </CardFooter>
-          </form>
+          <LoginForm />
         </Card>
       </div>
     </PageShell>
