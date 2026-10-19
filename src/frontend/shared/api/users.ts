@@ -3,30 +3,22 @@ import type {
   UserRegisterInput,
   UpdateUserInput,
 } from "@/backend/http/features/users/user.schema";
-import { apiFetch, ApiError } from "@/frontend/shared/api/client";
+import { apiFetch } from "@/frontend/shared/api/client";
 
+// Erros são propagados como ApiError (com mensagem e erros por campo do servidor)
+// e interpretados em features/auth/auth.errors.ts.
 export async function registerUser(data: UserRegisterInput): Promise<void> {
-  try {
-    await apiFetch("/api/v1/users/", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  } catch (e) {
-    if (e instanceof ApiError && e.status === 409) throw new Error("Email já cadastrado", { cause: e });
-    throw e;
-  }
+  await apiFetch("/api/v1/users/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
 export async function loginUser(data: UserLoginInput): Promise<void> {
-  try {
-    await apiFetch("/api/v1/sessions/", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  } catch (e) {
-    if (e instanceof ApiError && e.status === 401) throw new Error("Credenciais inválidas", { cause: e });
-    throw e;
-  }
+  await apiFetch("/api/v1/sessions/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
 export async function logoutUser(): Promise<void> {

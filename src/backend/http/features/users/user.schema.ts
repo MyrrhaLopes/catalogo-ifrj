@@ -1,21 +1,66 @@
 import z from "zod";
 
-const passwordSchema = z
-  .string()
-  .min(8, "Mínimo 8 caracteres")
-  .max(72, "Máximo 72 caracteres")
-  .regex(/[A-Z]/, "Precisa de pelo menos uma letra maiúscula")
-  .regex(/[a-z]/, "Precisa de pelo menos uma letra minúscula")
-  .regex(/[0-9]/, "Precisa de pelo menos um número")
-  .regex(/[^A-Za-z0-9]/, "Precisa de pelo menos um caractere especial");
+export const PASSWORD_MIN_LENGTH = 12;
+export const PASSWORD_MAX_LENGTH = 18;
+
+export type PasswordRule = {
+  id: string;
+  label: string;
+  message: string;
+  test: (password: string) => boolean;
+};
+
+// Fonte única dos requisitos de senha: usada pelo schema Zod (servidor) e
+// pelo checklist exibido nas telas de login/registro (cliente).
+export const PASSWORD_RULES: PasswordRule[] = [
+  {
+    id: "length",
+    label: `Entre ${PASSWORD_MIN_LENGTH} e ${PASSWORD_MAX_LENGTH} caracteres`,
+    message: `A senha deve ter entre ${PASSWORD_MIN_LENGTH} e ${PASSWORD_MAX_LENGTH} caracteres`,
+    test: (p) => p.length >= PASSWORD_MIN_LENGTH && p.length <= PASSWORD_MAX_LENGTH,
+  },
+  {
+    id: "uppercase",
+    label: "Uma letra maiúscula",
+    message: "A senha precisa de pelo menos uma letra maiúscula",
+    test: (p) => /[A-Z]/.test(p),
+  },
+  {
+    id: "lowercase",
+    label: "Uma letra minúscula",
+    message: "A senha precisa de pelo menos uma letra minúscula",
+    test: (p) => /[a-z]/.test(p),
+  },
+  {
+    id: "number",
+    label: "Um número",
+    message: "A senha precisa de pelo menos um número",
+    test: (p) => /[0-9]/.test(p),
+  },
+  {
+    id: "special",
+    label: "Um caractere especial (ex: ! @ # $ %)",
+    message: "A senha precisa de pelo menos um caractere especial",
+    test: (p) => /[^A-Za-z0-9]/.test(p),
+  },
+];
+
+export const passwordSchema = PASSWORD_RULES.reduce(
+  (schema, rule) => schema.refine(rule.test, rule.message),
+  z.string({ error: "Informe a senha" }),
+);
+
+const emailSchema = z.email({ error: "Informe um e-mail válido" });
 
 export const userRegisterSchema = z.object({
-  email: z.email(),
+  email: emailSchema,
   password: passwordSchema,
 });
 
+export const userLoginSchema = userRegisterSchema;
+
 export type UserRegisterInput = z.infer<typeof userRegisterSchema>;
-export type UserLoginInput = z.infer<typeof userRegisterSchema>;
+export type UserLoginInput = z.infer<typeof userLoginSchema>;
 
 export const userListItemSchema = z.object({
   id: z.uuid(),

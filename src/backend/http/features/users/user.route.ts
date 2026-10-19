@@ -1,7 +1,11 @@
 import { Router } from "express";
 
 export const userRouter = Router();
-import { userRegisterSchema, updateUserSchema } from "./user.schema";
+import {
+  userRegisterSchema,
+  userLoginSchema,
+  updateUserSchema,
+} from "./user.schema";
 import { USER_SERVICE } from "./user.service";
 import { authorizeUser } from "../../middleware/authorizeUser";
 
@@ -13,12 +17,8 @@ userRouter.post("/users/", async (req, res, next) => {
 
     return res.status(201).json({ user });
   } catch (err) {
-    if (!(err instanceof Error)) {
-      //TODO: buscar implicação de retornar erros não tipados dessa forma
-      return res.status(500);
-    }
-    if (err.message.includes("email")) {
-      return res.status(409).json({ message: "Email já cadastrado" });
+    if (err instanceof Error && err.message === "email already exists") {
+      return res.status(409).json({ message: "Este e-mail já está cadastrado" });
     }
     next(err);
   }
@@ -27,7 +27,7 @@ userRouter.post("/users/", async (req, res, next) => {
 //logar o usuário (criar sessão)
 userRouter.post("/sessions/", async (req, res, next) => {
   try {
-    const { email, password } = userRegisterSchema.parse(req.body);
+    const { email, password } = userLoginSchema.parse(req.body);
     const sessionId = await USER_SERVICE.loginUser(email, password);
     return res
       .cookie("session_id", sessionId, {
@@ -38,13 +38,12 @@ userRouter.post("/sessions/", async (req, res, next) => {
       .status(201)
       .send();
   } catch (err) {
-    console.log(err);
     if (!(err instanceof Error)) return next(err);
     if (
       err.message === "user not found" ||
       err.message === "Credenciais inválidas"
     ) {
-      return res.status(401).json({ message: "Credenciais inválidas" });
+      return res.status(401).json({ message: "E-mail ou senha incorretos" });
     }
     next(err);
   }
