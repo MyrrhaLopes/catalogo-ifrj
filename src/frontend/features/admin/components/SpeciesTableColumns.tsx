@@ -78,7 +78,7 @@ function TaxonomyCell({ species }: { species: SpeciesSearchResult }) {
   );
 }
 
-function SpecimenChip({ specimen }: { specimen: { id: number; code: string } }) {
+function SpecimenChip({ specimen }: { specimen: { id: number; code: string; exposicao: "humida" | "seca" } }) {
   const navigate = useNavigate();
   const updateMutation = useUpdateSpecimen();
 
@@ -86,6 +86,7 @@ function SpecimenChip({ specimen }: { specimen: { id: number; code: string } }) 
     <span className="inline-flex items-center gap-0.5 rounded border px-1.5 py-0.5 text-xs bg-muted">
       <button
         className="text-primary hover:underline"
+        title={specimen.exposicao === "seca" ? "Exposição seca" : "Exposição húmida"}
         onClick={() =>
           void navigate({
             to: "/admin",
@@ -98,6 +99,7 @@ function SpecimenChip({ specimen }: { specimen: { id: number; code: string } }) 
         }
       >
         {specimen.code}
+        <span className="text-muted-foreground"> ({specimen.exposicao === "seca" ? "S" : "H"})</span>
       </button>
       <button
         className="text-muted-foreground hover:text-destructive ml-0.5"

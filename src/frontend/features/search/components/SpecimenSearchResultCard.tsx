@@ -16,6 +16,7 @@ export function SpecimenSearchResultCard({ specimen }: Props) {
       <div className="min-w-0 flex-1">
         <p className="font-semibold text-neutral-900">{specimen.code}</p>
         <div className="mt-1 flex gap-3 text-sm text-neutral-500">
+          <span>{specimen.exposicao === "seca" ? "Exposição seca" : "Exposição húmida"}</span>
           {specimen.lot != null && <span>Lote {specimen.lot}</span>}
           {specimen.shelf != null && <span>Prateleira {specimen.shelf}</span>}
         </div>

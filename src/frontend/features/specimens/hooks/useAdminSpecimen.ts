@@ -16,7 +16,8 @@ export function useSpecimenList() {
 export function useCreateSpecimen() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { code: string; lot?: number; shelf?: number }) => createSpecimen(data),
+    mutationFn: (data: { code: string; exposicao: "humida" | "seca"; lot?: number; shelf?: number }) =>
+      createSpecimen(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["specimens"] });
     },
@@ -31,7 +32,13 @@ export function useUpdateSpecimen() {
       patch,
     }: {
       id: number;
-      patch: { code?: string; lot?: number | null; shelf?: number | null; speciesId?: number | null };
+      patch: {
+        code?: string;
+        exposicao?: "humida" | "seca";
+        lot?: number | null;
+        shelf?: number | null;
+        speciesId?: number | null;
+      };
     }) => updateSpecimen(id, patch),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["specimens"] });

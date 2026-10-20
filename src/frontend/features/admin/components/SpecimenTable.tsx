@@ -80,6 +80,30 @@ function EditableCell({ specimenId, field, value, type = "text", className }: Ed
 }
 
 // ────────────────────────────────────────────────────────────────────
+// Exposição cell
+// ────────────────────────────────────────────────────────────────────
+
+function ExposicaoCell({ specimenId, value }: { specimenId: number; value: "humida" | "seca" }) {
+  const updateMutation = useUpdateSpecimen();
+
+  return (
+    <select
+      value={value}
+      onChange={(e) =>
+        updateMutation.mutate({
+          id: specimenId,
+          patch: { exposicao: e.target.value as "humida" | "seca" },
+        })
+      }
+      className="h-7 w-24 rounded border border-input bg-transparent px-1 text-sm"
+    >
+      <option value="seca">Seca</option>
+      <option value="humida">Húmida</option>
+    </select>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────
 // Linked species cell
 // ────────────────────────────────────────────────────────────────────
 
@@ -142,8 +166,11 @@ function DeleteCell({ specimen }: { specimen: Specimen }) {
       title="Excluir espécime"
       description={
         <>
-          Tem certeza que deseja excluir o espécime <strong>{specimen.code}</strong>? Esta ação não
-          pode ser desfeita.
+          Tem certeza que deseja excluir o espécime{" "}
+          <strong>
+            {specimen.code} ({specimen.exposicao === "seca" ? "seca" : "húmida"})
+          </strong>
+          ? Esta ação não pode ser desfeita.
         </>
       }
       isPending={deleteMutation.isPending}
@@ -179,6 +206,13 @@ const columns = columnHelper.columns([
         type="text"
         className="w-28"
       />
+    ),
+  }),
+  columnHelper.display({
+    id: "exposicao",
+    header: "Exposição",
+    cell: (ctx) => (
+      <ExposicaoCell specimenId={ctx.row.original.id} value={ctx.row.original.exposicao} />
     ),
   }),
   columnHelper.display({

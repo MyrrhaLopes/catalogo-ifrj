@@ -25,19 +25,25 @@ export const taxonomyTable = pgTable("taxonomies", {
     .notNull(),
 });
 
-export const specimenTable = pgTable("specimens", {
-  id: serial("id").primaryKey(),
-  lot: integer("lot"),
-  shelf: integer("shelf"),
-  code: text("code").notNull(),
-  speciesId: integer("species_id").references((): AnyPgColumn => speciesTable.id, {
-    onDelete: "set null",
-  }),
-  createdBy: uuid("created_by")
-    .references(() => usersTable.id)
-    .notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
+export const specimenTable = pgTable(
+  "specimens",
+  {
+    id: serial("id").primaryKey(),
+    lot: integer("lot"),
+    shelf: integer("shelf"),
+    code: text("code").notNull(),
+    // 'humida' = exposição húmida (preservado em líquido); 'seca' = exposição seca
+    exposicao: text("exposicao").$type<"humida" | "seca">().notNull(),
+    speciesId: integer("species_id").references((): AnyPgColumn => speciesTable.id, {
+      onDelete: "set null",
+    }),
+    createdBy: uuid("created_by")
+      .references(() => usersTable.id)
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [unique("specimens_code_exposicao_unique").on(table.code, table.exposicao)],
+);
 export type SpecimenTableInsert = typeof specimenTable.$inferInsert;
 
 export const speciesTable = pgTable("species", {

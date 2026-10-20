@@ -23,6 +23,7 @@ export async function listSpecimens(): Promise<SpecimenSearchResponse> {
 
 export async function createSpecimen(data: {
   code: string;
+  exposicao: "humida" | "seca";
   lot?: number;
   shelf?: number;
 }): Promise<Specimen> {
@@ -36,7 +37,13 @@ export async function createSpecimen(data: {
 
 export async function updateSpecimen(
   id: number,
-  patch: { code?: string; lot?: number | null; shelf?: number | null; speciesId?: number | null },
+  patch: {
+    code?: string;
+    exposicao?: "humida" | "seca";
+    lot?: number | null;
+    shelf?: number | null;
+    speciesId?: number | null;
+  },
 ): Promise<Specimen> {
   const res = await apiFetch(`/api/v1/specimens/${id}`, {
     method: "PATCH",

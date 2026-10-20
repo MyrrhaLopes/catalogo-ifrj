@@ -197,7 +197,7 @@ export function CreateImageModal({ open, onOpenChange, defaultSpeciesId }: Props
                 </option>
                 {availableSpecimens.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.code}
+                    {s.code} ({s.exposicao === "seca" ? "seca" : "húmida"})
                     {s.shelf != null ? ` · Prat. ${s.shelf}` : ""}
                     {s.lot != null ? ` · Lote ${s.lot}` : ""}
                   </option>

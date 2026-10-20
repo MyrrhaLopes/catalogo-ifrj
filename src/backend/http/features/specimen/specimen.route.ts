@@ -40,9 +40,10 @@ specimenRouter.get("/specimens/:id", async (req, res, next) => {
 
 specimenRouter.post("/specimens/", authorizeUser, async (req, res, next) => {
   try {
-    const { code, lot, shelf } = specimenInsertSchema.parse(req.body);
+    const { code, exposicao, lot, shelf } = specimenInsertSchema.parse(req.body);
     const specimen = await SPECIMEN_SERVICE.registerSpecimen({
       code,
+      exposicao,
       lot: lot ?? null,
       shelf: shelf ?? null,
       createdBy: req.user!.id,
