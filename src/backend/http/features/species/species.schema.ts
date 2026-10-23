@@ -25,6 +25,7 @@ const speciesAttributeSchema = z.object({
 const linkedSpecimenSchema = z.object({
   id: z.number(),
   code: z.string(),
+  exposicao: z.enum(["humida", "seca"]),
   lot: z.number().nullable(),
   shelf: z.number().nullable(),
 });

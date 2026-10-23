@@ -5,6 +5,7 @@ import { desc, eq, ilike } from "drizzle-orm";
 const specimenSelect = {
   id: specimenTable.id,
   code: specimenTable.code,
+  exposicao: specimenTable.exposicao,
   lot: specimenTable.lot,
   shelf: specimenTable.shelf,
   createdAt: specimenTable.createdAt,
@@ -14,6 +15,7 @@ const specimenSelect = {
 function mapSpecimenRow(row: {
   id: number;
   code: string;
+  exposicao: "humida" | "seca";
   lot: number | null;
   shelf: number | null;
   createdAt: Date | null;
@@ -22,6 +24,7 @@ function mapSpecimenRow(row: {
   return {
     id: row.id,
     code: row.code,
+    exposicao: row.exposicao,
     lot: row.lot,
     shelf: row.shelf,
     createdAt: row.createdAt?.toISOString() ?? null,
@@ -65,7 +68,13 @@ export const SPECIMEN_SERVICE = {
 
   updateSpecimen: async (
     id: number,
-    patch: { code?: string; lot?: number | null; shelf?: number | null; speciesId?: number | null },
+    patch: {
+      code?: string;
+      exposicao?: "humida" | "seca";
+      lot?: number | null;
+      shelf?: number | null;
+      speciesId?: number | null;
+    },
   ) => {
     const [updated] = await db
       .update(specimenTable)

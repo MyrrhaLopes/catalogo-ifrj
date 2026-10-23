@@ -22,6 +22,7 @@ type SpeciesRow = {
   createdBy: string;
   specimenId: number | null;
   specimenCode: string | null;
+  specimenExposicao: "humida" | "seca" | null;
   specimenLot: number | null;
   specimenShelf: number | null;
 };
@@ -34,7 +35,7 @@ export function groupSpeciesRows(rows: SpeciesRow[]) {
       speciesRoot: number;
       createdAt: Date | null;
       createdBy: string;
-      specimens: { id: number; code: string; lot: number | null; shelf: number | null }[];
+      specimens: { id: number; code: string; exposicao: "humida" | "seca"; lot: number | null; shelf: number | null }[];
     }
   >();
 
@@ -48,10 +49,11 @@ export function groupSpeciesRows(rows: SpeciesRow[]) {
         specimens: [],
       });
     }
-    if (row.specimenId != null && row.specimenCode != null) {
+    if (row.specimenId != null && row.specimenCode != null && row.specimenExposicao != null) {
       map.get(row.id)!.specimens.push({
         id: row.specimenId,
         code: row.specimenCode,
+        exposicao: row.specimenExposicao,
         lot: row.specimenLot,
         shelf: row.specimenShelf,
       });
@@ -82,6 +84,7 @@ export const SPECIES_SERVICE = {
         createdBy: speciesTable.createdBy,
         specimenId: specimenTable.id,
         specimenCode: specimenTable.code,
+        specimenExposicao: specimenTable.exposicao,
         specimenLot: specimenTable.lot,
         specimenShelf: specimenTable.shelf,
       })
@@ -100,7 +103,13 @@ export const SPECIES_SERVICE = {
     if (!species) return null;
 
     const specimenRows = await db
-      .select({ id: specimenTable.id, code: specimenTable.code, lot: specimenTable.lot, shelf: specimenTable.shelf })
+      .select({
+        id: specimenTable.id,
+        code: specimenTable.code,
+        exposicao: specimenTable.exposicao,
+        lot: specimenTable.lot,
+        shelf: specimenTable.shelf,
+      })
       .from(specimenTable)
       .where(eq(specimenTable.speciesId, specieId));
 
@@ -266,6 +275,7 @@ export const SPECIES_SERVICE = {
           speciesId: specimenTable.speciesId,
           specimenId: specimenTable.id,
           specimenCode: specimenTable.code,
+          specimenExposicao: specimenTable.exposicao,
           specimenLot: specimenTable.lot,
           specimenShelf: specimenTable.shelf,
         })
@@ -287,11 +297,20 @@ export const SPECIES_SERVICE = {
       (articleRows.rows as ArticleRow[]).map((r) => [r.species_id, r]),
     );
 
-    const pivotBySpecies = new Map<number, { id: number; code: string; lot: number | null; shelf: number | null }[]>();
+    const pivotBySpecies = new Map<
+      number,
+      { id: number; code: string; exposicao: "humida" | "seca"; lot: number | null; shelf: number | null }[]
+    >();
     for (const r of pivotRows) {
       if (r.speciesId == null) continue;
       const list = pivotBySpecies.get(r.speciesId) ?? [];
-      list.push({ id: r.specimenId, code: r.specimenCode, lot: r.specimenLot, shelf: r.specimenShelf });
+      list.push({
+        id: r.specimenId,
+        code: r.specimenCode,
+        exposicao: r.specimenExposicao,
+        lot: r.specimenLot,
+        shelf: r.specimenShelf,
+      });
       pivotBySpecies.set(r.speciesId, list);
     }
 

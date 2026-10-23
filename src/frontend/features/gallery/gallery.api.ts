@@ -16,6 +16,7 @@ const enrichedImageSchema = z.object({
   specimen: z
     .object({
       code: z.string(),
+      exposicao: z.enum(["humida", "seca"]),
       shelf: z.number().nullable(),
       lot: z.number().nullable(),
     })

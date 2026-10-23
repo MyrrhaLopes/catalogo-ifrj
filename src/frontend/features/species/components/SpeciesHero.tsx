@@ -37,7 +37,9 @@ export function SpeciesHero({ species, scientificName, popularName, isAdmin, isE
       speciesName: scientificName,
       popularName: popularName ?? null,
       taxonomyPath: species.taxonomyPath.map((n) => ({ label: n.label, labelValue: n.labelValue })),
-      specimen: specimen ? { code: specimen.code, shelf: specimen.shelf, lot: specimen.lot } : null,
+      specimen: specimen
+        ? { code: specimen.code, exposicao: specimen.exposicao, shelf: specimen.shelf, lot: specimen.lot }
+        : null,
       speciesThumbnail: species.thumbnailImage?.url ?? null,
     };
   });
@@ -77,11 +79,15 @@ export function SpeciesHero({ species, scientificName, popularName, isAdmin, isE
                 <span key={s.id} className="flex items-center gap-1 text-xs text-neutral-700 tv:text-sm">
                   {i > 0 && <span className="text-neutral-400">·</span>}
                   <span className="font-medium">{s.code}</span>
-                  {(s.shelf != null || s.lot != null) && (
-                    <span className="text-neutral-500">
-                      {[s.shelf != null ? `Prateleira ${s.shelf}` : null, s.lot != null ? `Lote ${s.lot}` : null].filter(Boolean).join(" | ")}
-                    </span>
-                  )}
+                  <span className="text-neutral-500">
+                    {[
+                      s.exposicao === "seca" ? "Seca" : "Húmida",
+                      s.shelf != null ? `Prateleira ${s.shelf}` : null,
+                      s.lot != null ? `Lote ${s.lot}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" | ")}
+                  </span>
                 </span>
               ))}
             </div>

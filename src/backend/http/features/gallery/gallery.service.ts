@@ -21,7 +21,7 @@ type GalleryImageData = {
   speciesName: string;
   popularName: string | null;
   taxonomyPath: { label: string; labelValue: string }[];
-  specimen: { code: string; shelf: number | null; lot: number | null } | null;
+  specimen: { code: string; exposicao: "humida" | "seca"; shelf: number | null; lot: number | null } | null;
   speciesThumbnail: string | null;
 };
 
@@ -108,20 +108,21 @@ export const GALLERY_SERVICE = {
 
     const specimenMap = new Map<
       number,
-      { code: string; shelf: number | null; lot: number | null }
+      { code: string; exposicao: "humida" | "seca"; shelf: number | null; lot: number | null }
     >();
     if (specimenIds.length > 0) {
       const specRows = await db
         .select({
           id: specimenTable.id,
           code: specimenTable.code,
+          exposicao: specimenTable.exposicao,
           shelf: specimenTable.shelf,
           lot: specimenTable.lot,
         })
         .from(specimenTable)
         .where(inArray(specimenTable.id, specimenIds));
       for (const r of specRows)
-        specimenMap.set(r.id, { code: r.code, shelf: r.shelf, lot: r.lot });
+        specimenMap.set(r.id, { code: r.code, exposicao: r.exposicao, shelf: r.shelf, lot: r.lot });
     }
 
     type PathRow = { species_id: number; label: string; label_value: string };

@@ -15,7 +15,7 @@ export type ViewerImage = {
   speciesName?: string;
   popularName?: string | null;
   taxonomyPath?: { label: string; labelValue: string }[];
-  specimen?: { code: string; shelf: number | null; lot: number | null } | null;
+  specimen?: { code: string; exposicao?: "humida" | "seca"; shelf: number | null; lot: number | null } | null;
   speciesThumbnail?: string | null;
 };
 
@@ -196,6 +196,14 @@ function ImageViewerSpecimenInfo({ specimen }: { specimen?: ViewerImage["specime
           <span className="text-neutral-500">Código</span>
           <span className="font-semibold text-neutral-900">{specimen.code}</span>
         </div>
+        {specimen.exposicao != null && (
+          <div className="flex justify-between">
+            <span className="text-neutral-500">Exposição</span>
+            <span className="font-semibold text-neutral-900">
+              {specimen.exposicao === "seca" ? "Seca" : "Húmida"}
+            </span>
+          </div>
+        )}
         {specimen.shelf != null && (
           <div className="flex justify-between">
             <span className="text-neutral-500">Prateleira</span>

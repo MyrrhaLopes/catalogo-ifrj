@@ -21,11 +21,13 @@ export function CreateSpecimenModal({ open, onOpenChange }: Props) {
   const createMutation = useCreateSpecimen();
 
   const [code, setCode] = useState("");
+  const [exposicao, setExposicao] = useState<"humida" | "seca">("seca");
   const [lot, setLot] = useState("");
   const [shelf, setShelf] = useState("");
 
   function handleClose() {
     setCode("");
+    setExposicao("seca");
     setLot("");
     setShelf("");
     onOpenChange(false);
@@ -37,6 +39,7 @@ export function CreateSpecimenModal({ open, onOpenChange }: Props) {
 
     await createMutation.mutateAsync({
       code: code.trim(),
+      exposicao,
       lot: lot !== "" ? Number(lot) : undefined,
       shelf: shelf !== "" ? Number(shelf) : undefined,
     });
@@ -61,6 +64,28 @@ export function CreateSpecimenModal({ open, onOpenChange }: Props) {
               placeholder="ex: IFRJ-001"
               required
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Exposição *</Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={exposicao === "seca" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setExposicao("seca")}
+              >
+                Seca
+              </Button>
+              <Button
+                type="button"
+                variant={exposicao === "humida" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setExposicao("humida")}
+              >
+                Húmida
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

@@ -712,7 +712,7 @@ async function seed() {
 
   const [specimen_esponja_do_mar] = await db
     .insert(specimenTable)
-    .values({ code: "CPINPORI01", lot: 1, shelf: 1, createdBy: user.id, speciesId: species_esponja_do_mar.id })
+    .values({ code: "CPINPORI01", exposicao: "seca", lot: 1, shelf: 1, createdBy: user.id, speciesId: species_esponja_do_mar.id })
     .returning();
   // ---- anemona (Actiniaria) ----
 
@@ -820,7 +820,7 @@ async function seed() {
 
   const [specimen_anemona] = await db
     .insert(specimenTable)
-    .values({ code: "CPINCNID01", lot: 1, shelf: 1, createdBy: user.id, speciesId: species_anemona.id })
+    .values({ code: "CPINCNID01", exposicao: "humida", lot: 1, shelf: 1, createdBy: user.id, speciesId: species_anemona.id })
     .returning();
   // ---- lombriga (Ascaris lumbricoides) ----
 
@@ -919,7 +919,7 @@ async function seed() {
 
   const [specimen_lombriga] = await db
     .insert(specimenTable)
-    .values({ code: "CPINNEMA01", lot: 1, shelf: 1, createdBy: user.id, speciesId: species_lombriga.id })
+    .values({ code: "CPINNEMA01", exposicao: "humida", lot: 1, shelf: 1, createdBy: user.id, speciesId: species_lombriga.id })
     .returning();
   // ---- planaria (Tricladida) ----
 
@@ -1015,7 +1015,7 @@ async function seed() {
 
   const [specimen_planaria] = await db
     .insert(specimenTable)
-    .values({ code: "CPINPLAT01", lot: 1, shelf: 1, createdBy: user.id, speciesId: species_planaria.id })
+    .values({ code: "CPINPLAT01", exposicao: "humida", lot: 1, shelf: 1, createdBy: user.id, speciesId: species_planaria.id })
     .returning();
   // ---- tenia (Taenia solium) ----
 
@@ -1092,7 +1092,7 @@ async function seed() {
 
   const [specimen_tenia] = await db
     .insert(specimenTable)
-    .values({ code: "CPINPLAT02", lot: 2, shelf: 1, createdBy: user.id, speciesId: species_tenia.id })
+    .values({ code: "CPINPLAT02", exposicao: "humida", lot: 2, shelf: 1, createdBy: user.id, speciesId: species_tenia.id })
     .returning();
   // ---- bivalve (Perna perna) ----
 
@@ -1175,7 +1175,7 @@ async function seed() {
 
   const [specimen_bivalve] = await db
     .insert(specimenTable)
-    .values({ code: "CPINMOL01", lot: 1, shelf: 1, createdBy: user.id, speciesId: species_bivalve.id })
+    .values({ code: "CPINMOL01", exposicao: "seca", lot: 1, shelf: 1, createdBy: user.id, speciesId: species_bivalve.id })
     .returning();
   // ---- lula-1 (Doryteuthis plei) ----
 
@@ -1254,7 +1254,7 @@ async function seed() {
 
   const [specimen_lula_1] = await db
     .insert(specimenTable)
-    .values({ code: "CPINMOL02", lot: 2, shelf: 1, createdBy: user.id, speciesId: species_lula_1.id })
+    .values({ code: "CPINMOL02", exposicao: "humida", lot: 2, shelf: 1, createdBy: user.id, speciesId: species_lula_1.id })
     .returning();
   // ---- lesma (Phyllocaulis variegatus) ----
 
@@ -1339,7 +1339,7 @@ async function seed() {
 
   const [specimen_lesma] = await db
     .insert(specimenTable)
-    .values({ code: "CPINMOL03", lot: 3, shelf: 1, createdBy: user.id, speciesId: species_lesma.id })
+    .values({ code: "CPINMOL03", exposicao: "humida", lot: 3, shelf: 1, createdBy: user.id, speciesId: species_lesma.id })
     .returning();
   // ---- caramujo (Lissachatina fulica) ----
 
@@ -1435,7 +1435,7 @@ async function seed() {
 
   const [specimen_caramujo] = await db
     .insert(specimenTable)
-    .values({ code: "CPINMOL04", lot: 4, shelf: 1, createdBy: user.id, speciesId: species_caramujo.id })
+    .values({ code: "CPINMOL04", exposicao: "seca", lot: 4, shelf: 1, createdBy: user.id, speciesId: species_caramujo.id })
     .returning();
   // ---- lula-2 (Lolliguncula brevis) ----
 
@@ -1547,7 +1547,7 @@ async function seed() {
 
   const [specimen_lula_2] = await db
     .insert(specimenTable)
-    .values({ code: "CPINMOL05", lot: 5, shelf: 1, createdBy: user.id, speciesId: species_lula_2.id })
+    .values({ code: "CPINMOL05", exposicao: "humida", lot: 5, shelf: 1, createdBy: user.id, speciesId: species_lula_2.id })
     .returning();
   // ---- polvo (Octopus vulgaris) ----
 
@@ -1649,7 +1649,7 @@ async function seed() {
 
   const [specimen_polvo] = await db
     .insert(specimenTable)
-    .values({ code: "CPINMOL06", lot: 6, shelf: 1, createdBy: user.id, speciesId: species_polvo.id })
+    .values({ code: "CPINMOL06", exposicao: "humida", lot: 6, shelf: 1, createdBy: user.id, speciesId: species_polvo.id })
     .returning();
   // ---- sanguessuga (Hirudo medicinalis) ----
 
@@ -1754,7 +1754,7 @@ async function seed() {
 
   const [specimen_sanguessuga] = await db
     .insert(specimenTable)
-    .values({ code: "CPINANEL01", lot: 1, shelf: 1, createdBy: user.id, speciesId: species_sanguessuga.id })
+    .values({ code: "CPINANEL01", exposicao: "humida", lot: 1, shelf: 1, createdBy: user.id, speciesId: species_sanguessuga.id })
     .returning();
   // ---- minhoca (Pontoscolex corethrurus) ----
 
@@ -1862,7 +1862,7 @@ async function seed() {
 
   const [specimen_minhoca] = await db
     .insert(specimenTable)
-    .values({ code: "CPINANEL02", lot: 2, shelf: 1, createdBy: user.id, speciesId: species_minhoca.id })
+    .values({ code: "CPINANEL02", exposicao: "humida", lot: 2, shelf: 1, createdBy: user.id, speciesId: species_minhoca.id })
     .returning();
   // ---- cigarra (Quesada gigas) ----
 
@@ -1968,7 +1968,7 @@ async function seed() {
 
   const [specimen_cigarra] = await db
     .insert(specimenTable)
-    .values({ code: "CPINHEXA01", lot: 1, shelf: 2, createdBy: user.id, speciesId: species_cigarra.id })
+    .values({ code: "CPINHEXA01", exposicao: "seca", lot: 1, shelf: 2, createdBy: user.id, speciesId: species_cigarra.id })
     .returning();
   // ---- besouro-escaravelho (Scarabaeidae) ----
 
@@ -2073,7 +2073,7 @@ async function seed() {
 
   const [specimen_besouro_escaravelho] = await db
     .insert(specimenTable)
-    .values({ code: "CPINHEXA02", lot: 2, shelf: 2, createdBy: user.id, speciesId: species_besouro_escaravelho.id })
+    .values({ code: "CPINHEXA02", exposicao: "seca", lot: 2, shelf: 2, createdBy: user.id, speciesId: species_besouro_escaravelho.id })
     .returning();
   // ---- abelha (Apis mellifera) ----
 
@@ -2183,7 +2183,7 @@ async function seed() {
 
   const [specimen_abelha] = await db
     .insert(specimenTable)
-    .values({ code: "CPINHEXA03", lot: 3, shelf: 2, createdBy: user.id, speciesId: species_abelha.id })
+    .values({ code: "CPINHEXA03", exposicao: "seca", lot: 3, shelf: 2, createdBy: user.id, speciesId: species_abelha.id })
     .returning();
   // ---- libelula (Erythemis vesiculosa) ----
 
@@ -2278,7 +2278,7 @@ async function seed() {
 
   const [specimen_libelula] = await db
     .insert(specimenTable)
-    .values({ code: "CPINHEXA04", lot: 4, shelf: 2, createdBy: user.id, speciesId: species_libelula.id })
+    .values({ code: "CPINHEXA04", exposicao: "seca", lot: 4, shelf: 2, createdBy: user.id, speciesId: species_libelula.id })
     .returning();
   // ---- grilo (Gryllus assimilis) ----
 
@@ -2404,7 +2404,7 @@ async function seed() {
 
   const [specimen_grilo] = await db
     .insert(specimenTable)
-    .values({ code: "CPINHEXA05", lot: 5, shelf: 2, createdBy: user.id, speciesId: species_grilo.id })
+    .values({ code: "CPINHEXA05", exposicao: "seca", lot: 5, shelf: 2, createdBy: user.id, speciesId: species_grilo.id })
     .returning();
   // ---- larva-mosca-1 (Musca domestica) ----
 
@@ -2499,7 +2499,7 @@ async function seed() {
 
   const [specimen_larva_mosca_1] = await db
     .insert(specimenTable)
-    .values({ code: "CPINHEXA06", lot: 6, shelf: 2, createdBy: user.id, speciesId: species_larva_mosca_1.id })
+    .values({ code: "CPINHEXA06", exposicao: "humida", lot: 6, shelf: 2, createdBy: user.id, speciesId: species_larva_mosca_1.id })
     .returning();
   // ---- mariposa (Ascalapha odorata) ----
 
@@ -2620,7 +2620,7 @@ async function seed() {
 
   const [specimen_mariposa] = await db
     .insert(specimenTable)
-    .values({ code: "CPINHEXA07", lot: 7, shelf: 2, createdBy: user.id, speciesId: species_mariposa.id })
+    .values({ code: "CPINHEXA07", exposicao: "seca", lot: 7, shelf: 2, createdBy: user.id, speciesId: species_mariposa.id })
     .returning();
   // ---- barata (Periplaneta americana) ----
 
@@ -2738,7 +2738,7 @@ async function seed() {
 
   const [specimen_barata] = await db
     .insert(specimenTable)
-    .values({ code: "CPINHEXA08", lot: 8, shelf: 2, createdBy: user.id, speciesId: species_barata.id })
+    .values({ code: "CPINHEXA08", exposicao: "seca", lot: 8, shelf: 2, createdBy: user.id, speciesId: species_barata.id })
     .returning();
   // ---- ovo-mosca (Musca domestica) ----
 
@@ -2800,7 +2800,7 @@ async function seed() {
 
   const [specimen_ovo_mosca] = await db
     .insert(specimenTable)
-    .values({ code: "CPINHEXA09", lot: 9, shelf: 2, createdBy: user.id, speciesId: species_ovo_mosca.id })
+    .values({ code: "CPINHEXA09", exposicao: "humida", lot: 9, shelf: 2, createdBy: user.id, speciesId: species_ovo_mosca.id })
     .returning();
   // ---- larva-mosca-2 (Chrysomya megacephala) ----
 
@@ -2909,7 +2909,7 @@ async function seed() {
 
   const [specimen_larva_mosca_2] = await db
     .insert(specimenTable)
-    .values({ code: "CPINHEXA10", lot: 10, shelf: 2, createdBy: user.id, speciesId: species_larva_mosca_2.id })
+    .values({ code: "CPINHEXA10", exposicao: "humida", lot: 10, shelf: 2, createdBy: user.id, speciesId: species_larva_mosca_2.id })
     .returning();
   // ---- larva-mosca-3 (Lucilia sericata) ----
 
@@ -3002,7 +3002,7 @@ async function seed() {
 
   const [specimen_larva_mosca_3] = await db
     .insert(specimenTable)
-    .values({ code: "CPINHEXA11", lot: 11, shelf: 2, createdBy: user.id, speciesId: species_larva_mosca_3.id })
+    .values({ code: "CPINHEXA11", exposicao: "humida", lot: 11, shelf: 2, createdBy: user.id, speciesId: species_larva_mosca_3.id })
     .returning();
   // ---- larva-mosca-4 (Chrysomya albiceps) ----
 
@@ -3115,7 +3115,7 @@ async function seed() {
 
   const [specimen_larva_mosca_4] = await db
     .insert(specimenTable)
-    .values({ code: "CPINHEXA12", lot: 12, shelf: 2, createdBy: user.id, speciesId: species_larva_mosca_4.id })
+    .values({ code: "CPINHEXA12", exposicao: "humida", lot: 12, shelf: 2, createdBy: user.id, speciesId: species_larva_mosca_4.id })
     .returning();
   // ---- pupa-mosca (Musca domestica) ----
 
@@ -3172,7 +3172,7 @@ async function seed() {
 
   const [specimen_pupa_mosca] = await db
     .insert(specimenTable)
-    .values({ code: "CPINHEXA13", lot: 13, shelf: 2, createdBy: user.id, speciesId: species_pupa_mosca.id })
+    .values({ code: "CPINHEXA13", exposicao: "humida", lot: 13, shelf: 2, createdBy: user.id, speciesId: species_pupa_mosca.id })
     .returning();
   // ---- mosca (Musca domestica) ----
 
@@ -3221,7 +3221,7 @@ async function seed() {
 
   const [specimen_mosca] = await db
     .insert(specimenTable)
-    .values({ code: "CPINHEXA14", lot: 14, shelf: 2, createdBy: user.id, speciesId: species_mosca.id })
+    .values({ code: "CPINHEXA14", exposicao: "seca", lot: 14, shelf: 2, createdBy: user.id, speciesId: species_mosca.id })
     .returning();
   // ---- besouro-chifre (Dynastinae) ----
 
@@ -3328,7 +3328,7 @@ async function seed() {
 
   const [specimen_besouro_chifre] = await db
     .insert(specimenTable)
-    .values({ code: "CPINHEXA15", lot: 15, shelf: 2, createdBy: user.id, speciesId: species_besouro_chifre.id })
+    .values({ code: "CPINHEXA15", exposicao: "seca", lot: 15, shelf: 2, createdBy: user.id, speciesId: species_besouro_chifre.id })
     .returning();
   // ---- lagarta-borboleta (Heliconius erato phyllis) ----
 
@@ -3409,7 +3409,7 @@ async function seed() {
 
   const [specimen_lagarta_borboleta] = await db
     .insert(specimenTable)
-    .values({ code: "CPINHEXA16", lot: 16, shelf: 2, createdBy: user.id, speciesId: species_lagarta_borboleta.id })
+    .values({ code: "CPINHEXA16", exposicao: "humida", lot: 16, shelf: 2, createdBy: user.id, speciesId: species_lagarta_borboleta.id })
     .returning();
   // ---- besouros (Macrodontia cervicornis) ----
 
@@ -3487,7 +3487,7 @@ async function seed() {
 
   const [specimen_besouros] = await db
     .insert(specimenTable)
-    .values({ code: "CPINHEXA17", lot: 17, shelf: 2, createdBy: user.id, speciesId: species_besouros.id })
+    .values({ code: "CPINHEXA17", exposicao: "seca", lot: 17, shelf: 2, createdBy: user.id, speciesId: species_besouros.id })
     .returning();
   // ---- besouro-gorgulho (Sitophilus zeamais) ----
 
@@ -3579,7 +3579,7 @@ async function seed() {
 
   const [specimen_besouro_gorgulho] = await db
     .insert(specimenTable)
-    .values({ code: "CPINHEXA18", lot: 18, shelf: 2, createdBy: user.id, speciesId: species_besouro_gorgulho.id })
+    .values({ code: "CPINHEXA18", exposicao: "seca", lot: 18, shelf: 2, createdBy: user.id, speciesId: species_besouro_gorgulho.id })
     .returning();
   // ---- inseto-aquatico (Ranatra sp.) ----
 
@@ -3693,7 +3693,7 @@ async function seed() {
 
   const [specimen_inseto_aquatico] = await db
     .insert(specimenTable)
-    .values({ code: "CPINHEXA19", lot: 19, shelf: 2, createdBy: user.id, speciesId: species_inseto_aquatico.id })
+    .values({ code: "CPINHEXA19", exposicao: "humida", lot: 19, shelf: 2, createdBy: user.id, speciesId: species_inseto_aquatico.id })
     .returning();
   // ---- louva-a-deus (Mantidae) ----
 
@@ -3767,7 +3767,7 @@ async function seed() {
 
   const [specimen_louva_a_deus] = await db
     .insert(specimenTable)
-    .values({ code: "CPINHEXA20", lot: 20, shelf: 2, createdBy: user.id, speciesId: species_louva_a_deus.id })
+    .values({ code: "CPINHEXA20", exposicao: "seca", lot: 20, shelf: 2, createdBy: user.id, speciesId: species_louva_a_deus.id })
     .returning();
   // ---- piolho-de-cobra (Diplopoda) ----
 
@@ -3879,7 +3879,7 @@ async function seed() {
 
   const [specimen_piolho_de_cobra] = await db
     .insert(specimenTable)
-    .values({ code: "CPINMYR01", lot: 1, shelf: 3, createdBy: user.id, speciesId: species_piolho_de_cobra.id })
+    .values({ code: "CPINMYR01", exposicao: "humida", lot: 1, shelf: 3, createdBy: user.id, speciesId: species_piolho_de_cobra.id })
     .returning();
   // ---- lacraia (Scolopendra viridicornis) ----
 
@@ -3962,7 +3962,7 @@ async function seed() {
 
   const [specimen_lacraia] = await db
     .insert(specimenTable)
-    .values({ code: "CPINMYR02", lot: 2, shelf: 3, createdBy: user.id, speciesId: species_lacraia.id })
+    .values({ code: "CPINMYR02", exposicao: "humida", lot: 2, shelf: 3, createdBy: user.id, speciesId: species_lacraia.id })
     .returning();
   // ---- aranhas (Trichonephila clavipes) ----
 
@@ -4050,7 +4050,7 @@ async function seed() {
 
   const [specimen_aranhas] = await db
     .insert(specimenTable)
-    .values({ code: "CPINCHE01", lot: 1, shelf: 3, createdBy: user.id, speciesId: species_aranhas.id })
+    .values({ code: "CPINCHE01", exposicao: "humida", lot: 1, shelf: 3, createdBy: user.id, speciesId: species_aranhas.id })
     .returning();
   // ---- aranha-alcapao (Actinopus sp.) ----
 
@@ -4157,7 +4157,7 @@ async function seed() {
 
   const [specimen_aranha_alcapao] = await db
     .insert(specimenTable)
-    .values({ code: "CPINCHE02", lot: 2, shelf: 3, createdBy: user.id, speciesId: species_aranha_alcapao.id })
+    .values({ code: "CPINCHE02", exposicao: "humida", lot: 2, shelf: 3, createdBy: user.id, speciesId: species_aranha_alcapao.id })
     .returning();
   // ---- escorpiao-amarelo (Tityus serrulatus) ----
 
@@ -4250,7 +4250,7 @@ async function seed() {
 
   const [specimen_escorpiao_amarelo] = await db
     .insert(specimenTable)
-    .values({ code: "CPINCHE03", lot: 3, shelf: 3, createdBy: user.id, speciesId: species_escorpiao_amarelo.id })
+    .values({ code: "CPINCHE03", exposicao: "humida", lot: 3, shelf: 3, createdBy: user.id, speciesId: species_escorpiao_amarelo.id })
     .returning();
   // ---- opiliao (Mischonyx squalidus) ----
 
@@ -4357,7 +4357,7 @@ async function seed() {
 
   const [specimen_opiliao] = await db
     .insert(specimenTable)
-    .values({ code: "CPINCHE04", lot: 4, shelf: 3, createdBy: user.id, speciesId: species_opiliao.id })
+    .values({ code: "CPINCHE04", exposicao: "humida", lot: 4, shelf: 3, createdBy: user.id, speciesId: species_opiliao.id })
     .returning();
   // ---- carrapato-sapo (Amblyomma rotundatum) ----
 
@@ -4445,7 +4445,7 @@ async function seed() {
 
   const [specimen_carrapato_sapo] = await db
     .insert(specimenTable)
-    .values({ code: "CPINCHE05", lot: 5, shelf: 3, createdBy: user.id, speciesId: species_carrapato_sapo.id })
+    .values({ code: "CPINCHE05", exposicao: "humida", lot: 5, shelf: 3, createdBy: user.id, speciesId: species_carrapato_sapo.id })
     .returning();
   // ---- carrapato-ave (Argas miniatus) ----
 
@@ -4553,7 +4553,7 @@ async function seed() {
 
   const [specimen_carrapato_ave] = await db
     .insert(specimenTable)
-    .values({ code: "CPINCHE06", lot: 6, shelf: 3, createdBy: user.id, speciesId: species_carrapato_ave.id })
+    .values({ code: "CPINCHE06", exposicao: "humida", lot: 6, shelf: 3, createdBy: user.id, speciesId: species_carrapato_ave.id })
     .returning();
   // ---- carrapato-bovino (Rhipicephalus microplus) ----
 
@@ -4669,7 +4669,7 @@ async function seed() {
 
   const [specimen_carrapato_bovino] = await db
     .insert(specimenTable)
-    .values({ code: "CPINCHE07", lot: 7, shelf: 3, createdBy: user.id, speciesId: species_carrapato_bovino.id })
+    .values({ code: "CPINCHE07", exposicao: "humida", lot: 7, shelf: 3, createdBy: user.id, speciesId: species_carrapato_bovino.id })
     .returning();
   // ---- carrapato-tamandua (Amblyomma pseudoconcolor) ----
 
@@ -4740,7 +4740,7 @@ async function seed() {
 
   const [specimen_carrapato_tamandua] = await db
     .insert(specimenTable)
-    .values({ code: "CPINCHE08", lot: 8, shelf: 3, createdBy: user.id, speciesId: species_carrapato_tamandua.id })
+    .values({ code: "CPINCHE08", exposicao: "humida", lot: 8, shelf: 3, createdBy: user.id, speciesId: species_carrapato_tamandua.id })
     .returning();
   // ---- ninhada-carrapato (Rhipicephalus sanguineus) ----
 
@@ -4828,7 +4828,7 @@ async function seed() {
 
   const [specimen_ninhada_carrapato] = await db
     .insert(specimenTable)
-    .values({ code: "CPINCHE09", lot: 9, shelf: 3, createdBy: user.id, speciesId: species_ninhada_carrapato.id })
+    .values({ code: "CPINCHE09", exposicao: "humida", lot: 9, shelf: 3, createdBy: user.id, speciesId: species_ninhada_carrapato.id })
     .returning();
   // ---- ninhada-aranha (Lycosa erythrognatha) ----
 
@@ -4919,7 +4919,7 @@ async function seed() {
 
   const [specimen_ninhada_aranha] = await db
     .insert(specimenTable)
-    .values({ code: "CPINCHE10", lot: 10, shelf: 3, createdBy: user.id, speciesId: species_ninhada_aranha.id })
+    .values({ code: "CPINCHE10", exposicao: "humida", lot: 10, shelf: 3, createdBy: user.id, speciesId: species_ninhada_aranha.id })
     .returning();
   // ---- lagosta-filtradora (Atya gabonensis) ----
 
@@ -5074,7 +5074,7 @@ async function seed() {
 
   const [specimen_lagosta_filtradora] = await db
     .insert(specimenTable)
-    .values({ code: "CPINCRU01", lot: 1, shelf: 3, createdBy: user.id, speciesId: species_lagosta_filtradora.id })
+    .values({ code: "CPINCRU01", exposicao: "humida", lot: 1, shelf: 3, createdBy: user.id, speciesId: species_lagosta_filtradora.id })
     .returning();
   // ---- camarao (Litopenaeus schmitti) ----
 
@@ -5188,7 +5188,7 @@ async function seed() {
 
   const [specimen_camarao] = await db
     .insert(specimenTable)
-    .values({ code: "CPINCRU02", lot: 2, shelf: 3, createdBy: user.id, speciesId: species_camarao.id })
+    .values({ code: "CPINCRU02", exposicao: "humida", lot: 2, shelf: 3, createdBy: user.id, speciesId: species_camarao.id })
     .returning();
   // ---- siri (Callinectes danae) ----
 
@@ -5309,7 +5309,7 @@ async function seed() {
 
   const [specimen_siri] = await db
     .insert(specimenTable)
-    .values({ code: "CPINCRU03", lot: 3, shelf: 3, createdBy: user.id, speciesId: species_siri.id })
+    .values({ code: "CPINCRU03", exposicao: "humida", lot: 3, shelf: 3, createdBy: user.id, speciesId: species_siri.id })
     .returning();
   // ---- caranguejo-1 (Ucides cordatus) ----
 
@@ -5441,7 +5441,7 @@ async function seed() {
 
   const [specimen_caranguejo_1] = await db
     .insert(specimenTable)
-    .values({ code: "CPINCRU04", lot: 4, shelf: 3, createdBy: user.id, speciesId: species_caranguejo_1.id })
+    .values({ code: "CPINCRU04", exposicao: "humida", lot: 4, shelf: 3, createdBy: user.id, speciesId: species_caranguejo_1.id })
     .returning();
   // ---- caranguejo-2 (Cardisoma guanhumi) ----
 
@@ -5551,7 +5551,7 @@ async function seed() {
 
   const [specimen_caranguejo_2] = await db
     .insert(specimenTable)
-    .values({ code: "CPINCRU05", lot: 5, shelf: 3, createdBy: user.id, speciesId: species_caranguejo_2.id })
+    .values({ code: "CPINCRU05", exposicao: "humida", lot: 5, shelf: 3, createdBy: user.id, speciesId: species_caranguejo_2.id })
     .returning();
   // ---- tatuzinho-jardim (Armadillidium vulgare) ----
 
@@ -5648,7 +5648,7 @@ async function seed() {
 
   const [specimen_tatuzinho_jardim] = await db
     .insert(specimenTable)
-    .values({ code: "CPINCRU06", lot: 6, shelf: 3, createdBy: user.id, speciesId: species_tatuzinho_jardim.id })
+    .values({ code: "CPINCRU06", exposicao: "humida", lot: 6, shelf: 3, createdBy: user.id, speciesId: species_tatuzinho_jardim.id })
     .returning();
   // ---- bolacha-da-praia (Mellita quinquiesperforata) ----
 
@@ -5750,7 +5750,7 @@ async function seed() {
 
   const [specimen_bolacha_da_praia] = await db
     .insert(specimenTable)
-    .values({ code: "CPINEQUI01", lot: 1, shelf: 3, createdBy: user.id, speciesId: species_bolacha_da_praia.id })
+    .values({ code: "CPINEQUI01", exposicao: "seca", lot: 1, shelf: 3, createdBy: user.id, speciesId: species_bolacha_da_praia.id })
     .returning();
 
   const speciesIds = [species_esponja_do_mar.id, species_anemona.id, species_lombriga.id, species_planaria.id, species_tenia.id, species_bivalve.id, species_lula_1.id, species_lesma.id, species_caramujo.id, species_lula_2.id, species_polvo.id, species_sanguessuga.id, species_minhoca.id, species_cigarra.id, species_besouro_escaravelho.id, species_abelha.id, species_libelula.id, species_grilo.id, species_larva_mosca_1.id, species_mariposa.id, species_barata.id, species_ovo_mosca.id, species_larva_mosca_2.id, species_larva_mosca_3.id, species_larva_mosca_4.id, species_pupa_mosca.id, species_mosca.id, species_besouro_chifre.id, species_lagarta_borboleta.id, species_besouros.id, species_besouro_gorgulho.id, species_inseto_aquatico.id, species_louva_a_deus.id, species_piolho_de_cobra.id, species_lacraia.id, species_aranhas.id, species_aranha_alcapao.id, species_escorpiao_amarelo.id, species_opiliao.id, species_carrapato_sapo.id, species_carrapato_ave.id, species_carrapato_bovino.id, species_carrapato_tamandua.id, species_ninhada_carrapato.id, species_ninhada_aranha.id, species_lagosta_filtradora.id, species_camarao.id, species_siri.id, species_caranguejo_1.id, species_caranguejo_2.id, species_tatuzinho_jardim.id, species_bolacha_da_praia.id];

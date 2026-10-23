@@ -9,7 +9,7 @@ type Props = {
 export function ImageCard({ image, onClick }: Props) {
   const isAcervo = image.type === "acervo";
   const sourceLabel = isAcervo && image.specimen
-    ? `${image.specimen.code}${image.specimen.shelf != null ? ` · Prat. ${image.specimen.shelf}` : ""}${image.specimen.lot != null ? ` · Lote ${image.specimen.lot}` : ""}`
+    ? `${image.specimen.code} (${image.specimen.exposicao === "seca" ? "seca" : "húmida"})${image.specimen.shelf != null ? ` · Prat. ${image.specimen.shelf}` : ""}${image.specimen.lot != null ? ` · Lote ${image.specimen.lot}` : ""}`
     : image.source
       ? (() => { try { return new URL(image.source).hostname; } catch { return image.source; } })()
       : null;
