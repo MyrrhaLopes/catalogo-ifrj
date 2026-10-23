@@ -63,11 +63,13 @@ async function readJsonBody(res: Response): Promise<unknown> {
 }
 
 export async function apiFetch(path: string, options?: RequestInit): Promise<Response> {
+  // FormData define o próprio Content-Type (multipart com boundary).
+  const isJsonBody = options?.body != null && !(options.body instanceof FormData);
   const res = await fetch(path, {
     credentials: "include",
     ...options,
     headers: {
-      ...(options?.body != null ? { "Content-Type": "application/json" } : {}),
+      ...(isJsonBody ? { "Content-Type": "application/json" } : {}),
       ...(options?.headers as Record<string, string> | undefined),
     },
   });

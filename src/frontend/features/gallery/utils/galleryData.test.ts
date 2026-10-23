@@ -48,7 +48,7 @@ describe("matchesGalleryQuery", () => {
   it("matches species name, popular name, specimen code and alt", () => {
     expect(matchesGalleryQuery(makeImage(), "musca")).toBe(true);
     expect(matchesGalleryQuery(makeImage(), "mosca-de")).toBe(true);
-    expect(matchesGalleryQuery(makeImage({ specimen: { code: "IFRJ-002", shelf: null, lot: null } }), "ifrj-002")).toBe(true);
+    expect(matchesGalleryQuery(makeImage({ specimen: { code: "IFRJ-002", exposicao: "seca", shelf: null, lot: null } }), "ifrj-002")).toBe(true);
     expect(matchesGalleryQuery(makeImage({ alt: "Vista lateral" }), "lateral")).toBe(true);
   });
 

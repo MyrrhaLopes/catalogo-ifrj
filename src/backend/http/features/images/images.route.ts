@@ -7,6 +7,7 @@ import {
   updateImageSchema,
 } from "./images.schema";
 import { authorizeUser } from "../../middleware/authorizeUser";
+import { MEDIA_SERVICE } from "../media/media.service";
 
 export const imagesRouter = Router();
 
@@ -47,7 +48,11 @@ imagesRouter.put("/images/:id", authorizeUser, async (req, res, next) => {
 imagesRouter.delete("/images/:id", authorizeUser, async (req, res, next) => {
   try {
     const { id } = imageIdParamSchema.parse(req.params);
-    await IMAGES_SERVICE.delete(id);
+    const deleted = await IMAGES_SERVICE.delete(id);
+    if (deleted) {
+      // Best-effort: falha no bucket não deve impedir a exclusão do registro.
+      await MEDIA_SERVICE.deleteByImageUrl(deleted.url).catch((err) => console.log(err));
+    }
     return res.status(204).send();
   } catch (err) {
     next(err);

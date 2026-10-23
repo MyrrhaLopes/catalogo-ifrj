@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import multer from "multer";
 import z, { ZodError } from "zod";
 
 export function errorHandler(
@@ -12,6 +13,13 @@ export function errorHandler(
       status: "fail",
       message: "Dados inválidos",
       errors: z.flattenError(err),
+    });
+    return;
+  }
+  if (err instanceof multer.MulterError) {
+    res.status(err.code === "LIMIT_FILE_SIZE" ? 413 : 400).json({
+      status: "fail",
+      message: err.code === "LIMIT_FILE_SIZE" ? "Imagem maior que 10 MB" : "Upload inválido",
     });
     return;
   }

@@ -87,6 +87,10 @@ export const IMAGES_SERVICE = {
   },
 
   delete: async (id: number) => {
-    await db.delete(imageTable).where(eq(imageTable.id, id));
+    const [deleted] = await db
+      .delete(imageTable)
+      .where(eq(imageTable.id, id))
+      .returning({ url: imageTable.url });
+    return deleted ?? null;
   },
 };

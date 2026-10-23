@@ -67,3 +67,24 @@ export async function setSpeciesThumbnail(
     body: JSON.stringify({ imageId }),
   });
 }
+
+export type UploadImageInput = {
+  file: File;
+  speciesId: number;
+  type: "online" | "acervo";
+  alt?: string;
+  source?: string;
+  credit?: string;
+  specimenId?: number;
+};
+
+export async function uploadImage({ file, ...fields }: UploadImageInput): Promise<GalleryImage> {
+  const body = new FormData();
+  for (const [key, value] of Object.entries(fields)) {
+    if (value !== undefined && value !== "") body.append(key, String(value));
+  }
+  body.append("file", file);
+  const res = await apiFetch("/api/v1/media", { method: "POST", body });
+  const { image } = (await res.json()) as { image: GalleryImage };
+  return image;
+}
