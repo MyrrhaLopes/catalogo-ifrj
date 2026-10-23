@@ -55,6 +55,20 @@ describe("apiFetch", () => {
     expect(error.serverMessage).toBe("the server didn't behaved correctly");
   });
 
+  it("envia Content-Type JSON quando há corpo string", async () => {
+    stubFetch(200, "{}");
+    await apiFetch("/x", { method: "POST", body: "{}" });
+    const init = vi.mocked(fetch).mock.calls[0][1] as RequestInit;
+    expect(init.headers).toEqual({ "Content-Type": "application/json" });
+  });
+
+  it("não define Content-Type para FormData (o navegador gera o boundary)", async () => {
+    stubFetch(200, "{}");
+    await apiFetch("/x", { method: "POST", body: new FormData() });
+    const init = vi.mocked(fetch).mock.calls[0][1] as RequestInit;
+    expect(init.headers).toEqual({});
+  });
+
   it("tolera corpo que não é JSON", async () => {
     stubFetch(502, "<html>Bad Gateway</html>");
     const error = (await apiFetch("/x").catch((e: unknown) => e)) as ApiError;

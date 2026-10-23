@@ -14,6 +14,7 @@ import { sourcesRouter } from "./http/features/sources/sources.route";
 import { imagesRouter } from "./http/features/images/images.route";
 import { galleryRouter } from "./http/features/gallery/gallery.route";
 import { favoriteRouter } from "./http/features/favorite/favorite.route";
+import { mediaRouter } from "./http/features/media/media.route";
 
 const app = express();
 app.use(morgan("dev"));
@@ -30,6 +31,7 @@ app.use("/api/v1/", sourcesRouter);
 app.use("/api/v1/", imagesRouter);
 app.use("/api/v1/", galleryRouter);
 app.use("/api/v1/", favoriteRouter);
+app.use("/api/v1/", mediaRouter);
 if (process.env.NODE_ENV === "production") {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const distPath = path.resolve(__dirname, "../../dist");
