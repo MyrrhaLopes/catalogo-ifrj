@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { searchSpecies, setSpeciesThumbnail } from "@/frontend/features/species/species.api";
+import { ApiError } from "@/frontend/shared/api/client";
 import { createSpecies, deleteSpecies, updateSpeciesAttributes } from "../admin.api";
 
 export function useSpeciesList() {
@@ -32,6 +34,9 @@ export function useDeleteSpecies() {
     mutationFn: (id: number) => deleteSpecies(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["species"] });
+    },
+    onError: (err) => {
+      toast.error(err instanceof ApiError ? err.message : "Erro ao excluir espécie. Tente novamente.");
     },
   });
 }

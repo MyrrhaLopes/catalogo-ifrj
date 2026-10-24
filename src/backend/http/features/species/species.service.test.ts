@@ -1,8 +1,9 @@
 import { vi, describe, it, expect } from "vitest";
-import { groupSpeciesRows } from "./species.service";
+import { groupSpeciesRows, SPECIES_SERVICE } from "./species.service";
+import { db } from "@/backend/db/drizzle";
 
 // O módulo importa `db` no topo — mock evita tentativa de conexão ao banco
-vi.mock("@/backend/db/drizzle", () => ({ db: {} }));
+vi.mock("@/backend/db/drizzle", () => ({ db: { delete: vi.fn() } }));
 
 describe("groupSpeciesRows", () => {
   it("retorna array vazio para input vazio", () => {
@@ -91,5 +92,35 @@ describe("groupSpeciesRows", () => {
     ];
     const result = groupSpeciesRows(rows);
     expect(result[0].specimens).toHaveLength(0);
+  });
+});
+
+describe("SPECIES_SERVICE.deleteSpecie", () => {
+  it("traduz violação de foreign key (23503) em erro de domínio", async () => {
+    const pgError = Object.assign(new Error("update or delete violates foreign key constraint"), {
+      code: "23503",
+    });
+    vi.mocked(db.delete).mockReturnValue({
+      where: vi.fn().mockRejectedValue(pgError),
+    } as never);
+
+    await expect(SPECIES_SERVICE.deleteSpecie(1)).rejects.toThrow("species has linked records");
+  });
+
+  it("repropaga erros que não são violação de foreign key", async () => {
+    const unexpectedError = new Error("connection lost");
+    vi.mocked(db.delete).mockReturnValue({
+      where: vi.fn().mockRejectedValue(unexpectedError),
+    } as never);
+
+    await expect(SPECIES_SERVICE.deleteSpecie(1)).rejects.toBe(unexpectedError);
+  });
+
+  it("resolve normalmente quando a exclusão não tem registros vinculados", async () => {
+    vi.mocked(db.delete).mockReturnValue({
+      where: vi.fn().mockResolvedValue(undefined),
+    } as never);
+
+    await expect(SPECIES_SERVICE.deleteSpecie(1)).resolves.toBeUndefined();
   });
 });

@@ -62,7 +62,16 @@ export function useUploadImageForm(speciesId: number, onUploaded: (image: Galler
       onUploaded(image);
       reset();
     } catch (err) {
-      const message = err instanceof ApiError && err.status < 500 ? err.message : null;
+      // 503 é um status deliberado e seguro de expor (bucket não configurado),
+      // diferente de um 500 genérico que pode conter detalhes internos.
+      const message =
+        err instanceof ApiError
+          ? err.status < 500
+            ? err.message
+            : err.status === 503
+              ? err.serverMessage ?? null
+              : null
+          : null;
       toast.error(message ?? "Erro ao enviar a imagem. Tente novamente.");
     }
   }
