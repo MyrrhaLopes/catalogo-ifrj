@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   getAllImages,
   getImagesBySpecies,
@@ -6,6 +7,7 @@ import {
   updateImage,
   deleteImage,
 } from "@/frontend/features/images/images.api";
+import { ApiError } from "@/frontend/shared/api/client";
 
 export function useImagesList(speciesId?: number) {
   return useQuery({
@@ -29,6 +31,9 @@ export function useCreateImage() {
     }) => createImage(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["images"] });
+    },
+    onError: (err) => {
+      toast.error(err instanceof ApiError ? err.message : "Erro ao enviar imagem. Tente novamente.");
     },
   });
 }

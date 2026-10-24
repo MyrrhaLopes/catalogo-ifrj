@@ -65,6 +65,12 @@ speciesRouter.delete("/species/:id", authorizeUser, async (req, res, next) => {
     await SPECIES_SERVICE.deleteSpecie(id);
     return res.status(204).send();
   } catch (err) {
+    if (err instanceof Error && err.message === "species has linked records") {
+      return res.status(409).json({
+        message:
+          "Não é possível excluir esta espécie: existem artigos, nomes populares ou outros registros vinculados a ela.",
+      });
+    }
     next(err);
   }
 });

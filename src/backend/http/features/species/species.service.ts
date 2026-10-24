@@ -144,7 +144,14 @@ export const SPECIES_SERVICE = {
   },
 
   deleteSpecie: async (specieId: number) => {
-    await db.delete(speciesTable).where(eq(speciesTable.id, specieId));
+    try {
+      await db.delete(speciesTable).where(eq(speciesTable.id, specieId));
+    } catch (err) {
+      if (err && typeof err === "object" && "code" in err && err.code === "23503") {
+        throw new Error("species has linked records");
+      }
+      throw err;
+    }
   },
 
   addPopularName: async (specieId: number, name: string, origin?: string) => {

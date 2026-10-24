@@ -53,16 +53,20 @@ export function CreateImageModal({ open, onOpenChange, defaultSpeciesId }: Props
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!url.trim() || speciesId === "") return;
-    await createMutation.mutateAsync({
-      url: url.trim(),
-      alt: alt.trim() || undefined,
-      speciesId: Number(speciesId),
-      type,
-      source: source.trim() || undefined,
-      credit: credit.trim() || undefined,
-      specimenId: specimenId !== "" ? Number(specimenId) : undefined,
-    });
-    handleClose();
+    try {
+      await createMutation.mutateAsync({
+        url: url.trim(),
+        alt: alt.trim() || undefined,
+        speciesId: Number(speciesId),
+        type,
+        source: source.trim() || undefined,
+        credit: credit.trim() || undefined,
+        specimenId: specimenId !== "" ? Number(specimenId) : undefined,
+      });
+      handleClose();
+    } catch {
+      // erro já é exibido via toast pelo onError de useCreateImage
+    }
   }
 
   return (
@@ -128,15 +132,13 @@ export function CreateImageModal({ open, onOpenChange, defaultSpeciesId }: Props
 
           {/* URL */}
           <div className="space-y-1.5">
-            <Label htmlFor="img-url">
-              URL da imagem {type === "online" ? "*" : "(opcional para acervo)"}
-            </Label>
+            <Label htmlFor="img-url">URL da imagem *</Label>
             <Input
               id="img-url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://..."
-              required={type === "online"}
+              required
             />
           </div>
 
@@ -217,11 +219,7 @@ export function CreateImageModal({ open, onOpenChange, defaultSpeciesId }: Props
             </Button>
             <Button
               type="submit"
-              disabled={
-                createMutation.isPending ||
-                (type === "online" && !url.trim()) ||
-                speciesId === ""
-              }
+              disabled={createMutation.isPending || !url.trim() || speciesId === ""}
             >
               {createMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Adicionar
