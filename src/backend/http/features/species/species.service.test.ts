@@ -122,11 +122,11 @@ describe("SPECIES_SERVICE.getDeleteImpact", () => {
       innerJoin: () => chain,
       where: () => Promise.resolve(resultsInCallOrder[i++]),
     };
-    return vi.fn(() => chain) as unknown as typeof db.select;
+    vi.mocked(db.select).mockImplementation(() => chain as unknown as ReturnType<typeof db.select>);
   }
 
   it("agrega as contagens de artigo, atributos, nomes populares, specimens e imagens", async () => {
-    vi.mocked(db).select = mockSelectChain([
+    mockSelectChain([
       [{ count: 1 }], // article
       [{ count: 3 }], // attrs
       [{ count: 2 }], // popularNames
@@ -146,7 +146,7 @@ describe("SPECIES_SERVICE.getDeleteImpact", () => {
   });
 
   it("retorna hasArticle false e contagens 0 quando nada está vinculado", async () => {
-    vi.mocked(db).select = mockSelectChain([
+    mockSelectChain([
       [], // article
       [], // attrs
       [], // popularNames

@@ -56,7 +56,7 @@ export function useCreateImageForm(defaultSpeciesId: number | undefined, onCreat
   const canSubmit = speciesId !== "" && (type === "online" ? url.trim().length > 0 : picked !== null);
 
   async function submit() {
-    if (!canSubmit || speciesId === "") return;
+    if (!canSubmit) return;
     try {
       if (type === "online") {
         await createMutation.mutateAsync({
