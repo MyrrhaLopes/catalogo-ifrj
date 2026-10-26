@@ -73,7 +73,8 @@ export function mediaUrlForKey(key: string): string {
 
 /** Devolve a chave do bucket se a URL apontar para uma imagem hospedada nele. */
 export function keyFromMediaUrl(url: string): string | null {
-  return url.startsWith(MEDIA_URL_PREFIX) ? url.slice(MEDIA_URL_PREFIX.length) : null;
+  const match = url.match(/(?:^|https?:\/\/[^/]+)\/api\/v1\/media\/(.+)$/);
+  return match ? match[1] : null;
 }
 
 export const MEDIA_SERVICE = {

@@ -24,6 +24,7 @@ export type DraftSections = Record<SectionKey, DraftItem[]>;
 type StorageData = {
   articleId: number | null;
   sections: DraftSections;
+  deletedBlocks?: ArticleBlock[];
 };
 
 const DEFAULT_SECTIONS: Record<"TOC" | "SOURCES" | "PROPERTIES", SectionKey> = {
@@ -38,6 +39,19 @@ let idCounter = 0;
 
 export function genDraftId(): string {
   return `draft-${++idCounter}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
+export function extractImageUrlsFromBlock(block: ArticleBlock): string[] {
+  if (block.type === "image") return block.content ? [block.content] : [];
+  if (block.type === "column") {
+    return block.columns.flatMap((col) => col.flatMap(extractImageUrlsFromBlock));
+  }
+  return [];
+}
+
+export function extractDeletedImageUrls(deletedBlocks: ArticleBlock[]): string[] {
+  const urls = deletedBlocks.flatMap(extractImageUrlsFromBlock);
+  return [...new Set(urls.filter((url) => typeof url === "string" && url.trim().length > 0))];
 }
 
 function initSections(article: { id: number; content: ArticleContent } | null): DraftSections {
@@ -114,16 +128,31 @@ export function useArticleEditor(
     return initSections(article);
   });
 
+  const [deletedBlocks, setDeletedBlocks] = useState<ArticleBlock[]>(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const stored = JSON.parse(raw) as StorageData;
+        if (stored.articleId === (article?.id ?? null) && Array.isArray(stored.deletedBlocks)) {
+          return stored.deletedBlocks;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return [];
+  });
+
   useEffect(() => {
     try {
       localStorage.setItem(
         storageKey,
-        JSON.stringify({ articleId: article?.id ?? null, sections }),
+        JSON.stringify({ articleId: article?.id ?? null, sections, deletedBlocks }),
       );
     } catch {
       // ignore storage errors
     }
-  }, [sections, storageKey, article?.id]);
+  }, [sections, deletedBlocks, storageKey, article?.id]);
 
   function addItem(section: SectionKey, index: number, item: DraftItem) {
     setSections((prev) => {
@@ -134,10 +163,20 @@ export function useArticleEditor(
   }
 
   function removeItem(section: SectionKey, id: string) {
-    setSections((prev) => ({
-      ...prev,
-      [section]: prev[section].filter((item) => item.id !== id),
-    }));
+    setSections((prev) => {
+      const item = prev[section].find((i) => i.id === id);
+      if (item && item.kind === "block") {
+        setDeletedBlocks((d) => [...d, item.block]);
+      }
+      return {
+        ...prev,
+        [section]: prev[section].filter((i) => i.id !== id),
+      };
+    });
+  }
+
+  function trackDeletedBlock(block: ArticleBlock) {
+    setDeletedBlocks((prev) => [...prev, block]);
   }
 
   function updateBlockContent(section: SectionKey, id: string, newBlock: ArticleBlock) {
@@ -164,6 +203,7 @@ export function useArticleEditor(
   }
 
   function clearDraft() {
+    setDeletedBlocks([]);
     try {
       localStorage.removeItem(storageKey);
     } catch {
@@ -174,6 +214,8 @@ export function useArticleEditor(
   return {
     sections,
     setSections,
+    deletedBlocks,
+    trackDeletedBlock,
     addItem,
     removeItem,
     updateBlockContent,

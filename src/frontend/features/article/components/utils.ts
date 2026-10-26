@@ -1,5 +1,5 @@
 import type { ArticleContent } from "@/backend/http/features/article/article.schema";
-import type { ArticleBlock, SourceMaps, TextBlock } from "./types";
+import type { ArticleBlock, SourceMaps, TextBlock, ImageBlock } from "./types";
 
 export type Heading = { level: number; text: string; id: string };
 export type Source = { index: number; id: number | null; label: string; url: string };
@@ -28,6 +28,22 @@ export function collectAllTextBlocks(content: ArticleContent): TextBlock[] {
     if (!items) return [];
     const blocks = items.filter((item): item is ArticleBlock => typeof item === "object");
     return collectTextBlocks(blocks);
+  });
+}
+
+function collectImageBlocks(blocks: ArticleBlock[]): ImageBlock[] {
+  return blocks.flatMap((block) => {
+    if (block.type === "image") return [block];
+    if (block.type === "column") return block.columns.flatMap(collectImageBlocks);
+    return [];
+  });
+}
+
+export function collectAllImageBlocks(content: ArticleContent): ImageBlock[] {
+  return Object.values(content.sections).flatMap((items) => {
+    if (!items) return [];
+    const blocks = items.filter((item): item is ArticleBlock => typeof item === "object");
+    return collectImageBlocks(blocks);
   });
 }
 

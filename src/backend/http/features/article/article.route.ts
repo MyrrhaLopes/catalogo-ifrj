@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { z } from "zod";
 import { ARTICLE_SERVICE } from "./article.service";
 import {
   articleContent,
@@ -42,7 +43,8 @@ articleRouter.post("/articles/", authorizeUser, async (req, res, next) => {
   try {
     const { speciesId } = createArticleBodySchema.parse(req.body);
     const content = articleContent.parse(req.body);
-    const article = await ARTICLE_SERVICE.create(speciesId, content);
+    const deletedImageUrls = z.array(z.string()).optional().parse(req.body.deletedImageUrls) ?? [];
+    const article = await ARTICLE_SERVICE.create(speciesId, content, deletedImageUrls);
     return res.status(201).json({ article });
   } catch (err) {
     next(err);
@@ -56,10 +58,12 @@ articleRouter.put(
     try {
       const { articleId } = articleIdParamSchema.parse(req.params);
       const content = articleContent.parse(req.body);
+      const deletedImageUrls = z.array(z.string()).optional().parse(req.body.deletedImageUrls) ?? [];
       const article = await ARTICLE_SERVICE.update(
         articleId,
         content,
         req.user!.id,
+        deletedImageUrls,
       );
       if (!article)
         return res.status(404).json({ message: "artigo não encontrado" });

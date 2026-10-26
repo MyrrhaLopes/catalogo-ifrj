@@ -19,16 +19,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/frontend/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/frontend/components/ui/dialog";
 import { Button, buttonVariants } from "@/frontend/components/ui/button";
-import { AlertTriangle, Loader2, Lock, Trash2 } from "lucide-react";
+import { ConfirmDeleteDialog } from "@/frontend/components/layout/ConfirmDeleteDialog";
+import { Loader2, Lock, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function LockedCell({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -148,7 +141,7 @@ export function ConfirmDeleteIconButton({
   );
 }
 
-type FullScreenDeleteWarningProps = {
+type DeleteImpactDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
@@ -158,9 +151,9 @@ type FullScreenDeleteWarningProps = {
   onConfirm: () => void;
 };
 
-// Aviso em tela cheia para exclusões em cascata — mais difícil de ignorar que o AlertDialog
-// padrão, usado quando a exclusão também vai apagar/desvincular outros registros.
-export function FullScreenDeleteWarning({
+// Confirmação de exclusão para registros cujo delete também afeta outros
+// registros (cascata) — mostra o que será afetado antes de confirmar.
+export function DeleteImpactDialog({
   open,
   onOpenChange,
   title,
@@ -168,50 +161,25 @@ export function FullScreenDeleteWarning({
   isLoadingImpact,
   isPending,
   onConfirm,
-}: FullScreenDeleteWarningProps) {
+}: DeleteImpactDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-screen h-screen max-w-none sm:rounded-none flex flex-col items-center justify-center gap-6 bg-destructive/5">
-        <div className="flex flex-col items-center gap-3 text-center max-w-md">
-          <AlertTriangle className="h-12 w-12 text-destructive" />
-          <DialogHeader className="items-center">
-            <DialogTitle className="text-2xl">{title}</DialogTitle>
-            <DialogDescription className="text-base text-center">
-              {isLoadingImpact
-                ? "Verificando o que será afetado…"
-                : "Esta ação não pode ser desfeita. Isso também vai:"}
-            </DialogDescription>
-          </DialogHeader>
-          {!isLoadingImpact && items.length > 0 && (
-            <ul className="text-sm space-y-1.5 border rounded-md p-3 bg-background w-full text-left">
-              {items.map((item) => (
-                <li key={item} className="flex items-center gap-2">
-                  <Trash2 className="h-3.5 w-3.5 text-destructive shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          )}
-          {!isLoadingImpact && items.length === 0 && (
-            <p className="text-sm text-muted-foreground">Nenhum outro registro será afetado.</p>
-          )}
-        </div>
-        <DialogFooter className="gap-2">
-          <Button variant="outline" size="lg" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button
-            variant="destructive"
-            size="lg"
-            disabled={isLoadingImpact || isPending}
-            onClick={onConfirm}
-          >
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Excluir mesmo assim
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <ConfirmDeleteDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={title}
+      description={
+        isLoadingImpact
+          ? "Verificando o que será afetado…"
+          : items.length > 0
+            ? "Esta ação não pode ser desfeita. Isso também vai:"
+            : "Esta ação não pode ser desfeita. Nenhum outro registro será afetado."
+      }
+      items={items}
+      isLoadingImpact={isLoadingImpact}
+      isPending={isPending}
+      confirmLabel="Excluir mesmo assim"
+      onConfirm={onConfirm}
+    />
   );
 }
 

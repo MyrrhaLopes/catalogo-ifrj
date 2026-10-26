@@ -7,6 +7,7 @@ import { StarButton } from "./StarButton";
 import { cn } from "@/lib/utils";
 import type { SpeciesDetails } from "@/frontend/features/species/species.api";
 import type { GalleryImage } from "@/frontend/features/images/images.api";
+import { buildSpeciesViewerImages, getHeroImages } from "../utils/speciesViewer";
 
 type SpeciesHeroProps = {
   species: SpeciesDetails;
@@ -15,34 +16,35 @@ type SpeciesHeroProps = {
   isAdmin: boolean;
   isEditMode: boolean;
   id: string;
+  onOpenViewer?: (index: number) => void;
 };
 
-export function SpeciesHero({ species, scientificName, popularName, isAdmin, isEditMode, id }: SpeciesHeroProps) {
+export function SpeciesHero({
+  species,
+  scientificName,
+  popularName,
+  isAdmin,
+  isEditMode,
+  id,
+  onOpenViewer,
+}: SpeciesHeroProps) {
   const navigate = useNavigate();
-  const [viewerOpen, setViewerOpen] = useState(false);
-  const [viewerIndex, setViewerIndex] = useState(0);
+  const [localViewerOpen, setLocalViewerOpen] = useState(false);
+  const [localViewerIndex, setLocalViewerIndex] = useState(0);
 
-  const heroImage = species.thumbnailImage ?? species.images[0];
-  const heroImages: GalleryImage[] = heroImage
-    ? [heroImage, ...species.images.filter((img) => img.id !== heroImage.id)]
-    : species.images;
+  const heroImages: GalleryImage[] = getHeroImages(species);
   const thumbnails = heroImages.slice(1, 5);
 
-  const viewerImages: ViewerImage[] = heroImages.map((img) => {
-    const specimen = img.specimenId != null
-      ? species.specimens.find((s) => s.id === img.specimenId) ?? null
-      : null;
-    return {
-      ...img,
-      speciesName: scientificName,
-      popularName: popularName ?? null,
-      taxonomyPath: species.taxonomyPath.map((n) => ({ label: n.label, labelValue: n.labelValue })),
-      specimen: specimen
-        ? { code: specimen.code, exposicao: specimen.exposicao, shelf: specimen.shelf, lot: specimen.lot }
-        : null,
-      speciesThumbnail: species.thumbnailImage?.url ?? null,
-    };
-  });
+  const handleOpen = (index: number) => {
+    if (onOpenViewer) {
+      onOpenViewer(index);
+    } else {
+      setLocalViewerIndex(index);
+      setLocalViewerOpen(true);
+    }
+  };
+
+  const viewerImages: ViewerImage[] = buildSpeciesViewerImages(species, scientificName, popularName);
 
   return (
     <>
@@ -94,17 +96,26 @@ export function SpeciesHero({ species, scientificName, popularName, isAdmin, isE
           )}
         </div>
         <div className="order-1 bg-[#e8f2d0] md:h-72 lg:order-2 lg:h-full">
-          <HeroImage image={heroImages[0]} alt={scientificName} onClick={() => { setViewerIndex(0); setViewerOpen(true); }} />
+          <HeroImage image={heroImages[0]} alt={scientificName} onClick={() => handleOpen(0)} />
         </div>
         {thumbnails.length > 0 && (
           <div className="order-3 flex gap-2 overflow-x-auto px-6 py-3 sm:px-8 md:px-10 lg:flex-col lg:gap-0 lg:overflow-visible lg:p-0">
             {thumbnails.map((img, i) => (
-              <ThumbnailImage key={img.id} image={img} alt={img.alt ?? scientificName} onClick={() => { setViewerIndex(i + 1); setViewerOpen(true); }} />
+              <ThumbnailImage key={img.id} image={img} alt={img.alt ?? scientificName} onClick={() => handleOpen(i + 1)} />
             ))}
           </div>
         )}
       </section>
-      <ImageViewer images={viewerImages} initialIndex={viewerIndex} currentIndex={viewerIndex} open={viewerOpen} onClose={() => setViewerOpen(false)} onNavigate={setViewerIndex} />
+      {!onOpenViewer && (
+        <ImageViewer
+          images={viewerImages}
+          initialIndex={localViewerIndex}
+          currentIndex={localViewerIndex}
+          open={localViewerOpen}
+          onClose={() => setLocalViewerOpen(false)}
+          onNavigate={setLocalViewerIndex}
+        />
+      )}
     </>
   );
 }

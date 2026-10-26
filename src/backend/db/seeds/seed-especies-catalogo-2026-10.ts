@@ -860,10 +860,10 @@ export async function seedCatalogo(user: { id: string }) {
   const atplg_100125 = await getOrCreateAttributeTemplate("Duração do ciclo de vida", "day");
 
   await db.insert(attributeTable).values([
-    { species: species_lombriga.id, attribute: atplg_100122, value: "20 to 49", sourceId: src_12 },
-    { species: species_lombriga.id, attribute: atplg_100123, value: "15 to 31", sourceId: src_12 },
-    { species: species_lombriga.id, attribute: atplg_100124, value: "0.2 to 0.6", sourceId: src_12 },
-    { species: species_lombriga.id, attribute: atplg_100125, value: "60 to 65", sourceId: src_12 },
+    { species: species_lombriga.id, attribute: atplg_100122, value: "20 a 49", sourceId: src_12 },
+    { species: species_lombriga.id, attribute: atplg_100123, value: "15 a 31", sourceId: src_12 },
+    { species: species_lombriga.id, attribute: atplg_100124, value: "0.2 a 0.6", sourceId: src_12 },
+    { species: species_lombriga.id, attribute: atplg_100125, value: "60 a 65", sourceId: src_12 },
   ]);
 
   {
@@ -1038,7 +1038,7 @@ export async function seedCatalogo(user: { id: string }) {
   const atplg_100120 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
 
   await db.insert(attributeTable).values([
-    { species: species_tenia.id, attribute: atplg_100120, value: "200 to 300, exceptionally up to 800", sourceId: src_21 },
+    { species: species_tenia.id, attribute: atplg_100120, value: "200 a 300, excepcionalmente até 800", sourceId: src_21 },
   ]);
 
   {
@@ -1589,9 +1589,9 @@ export async function seedCatalogo(user: { id: string }) {
   const atplg_100101 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "category");
 
   await db.insert(attributeTable).values([
-    { species: species_polvo.id, attribute: atplg_100098, value: "up to 25", sourceId: src_39 },
-    { species: species_polvo.id, attribute: atplg_100099, value: "up to 9000", sourceId: src_39 },
-    { species: species_polvo.id, attribute: atplg_100100, value: "0 to 200", sourceId: src_39 },
+    { species: species_polvo.id, attribute: atplg_100098, value: "até 25", sourceId: src_39 },
+    { species: species_polvo.id, attribute: atplg_100099, value: "até 9000", sourceId: src_39 },
+    { species: species_polvo.id, attribute: atplg_100100, value: "0 a 200", sourceId: src_39 },
     { species: species_polvo.id, attribute: atplg_100101, value: "LC", sourceId: src_39 },
   ]);
 
@@ -1697,7 +1697,7 @@ export async function seedCatalogo(user: { id: string }) {
 
   await db.insert(attributeTable).values([
     { species: species_sanguessuga.id, attribute: atplg_100095, value: "20", sourceId: src_43 },
-    { species: species_sanguessuga.id, attribute: atplg_100096, value: "up to 50", sourceId: src_43 },
+    { species: species_sanguessuga.id, attribute: atplg_100096, value: "até 50", sourceId: src_43 },
     { species: species_sanguessuga.id, attribute: atplg_100097, value: "NT", sourceId: src_45 },
   ]);
 
@@ -2015,7 +2015,7 @@ export async function seedCatalogo(user: { id: string }) {
   const atplg_100091 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
 
   await db.insert(attributeTable).values([
-    { species: species_besouro_escaravelho.id, attribute: atplg_100091, value: "0.15 to 16", sourceId: src_61 },
+    { species: species_besouro_escaravelho.id, attribute: atplg_100091, value: "0.15 a 16", sourceId: src_61 },
   ]);
 
   {
@@ -2440,10 +2440,10 @@ export async function seedCatalogo(user: { id: string }) {
   const atplg_100081 = await getOrCreateAttributeTemplate("Duração do ciclo de vida", "day");
 
   await db.insert(attributeTable).values([
-    { species: species_larva_mosca_1.id, attribute: atplg_100078, value: "0.6 to 0.7", sourceId: src_79 },
-    { species: species_larva_mosca_1.id, attribute: atplg_100079, value: "1.3 to 1.5", sourceId: src_79 },
-    { species: species_larva_mosca_1.id, attribute: atplg_100080, value: "0.3 to 0.9", sourceId: src_79 },
-    { species: species_larva_mosca_1.id, attribute: atplg_100081, value: "7 to 10 (optimal) up to 60 (adverse)", sourceId: src_79 },
+    { species: species_larva_mosca_1.id, attribute: atplg_100078, value: "0.6 a 0.7", sourceId: src_79 },
+    { species: species_larva_mosca_1.id, attribute: atplg_100079, value: "1.3 a 1.5", sourceId: src_79 },
+    { species: species_larva_mosca_1.id, attribute: atplg_100080, value: "0.3 a 0.9", sourceId: src_79 },
+    { species: species_larva_mosca_1.id, attribute: atplg_100081, value: "7 a 10 (ótimo) até 60 (adverso)", sourceId: src_79 },
   ]);
 
   {
@@ -2766,8 +2766,8 @@ export async function seedCatalogo(user: { id: string }) {
 
   await db.insert(attributeTable).values([
     { species: species_ovo_mosca.id, attribute: atplg_100068, value: "75-150", sourceId: src_79 },
-    { species: species_ovo_mosca.id, attribute: atplg_100069, value: "up to 500", sourceId: src_79 },
-    { species: species_ovo_mosca.id, attribute: atplg_100070, value: "less than 1", sourceId: src_79 },
+    { species: species_ovo_mosca.id, attribute: atplg_100069, value: "até 500", sourceId: src_79 },
+    { species: species_ovo_mosca.id, attribute: atplg_100070, value: "menor que 1", sourceId: src_79 },
   ]);
 
   await linkPopularName(species_ovo_mosca.id, "Mosca doméstica");
@@ -2848,10 +2848,10 @@ export async function seedCatalogo(user: { id: string }) {
   const atplg_100067 = await getOrCreateAttributeTemplate("Ovos por postura", "unit");
 
   await db.insert(attributeTable).values([
-    { species: species_larva_mosca_2.id, attribute: atplg_100064, value: "greater than 1", sourceId: src_100 },
-    { species: species_larva_mosca_2.id, attribute: atplg_100065, value: "approximately 1.6", sourceId: src_101 },
-    { species: species_larva_mosca_2.id, attribute: atplg_100066, value: "7 to 10", sourceId: src_101 },
-    { species: species_larva_mosca_2.id, attribute: atplg_100067, value: "200 to 300", sourceId: src_99 },
+    { species: species_larva_mosca_2.id, attribute: atplg_100064, value: "maior que 1", sourceId: src_100 },
+    { species: species_larva_mosca_2.id, attribute: atplg_100065, value: "aproximadamente 1.6", sourceId: src_101 },
+    { species: species_larva_mosca_2.id, attribute: atplg_100066, value: "7 a 10", sourceId: src_101 },
+    { species: species_larva_mosca_2.id, attribute: atplg_100067, value: "200 a 300", sourceId: src_99 },
   ]);
 
   {
@@ -3183,11 +3183,11 @@ export async function seedCatalogo(user: { id: string }) {
   const atplg_100053 = await getOrCreateAttributeTemplate("Duração do ciclo de vida", "day");
 
   await db.insert(attributeTable).values([
-    { species: species_mosca.id, attribute: atplg_100049, value: "0.6 to 0.7", sourceId: src_79 },
-    { species: species_mosca.id, attribute: atplg_100050, value: "1.3 to 1.5", sourceId: src_79 },
-    { species: species_mosca.id, attribute: atplg_100051, value: "0.04 to 0.08", sourceId: src_79 },
-    { species: species_mosca.id, attribute: atplg_100052, value: "up to 500", sourceId: src_79 },
-    { species: species_mosca.id, attribute: atplg_100053, value: "7 to 10", sourceId: src_79 },
+    { species: species_mosca.id, attribute: atplg_100049, value: "0.6 a 0.7", sourceId: src_79 },
+    { species: species_mosca.id, attribute: atplg_100050, value: "1.3 a 1.5", sourceId: src_79 },
+    { species: species_mosca.id, attribute: atplg_100051, value: "0.04 a 0.08", sourceId: src_79 },
+    { species: species_mosca.id, attribute: atplg_100052, value: "até 500", sourceId: src_79 },
+    { species: species_mosca.id, attribute: atplg_100053, value: "7 a 10", sourceId: src_79 },
   ]);
 
   await linkPopularName(species_mosca.id, "Mosca-doméstica");
@@ -3272,7 +3272,7 @@ export async function seedCatalogo(user: { id: string }) {
   const atplg_100048 = await getOrCreateAttributeTemplate("Comprimento corporal", "centimeter");
 
   await db.insert(attributeTable).values([
-    { species: species_besouro_chifre.id, attribute: atplg_100048, value: "more than 15", sourceId: src_116 },
+    { species: species_besouro_chifre.id, attribute: atplg_100048, value: "mais de 15", sourceId: src_116 },
   ]);
 
   {
@@ -3439,7 +3439,7 @@ export async function seedCatalogo(user: { id: string }) {
 
   await db.insert(attributeTable).values([
     { species: species_besouros.id, attribute: atplg_100044, value: "17.7", sourceId: src_126 },
-    { species: species_besouros.id, attribute: atplg_100045, value: "up to 3650", sourceId: src_126 },
+    { species: species_besouros.id, attribute: atplg_100045, value: "até 3650", sourceId: src_126 },
     { species: species_besouros.id, attribute: atplg_100046, value: "VU", sourceId: src_126 },
   ]);
 
@@ -3993,8 +3993,8 @@ export async function seedCatalogo(user: { id: string }) {
   const atplg_100032 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "category");
 
   await db.insert(attributeTable).values([
-    { species: species_aranhas.id, attribute: atplg_100030, value: "2.4 to 4", sourceId: src_144 },
-    { species: species_aranhas.id, attribute: atplg_100031, value: "approximately 0.6", sourceId: src_144 },
+    { species: species_aranhas.id, attribute: atplg_100030, value: "2.4 a 4", sourceId: src_144 },
+    { species: species_aranhas.id, attribute: atplg_100031, value: "aproximadamente 0.6", sourceId: src_144 },
     { species: species_aranhas.id, attribute: atplg_100032, value: "LC", sourceId: src_144 },
   ]);
 
@@ -5470,8 +5470,8 @@ export async function seedCatalogo(user: { id: string }) {
   const atplg_100008 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "category");
 
   await db.insert(attributeTable).values([
-    { species: species_caranguejo_2.id, attribute: atplg_100006, value: "up to 15", sourceId: src_213 },
-    { species: species_caranguejo_2.id, attribute: atplg_100007, value: "up to 500", sourceId: src_212 },
+    { species: species_caranguejo_2.id, attribute: atplg_100006, value: "até 15", sourceId: src_213 },
+    { species: species_caranguejo_2.id, attribute: atplg_100007, value: "até 500", sourceId: src_212 },
     { species: species_caranguejo_2.id, attribute: atplg_100008, value: "CR", sourceId: src_212 },
   ]);
 
@@ -5686,8 +5686,8 @@ export async function seedCatalogo(user: { id: string }) {
   const atplg_100002 = await getOrCreateAttributeTemplate("Profundidade de ocorrência", "meter");
 
   await db.insert(attributeTable).values([
-    { species: species_bolacha_da_praia.id, attribute: atplg_100001, value: "5 to 10", sourceId: src_219 },
-    { species: species_bolacha_da_praia.id, attribute: atplg_100002, value: "0 to 180", sourceId: src_219 },
+    { species: species_bolacha_da_praia.id, attribute: atplg_100001, value: "5 a 10", sourceId: src_219 },
+    { species: species_bolacha_da_praia.id, attribute: atplg_100002, value: "0 a 180", sourceId: src_219 },
   ]);
 
   {

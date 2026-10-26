@@ -12,7 +12,7 @@ import { ImagePickerModal } from "@/frontend/features/images/components/ImagePic
 import type { GalleryImage } from "@/frontend/features/images/images.api";
 import { getScientificName, buildTaxonomyBreadcrumb } from "@/frontend/shared/utils/taxonomy";
 import { isRecentlyCreated } from "../utils/recentlyCreated";
-import { CreatedAtCell, FullScreenDeleteWarning, LockedCell } from "./AdminTableShared";
+import { CreatedAtCell, DeleteImpactDialog, LockedCell } from "./AdminTableShared";
 
 export const features = tableFeatures({});
 const columnHelper = createColumnHelper<typeof features, SpeciesSearchResult>();
@@ -217,7 +217,7 @@ function DeleteCell({ species }: { species: SpeciesSearchResult }) {
         <Trash2 className="h-4 w-4 mr-1" />
         Excluir
       </Button>
-      <FullScreenDeleteWarning
+      <DeleteImpactDialog
         open={warningOpen}
         onOpenChange={setWarningOpen}
         title={`Excluir a espécie #${species.id}?`}

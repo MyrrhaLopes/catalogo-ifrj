@@ -23,6 +23,15 @@ export function errorHandler(
     });
     return;
   }
+  // Erros do driver `pg` (ex: node-postgres DatabaseError) expõem um `code` com o
+  // código de erro do Postgres. 23503 = foreign_key_violation.
+  if ("code" in err && (err as { code?: unknown }).code === "23503") {
+    res.status(409).json({
+      status: "fail",
+      message: "Não é possível excluir: existem outros registros vinculados a este item.",
+    });
+    return;
+  }
   console.log(err);
   res.status(500).json({
     status: "fail",

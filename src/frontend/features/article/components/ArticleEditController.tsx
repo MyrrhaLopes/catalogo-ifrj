@@ -89,15 +89,42 @@ export function ArticleEditController({ id, editor }: ArticleEditControllerProps
       <div className="mx-auto flex max-w-screen-xl flex-col gap-8 px-4 py-6 sm:px-6 md:px-8 lg:flex-row lg:gap-10 lg:px-10 lg:py-10">
         <aside className="lg:w-44 lg:shrink-0">
           <p className="text-xs font-medium text-muted-foreground mb-2">Esquerda</p>
-          <ArticleEditorSection sectionKey="left" speciesId={Number(id)} items={editor.sections.left} onAdd={(i, item) => editor.addItem("left", i, item)} onRemove={(itemId) => editor.removeItem("left", itemId)} onUpdate={(itemId, block) => editor.updateBlockContent("left", itemId, block)} onToggleDefault={(itemId) => editor.toggleDefaultBlock(itemId)} />
+          <ArticleEditorSection
+            sectionKey="left"
+            speciesId={Number(id)}
+            items={editor.sections.left}
+            onAdd={(i, item) => editor.addItem("left", i, item)}
+            onRemove={(itemId) => editor.removeItem("left", itemId)}
+            onUpdate={(itemId, block) => editor.updateBlockContent("left", itemId, block)}
+            onToggleDefault={(itemId) => editor.toggleDefaultBlock(itemId)}
+            onDeleteNestedBlock={(block) => editor.trackDeletedBlock(block)}
+          />
         </aside>
         <article className="min-w-0 lg:flex-1">
           <p className="text-xs font-medium text-muted-foreground mb-2">Centro</p>
-          <ArticleEditorSection sectionKey="center" speciesId={Number(id)} items={editor.sections.center} onAdd={(i, item) => editor.addItem("center", i, item)} onRemove={(itemId) => editor.removeItem("center", itemId)} onUpdate={(itemId, block) => editor.updateBlockContent("center", itemId, block)} onToggleDefault={(itemId) => editor.toggleDefaultBlock(itemId)} />
+          <ArticleEditorSection
+            sectionKey="center"
+            speciesId={Number(id)}
+            items={editor.sections.center}
+            onAdd={(i, item) => editor.addItem("center", i, item)}
+            onRemove={(itemId) => editor.removeItem("center", itemId)}
+            onUpdate={(itemId, block) => editor.updateBlockContent("center", itemId, block)}
+            onToggleDefault={(itemId) => editor.toggleDefaultBlock(itemId)}
+            onDeleteNestedBlock={(block) => editor.trackDeletedBlock(block)}
+          />
         </article>
         <aside className="lg:w-52 lg:shrink-0">
           <p className="text-xs font-medium text-muted-foreground mb-2">Direita</p>
-          <ArticleEditorSection sectionKey="right" speciesId={Number(id)} items={editor.sections.right} onAdd={(i, item) => editor.addItem("right", i, item)} onRemove={(itemId) => editor.removeItem("right", itemId)} onUpdate={(itemId, block) => editor.updateBlockContent("right", itemId, block)} onToggleDefault={(itemId) => editor.toggleDefaultBlock(itemId)} />
+          <ArticleEditorSection
+            sectionKey="right"
+            speciesId={Number(id)}
+            items={editor.sections.right}
+            onAdd={(i, item) => editor.addItem("right", i, item)}
+            onRemove={(itemId) => editor.removeItem("right", itemId)}
+            onUpdate={(itemId, block) => editor.updateBlockContent("right", itemId, block)}
+            onToggleDefault={(itemId) => editor.toggleDefaultBlock(itemId)}
+            onDeleteNestedBlock={(block) => editor.trackDeletedBlock(block)}
+          />
         </aside>
       </div>
       <DragOverlay>

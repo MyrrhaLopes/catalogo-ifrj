@@ -1,9 +1,7 @@
-import { useState } from "react";
-import { GripVertical, Eye, EyeOff, FileText, Database, List } from "lucide-react";
+import { GripVertical, Eye, EyeOff, FileText, Database, List, Trash2 } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/frontend/components/ui/button";
-import { ConfirmDeleteIconButton } from "@/frontend/features/admin/components/AdminTableShared";
 import { cn } from "@/lib/utils";
 import type { DraftItem, SectionKey } from "../../hooks/useArticleEditor";
 import type { ArticleBlock } from "../types";
@@ -24,11 +22,17 @@ type Props = {
   onRemove: () => void;
   onUpdate: (block: ArticleBlock) => void;
   onToggleDefault: () => void;
+  onDeleteNestedBlock?: (block: ArticleBlock) => void;
 };
 
-export function EditorBlockItem({ item, speciesId, onRemove, onUpdate, onToggleDefault }: Props) {
-  const [deleteOpen, setDeleteOpen] = useState(false);
-
+export function EditorBlockItem({
+  item,
+  speciesId,
+  onRemove,
+  onUpdate,
+  onToggleDefault,
+  onDeleteNestedBlock,
+}: Props) {
   const {
     attributes,
     listeners,
@@ -70,6 +74,7 @@ export function EditorBlockItem({ item, speciesId, onRemove, onUpdate, onToggleD
               block={item.block}
               speciesId={speciesId}
               onChange={onUpdate}
+              onDeleteBlock={onDeleteNestedBlock}
             />
           )}
         </div>
@@ -90,16 +95,15 @@ export function EditorBlockItem({ item, speciesId, onRemove, onUpdate, onToggleD
               )}
             </Button>
           ) : (
-            <ConfirmDeleteIconButton
-              title="Remover bloco?"
-              confirmLabel="Remover"
-              buttonClassName="h-6 w-6 text-destructive hover:text-destructive"
-              iconClassName="h-3 w-3"
-              buttonTitle="Remover bloco"
-              open={deleteOpen}
-              onOpenChange={setDeleteOpen}
-              onConfirm={onRemove}
-            />
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              title="Excluir bloco"
+              onClick={onRemove}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
           )}
         </div>
       </div>

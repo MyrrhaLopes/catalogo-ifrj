@@ -5,13 +5,16 @@ import { rootRoute } from "../rootRoute";
 import { useGetSpeciesDetails } from "../features/species/hooks/useGetSpeciesDetails";
 import { PageShell } from "../components/layout/PageShell";
 import { SpeciesHero } from "../features/species/components/SpeciesHero";
+import { buildSpeciesViewerImages } from "../features/species/utils/speciesViewer";
 import { ArticleLayout } from "../features/article/components/ArticleLayout";
 import { ArticleEditController } from "../features/article/components/ArticleEditController";
 import { ArticleEditorHeader } from "../features/article/components/editor/ArticleEditorHeader";
-import { useArticleEditor } from "../features/article/hooks/useArticleEditor";
+import { SaveArticleConfirmDialog } from "../features/article/components/editor/SaveArticleConfirmDialog";
+import { ImageViewer } from "../features/images/components/ImageViewer";
+import { useArticleEditor, extractDeletedImageUrls } from "../features/article/hooks/useArticleEditor";
 import { useSaveArticle } from "../features/article/hooks/useSaveArticle";
 import useAuth from "../shared/hooks/useAuth";
-import { computeUnifiedSources, buildSourceMaps } from "../features/article/components/utils";
+import { computeUnifiedSources, buildSourceMaps, collectAllImageBlocks } from "../features/article/components/utils";
 import type { SpeciesDetails } from "../features/species/species.api";
 import type { ArticleContent } from "@/backend/http/features/article/article.schema";
 import type { SourceMaps } from "../features/article/components/types";
@@ -86,9 +89,16 @@ type ArticleContentProps = {
   species: SpeciesDetails;
   sourceMaps: SourceMaps;
   attributeSources: { url: string }[];
+  onImageClick?: (url: string) => void;
 };
 
-function SpeciesViewModeContent({ content, species, sourceMaps, attributeSources }: ArticleContentProps) {
+function SpeciesViewModeContent({
+  content,
+  species,
+  sourceMaps,
+  attributeSources,
+  onImageClick,
+}: ArticleContentProps) {
   return (
     <ArticleLayout
       content={content}
@@ -96,6 +106,7 @@ function SpeciesViewModeContent({ content, species, sourceMaps, attributeSources
       sourceMaps={sourceMaps}
       inlineSources={species.sources}
       attributeSources={attributeSources}
+      onImageClick={onImageClick}
     />
   );
 }
@@ -108,6 +119,7 @@ type EditModeContentProps = {
   previewSourceMaps: SourceMaps;
   attributeSources: { url: string }[];
   editor: ReturnType<typeof useArticleEditor>;
+  onImageClick?: (url: string) => void;
 };
 
 function SpeciesEditModeContent({
@@ -118,6 +130,7 @@ function SpeciesEditModeContent({
   previewSourceMaps,
   attributeSources,
   editor,
+  onImageClick,
 }: EditModeContentProps) {
   if (isPreview && draftContent) {
     return (
@@ -127,6 +140,7 @@ function SpeciesEditModeContent({
         sourceMaps={previewSourceMaps}
         inlineSources={species.sources}
         attributeSources={attributeSources}
+        onImageClick={onImageClick}
       />
     );
   }
@@ -189,8 +203,17 @@ function useSpeciesViewState(id: string, species: SpeciesDetails, editArticle?: 
     void navigate({ to: "/especies/$id", params: { id }, search: {} });
   };
 
-  const handleSave = () => {
-    saveArticle.mutate(editor.toDraftContent(), { onSuccess: resetAndExit });
+  const handleSave = (onSuccessCallback?: () => void) => {
+    const deletedImageUrls = extractDeletedImageUrls(editor.deletedBlocks);
+    saveArticle.mutate(
+      { content: editor.toDraftContent(), deletedImageUrls },
+      {
+        onSuccess: () => {
+          onSuccessCallback?.();
+          resetAndExit();
+        },
+      },
+    );
   };
 
   return {
@@ -254,6 +277,7 @@ function SpeciesViewBody({
   attributeSources,
   id,
   editor,
+  onImageClick,
 }: {
   isEditMode: boolean;
   isPreview: boolean;
@@ -265,6 +289,7 @@ function SpeciesViewBody({
   attributeSources: { url: string }[];
   id: string;
   editor: ReturnType<typeof useArticleEditor>;
+  onImageClick?: (url: string) => void;
 }) {
   if (isEditMode) {
     return (
@@ -276,6 +301,7 @@ function SpeciesViewBody({
         previewSourceMaps={previewSourceMaps}
         attributeSources={attributeSources}
         editor={editor}
+        onImageClick={onImageClick}
       />
     );
   }
@@ -288,6 +314,7 @@ function SpeciesViewBody({
       species={species}
       sourceMaps={sourceMaps}
       attributeSources={attributeSources}
+      onImageClick={onImageClick}
     />
   );
 }
@@ -296,6 +323,36 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
   const state = useSpeciesViewState(id, species, editArticle);
   const scientificName = getScientificName(species.taxonomyPath, "Espécie");
   const popularName = getPopularName(species);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
+
+  const activeContent = state.isEditMode && state.isPreview ? state.draftContent : state.content;
+  const articleImageUrls = useMemo(() => {
+    if (!activeContent) return [];
+    return collectAllImageBlocks(activeContent)
+      .map((img) => img.content)
+      .filter((url): url is string => typeof url === "string" && url.trim().length > 0);
+  }, [activeContent]);
+
+  const viewerImages = useMemo(() => {
+    return buildSpeciesViewerImages(species, scientificName, popularName, articleImageUrls);
+  }, [species, scientificName, popularName, articleImageUrls]);
+
+  const handleOpenViewer = (index: number) => {
+    setViewerIndex(index);
+    setViewerOpen(true);
+  };
+
+  const handleImageClick = (url: string) => {
+    const idx = viewerImages.findIndex((img) => img.url === url);
+    if (idx >= 0) {
+      setViewerIndex(idx);
+    } else {
+      setViewerIndex(0);
+    }
+    setViewerOpen(true);
+  };
 
   return (
     <PageShell className="bg-white">
@@ -304,7 +361,7 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
         isPreview={state.isPreview}
         isSaving={state.isSaving}
         onPreview={() => state.setIsPreview(true)}
-        onSave={state.handleSave}
+        onSave={() => setSaveDialogOpen(true)}
         onCancel={state.resetAndExit}
         onBackToEdit={() => state.setIsPreview(false)}
       />
@@ -315,6 +372,7 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
         isAdmin={state.isAdmin}
         isEditMode={state.isEditMode}
         id={id}
+        onOpenViewer={handleOpenViewer}
       />
       <SpeciesViewBody
         isEditMode={state.isEditMode}
@@ -327,6 +385,24 @@ function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
         attributeSources={state.attributeSources}
         id={id}
         editor={state.editor}
+        onImageClick={handleImageClick}
+      />
+      <SaveArticleConfirmDialog
+        open={saveDialogOpen}
+        onOpenChange={setSaveDialogOpen}
+        deletedBlocks={state.editor.deletedBlocks}
+        isSaving={state.isSaving}
+        onConfirm={() => {
+          state.handleSave(() => setSaveDialogOpen(false));
+        }}
+      />
+      <ImageViewer
+        images={viewerImages}
+        initialIndex={viewerIndex}
+        currentIndex={viewerIndex}
+        open={viewerOpen}
+        onClose={() => setViewerOpen(false)}
+        onNavigate={setViewerIndex}
       />
     </PageShell>
   );

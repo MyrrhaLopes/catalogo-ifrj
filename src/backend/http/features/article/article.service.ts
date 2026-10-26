@@ -8,6 +8,7 @@ import {
 } from "@/backend/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import type { ArticleContent } from "./article.schema";
+import { MEDIA_SERVICE } from "../media/media.service";
 
 const CITE_RE = /\[cite:(\d+)\]/g;
 
@@ -25,6 +26,13 @@ function extractBlockTexts(content: ArticleContent): string[] {
   return Object.values(content.sections)
     .flatMap(flattenSectionBlocks)
     .filter((block) => block.type === "text")
+    .map((block) => block.content);
+}
+
+export function extractImageUrls(content: ArticleContent): string[] {
+  return Object.values(content.sections)
+    .flatMap(flattenSectionBlocks)
+    .filter((block) => block.type === "image")
     .map((block) => block.content);
 }
 
@@ -85,7 +93,11 @@ export const ARTICLE_SERVICE = {
     return buildArticleResponse(article);
   },
 
-  create: async (speciesId: number, content: ArticleContent) => {
+  create: async (
+    speciesId: number,
+    content: ArticleContent,
+    deletedImageUrls: string[] = [],
+  ) => {
     const [article] = await db
       .insert(articleTable)
       .values({ species: speciesId, content })
@@ -94,10 +106,20 @@ export const ARTICLE_SERVICE = {
     const sourceIds = extractSourceIds(content);
     await syncPivot(article.id, sourceIds);
 
+    for (const url of deletedImageUrls) {
+      await MEDIA_SERVICE.deleteByImageUrl(url).catch((err) => console.log(err));
+      await db.delete(imageTable).where(eq(imageTable.url, url)).catch((err) => console.log(err));
+    }
+
     return article;
   },
 
-  update: async (articleId: number, content: ArticleContent, editedBy: string) => {
+  update: async (
+    articleId: number,
+    content: ArticleContent,
+    editedBy: string,
+    deletedImageUrls: string[] = [],
+  ) => {
     const [current] = await db
       .select()
       .from(articleTable)
@@ -120,6 +142,17 @@ export const ARTICLE_SERVICE = {
     if (updated) {
       const sourceIds = extractSourceIds(content);
       await syncPivot(updated.id, sourceIds);
+
+      // Limpar imagens removidas do bucket e da tabela images
+      const oldImageUrls = current ? extractImageUrls(current.content as ArticleContent) : [];
+      const newImageUrls = new Set(extractImageUrls(content));
+      const removedFromContent = oldImageUrls.filter((url) => !newImageUrls.has(url));
+
+      const allUrlsToDelete = [...new Set([...removedFromContent, ...deletedImageUrls])];
+      for (const url of allUrlsToDelete) {
+        await MEDIA_SERVICE.deleteByImageUrl(url).catch((err) => console.log(err));
+        await db.delete(imageTable).where(eq(imageTable.url, url)).catch((err) => console.log(err));
+      }
     }
 
     return updated ?? null;

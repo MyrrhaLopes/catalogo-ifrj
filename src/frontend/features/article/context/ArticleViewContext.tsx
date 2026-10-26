@@ -10,6 +10,7 @@ export interface ArticleViewContextValue {
   sourceMaps: SourceMaps;
   inlineSources: ArticleSource[];
   attributeSources: { url: string }[];
+  onImageClick?: (url: string) => void;
 }
 
 const ArticleViewContext = createContext<ArticleViewContextValue | null>(null);

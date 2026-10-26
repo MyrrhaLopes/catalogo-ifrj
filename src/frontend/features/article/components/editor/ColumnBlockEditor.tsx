@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import type { ColumnBlock, ArticleBlock } from "../types";
 import { Button } from "@/frontend/components/ui/button";
 import { BlockInsertZone } from "./BlockInsertZone";
@@ -10,9 +10,10 @@ type Props = {
   block: ColumnBlock;
   speciesId: number;
   onChange: (block: ColumnBlock) => void;
+  onDeleteBlock?: (block: ArticleBlock) => void;
 };
 
-export function ColumnBlockEditor({ block, speciesId, onChange }: Props) {
+export function ColumnBlockEditor({ block, speciesId, onChange, onDeleteBlock }: Props) {
   function addToColumn(colIndex: number, insertAt: number, item: DraftItem) {
     if (item.kind !== "block" || item.block.type === "column") return;
     const newColumns = block.columns.map((col, i) => {
@@ -25,6 +26,10 @@ export function ColumnBlockEditor({ block, speciesId, onChange }: Props) {
   }
 
   function removeFromColumn(colIndex: number, blockIndex: number) {
+    const targetBlock = block.columns[colIndex]?.[blockIndex];
+    if (targetBlock) {
+      onDeleteBlock?.(targetBlock);
+    }
     const newColumns = block.columns.map((col, i) => {
       if (i !== colIndex) return col;
       return col.filter((_, j) => j !== blockIndex);
@@ -73,10 +78,11 @@ export function ColumnBlockEditor({ block, speciesId, onChange }: Props) {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-5 w-5 opacity-0 group-hover:opacity-100 shrink-0 mt-1"
+                  className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0 mt-1"
+                  title="Excluir bloco da coluna"
                   onClick={() => removeFromColumn(colIndex, blockIndex)}
                 >
-                  <X className="h-3 w-3" />
+                  <Trash2 className="h-3 w-3" />
                 </Button>
               </div>
               <BlockInsertZone
@@ -90,4 +96,3 @@ export function ColumnBlockEditor({ block, speciesId, onChange }: Props) {
     </div>
   );
 }
-

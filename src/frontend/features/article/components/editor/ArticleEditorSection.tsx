@@ -14,9 +14,19 @@ type Props = {
   onRemove: (id: string) => void;
   onUpdate: (id: string, block: ArticleBlock) => void;
   onToggleDefault: (id: string) => void;
+  onDeleteNestedBlock?: (block: ArticleBlock) => void;
 };
 
-export function ArticleEditorSection({ sectionKey, items, speciesId, onAdd, onRemove, onUpdate, onToggleDefault }: Props) {
+export function ArticleEditorSection({
+  sectionKey,
+  items,
+  speciesId,
+  onAdd,
+  onRemove,
+  onUpdate,
+  onToggleDefault,
+  onDeleteNestedBlock,
+}: Props) {
   const { setNodeRef } = useDroppable({ id: sectionKey });
 
   return (
@@ -32,6 +42,7 @@ export function ArticleEditorSection({ sectionKey, items, speciesId, onAdd, onRe
               onRemove={() => onRemove(item.id)}
               onUpdate={(block) => onUpdate(item.id, block)}
               onToggleDefault={() => onToggleDefault(item.id)}
+              onDeleteNestedBlock={onDeleteNestedBlock}
             />
             <BlockInsertZone onAdd={(newItem) => onAdd(i + 1, newItem)} />
           </Fragment>

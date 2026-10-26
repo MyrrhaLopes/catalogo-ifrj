@@ -1,5 +1,5 @@
 import { vi, describe, it, expect } from "vitest";
-import { extractSourceIds } from "./article.service";
+import { extractSourceIds, extractImageUrls } from "./article.service";
 import type { ArticleContent } from "./article.schema";
 
 vi.mock("@/backend/db/drizzle", () => ({ db: {} }));
@@ -141,5 +141,36 @@ describe("extractSourceIds", () => {
       center: [{ type: "text", content: "Texto sem referências." }],
     });
     expect(extractSourceIds(content)).toEqual([]);
+  });
+});
+
+describe("extractImageUrls", () => {
+  it("retorna array vazio quando não há imagens", () => {
+    const content = makeContent({
+      center: [{ type: "text", content: "Texto" }],
+    });
+    expect(extractImageUrls(content)).toEqual([]);
+  });
+
+  it("extrai URLs de blocos de imagem simples e em colunas", () => {
+    const content = makeContent({
+      center: [
+        { type: "image", content: "https://img.com/1.jpg" },
+        {
+          type: "column",
+          columns: [
+            [{ type: "image", content: "https://img.com/2.jpg" }],
+            [{ type: "text", content: "Texto" }, { type: "image", content: "https://img.com/3.jpg" }],
+          ],
+        },
+      ],
+      right: [{ type: "image", content: "https://img.com/4.jpg" }],
+    });
+    expect(extractImageUrls(content)).toEqual([
+      "https://img.com/1.jpg",
+      "https://img.com/2.jpg",
+      "https://img.com/3.jpg",
+      "https://img.com/4.jpg",
+    ]);
   });
 });

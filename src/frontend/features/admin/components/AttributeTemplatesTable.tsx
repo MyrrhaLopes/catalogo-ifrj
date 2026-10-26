@@ -19,7 +19,7 @@ import {
 } from "../hooks/useAdminAttributeTemplates";
 import { CreateAttributeTemplateModal } from "./CreateAttributeTemplateModal";
 import { SearchableField } from "./SearchableField";
-import { FullScreenDeleteWarning } from "./AdminTableShared";
+import { DeleteImpactDialog } from "./AdminTableShared";
 
 // ────────────────────────────────────────────────────────────────────
 // Inline editable cell with search
@@ -124,7 +124,7 @@ function DeleteTemplateCell({ id, label }: { id: number; label: string }) {
         <Trash2 className="h-4 w-4 mr-1" />
         Excluir
       </Button>
-      <FullScreenDeleteWarning
+      <DeleteImpactDialog
         open={warningOpen}
         onOpenChange={setWarningOpen}
         title={`Excluir o template "${label}"?`}

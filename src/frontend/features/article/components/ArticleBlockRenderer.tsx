@@ -8,13 +8,13 @@ import { PropertiesBlock } from "./PropertiesBlock";
 import { useArticleView } from "../context/ArticleViewContext";
 
 export function ArticleBlockRenderer({ block }: { block: SectionItem }) {
-  const { content, species, sourceMaps, inlineSources, attributeSources } = useArticleView();
+  const { content, species, sourceMaps, inlineSources, attributeSources, onImageClick } = useArticleView();
 
   if (block === "TOC") return <TOCBlock content={content} />;
   if (block === "SOURCES") return <SourcesBlock content={content} inlineSources={inlineSources} attributeSources={attributeSources} />;
   if (block === "PROPERTIES") return <PropertiesBlock species={species} sourcesMap={sourceMaps?.byUrl} />;
   if (block.type === "text") return <TextBlock content={block.content} sourcesMap={sourceMaps?.byId} />;
-  if (block.type === "image") return <ImageBlock content={block.content} />;
+  if (block.type === "image") return <ImageBlock content={block.content} onImageClick={onImageClick} />;
   if (block.type === "column") {
     return (
       <ColumnBlock
