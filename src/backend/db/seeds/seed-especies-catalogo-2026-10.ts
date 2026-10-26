@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { eq } from "drizzle-orm";
 import { db } from "../drizzle.ts";
 import {
@@ -14,10 +13,8 @@ import {
 } from "../schema.ts";
 import {
   getOrCreateAttributeTemplate,
-  getOrCreateSeedUser,
   getOrCreateTaxon,
   getOrCreateTaxonomyRoot,
-  runSeedScript,
 } from "./seed-helpers.ts";
 
 function buildArticleContent_esponja_do_mar(sourceIds: Record<string, number>) {
@@ -606,10 +603,8 @@ async function linkPopularName(speciesId: number, name: string, origin = "pt-BR"
   await db.insert(speciesPopularNamePivot).values({ speciesId, popularNameId: pn.id });
 }
 
-async function seed() {
+export async function seedCatalogo(user: { id: string }) {
   console.log("Seeding especies do catalogo...");
-
-  const user = await getOrCreateSeedUser();
 
   // ---- esponja-do-mar (Porifera) ----
 
@@ -5759,5 +5754,3 @@ async function seed() {
   console.log("species ids:", speciesIds);
   console.log("specimen ids:", specimenIds);
 }
-
-runSeedScript(seed);
