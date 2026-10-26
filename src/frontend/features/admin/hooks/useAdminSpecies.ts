@@ -1,14 +1,50 @@
+import { useDeferredValue, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { searchSpecies, setSpeciesThumbnail } from "@/frontend/features/species/species.api";
 import { ApiError } from "@/frontend/shared/api/client";
-import { createSpecies, deleteSpecies, updateSpeciesAttributes } from "../admin.api";
+import { createSpecies, deleteSpecies, getSpeciesDeleteImpact, updateSpeciesAttributes } from "../admin.api";
 
 export function useSpeciesList() {
   return useQuery({
     queryKey: ["species", "list"],
     queryFn: () => searchSpecies({ page: 1, pageSize: 100 }).then((r) => r.species),
   });
+}
+
+export const SPECIES_ADMIN_PAGE_SIZE = 20;
+
+export function useSpeciesAdminList(page: number, q: string) {
+  return useQuery({
+    queryKey: ["species", "admin-list", page, q],
+    queryFn: () => searchSpecies({ page, pageSize: SPECIES_ADMIN_PAGE_SIZE, q: q || undefined }),
+    placeholderData: (prev) => prev,
+  });
+}
+
+export function useSpeciesAdminTable() {
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
+
+  function setSearch(value: string) {
+    setQuery(value);
+    setPage(1);
+  }
+
+  const { data, isLoading, isError } = useSpeciesAdminList(page, deferredQuery);
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / SPECIES_ADMIN_PAGE_SIZE)) : 1;
+
+  return {
+    page,
+    setPage,
+    query,
+    setSearch,
+    species: data?.species ?? [],
+    totalPages,
+    isLoading,
+    isError,
+  };
 }
 
 export function useSpeciesSearch(q: string) {
@@ -25,6 +61,14 @@ export function useCreateSpecies() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["species"] });
     },
+  });
+}
+
+export function useSpeciesDeleteImpact(id: number, enabled: boolean) {
+  return useQuery({
+    queryKey: ["species", "delete-impact", id],
+    queryFn: () => getSpeciesDeleteImpact(id),
+    enabled,
   });
 }
 

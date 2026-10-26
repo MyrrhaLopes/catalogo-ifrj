@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,9 +8,11 @@ import {
 import { Button } from "@/frontend/components/ui/button";
 import { Input } from "@/frontend/components/ui/input";
 import { Label } from "@/frontend/components/ui/label";
-import { Loader2, Globe, Camera } from "lucide-react";
-import { useCreateImage } from "../hooks/useAdminImages";
-import { useSpeciesList } from "../hooks/useAdminSpecies";
+import { Loader2 } from "lucide-react";
+import { ImageOriginToggle } from "@/frontend/features/images/components/ImageOriginToggle";
+import { ImageFileInput } from "@/frontend/features/images/components/ImageFileInput";
+import { SpecimenPicker } from "@/frontend/features/images/components/SpecimenPicker";
+import { useCreateImageForm } from "../hooks/useCreateImageForm";
 import { getScientificName } from "@/frontend/shared/utils/taxonomy";
 
 const SELECT_CLS =
@@ -24,76 +25,42 @@ type Props = {
 };
 
 export function CreateImageModal({ open, onOpenChange, defaultSpeciesId }: Props) {
-  const createMutation = useCreateImage();
-  const { data: speciesList = [] } = useSpeciesList();
-
-  const [url, setUrl] = useState("");
-  const [alt, setAlt] = useState("");
-  const [speciesId, setSpeciesId] = useState<number | "">(defaultSpeciesId ?? "");
-  const [type, setType] = useState<"online" | "acervo">("online");
-  const [source, setSource] = useState("");
-  const [credit, setCredit] = useState("");
-  const [specimenId, setSpecimenId] = useState<number | "">("");
-
-  const selectedSpecies =
-    speciesId !== "" ? speciesList.find((s) => s.id === Number(speciesId)) : null;
-  const availableSpecimens = selectedSpecies?.specimens ?? [];
+  const form = useCreateImageForm(defaultSpeciesId, () => onOpenChange(false));
 
   function handleClose() {
-    setUrl("");
-    setAlt("");
-    setSpeciesId(defaultSpeciesId ?? "");
-    setType("online");
-    setSource("");
-    setCredit("");
-    setSpecimenId("");
+    if (form.isPending) return;
+    form.reset();
     onOpenChange(false);
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!url.trim() || speciesId === "") return;
-    try {
-      await createMutation.mutateAsync({
-        url: url.trim(),
-        alt: alt.trim() || undefined,
-        speciesId: Number(speciesId),
-        type,
-        source: source.trim() || undefined,
-        credit: credit.trim() || undefined,
-        specimenId: specimenId !== "" ? Number(specimenId) : undefined,
-      });
-      handleClose();
-    } catch {
-      // erro já é exibido via toast pelo onError de useCreateImage
-    }
-  }
-
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Adicionar imagem</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void form.submit();
+          }}
+          className="space-y-4 py-2"
+        >
           {/* Espécie */}
           <div className="space-y-1.5">
             <Label htmlFor="img-species">Espécie *</Label>
             <select
               id="img-species"
-              value={speciesId}
-              onChange={(e) => {
-                setSpeciesId(e.target.value === "" ? "" : Number(e.target.value));
-                setSpecimenId("");
-              }}
+              value={form.speciesId}
+              onChange={(e) => form.selectSpecies(e.target.value === "" ? "" : Number(e.target.value))}
               required
               className={SELECT_CLS}
             >
               <option value="">Selecione uma espécie...</option>
-              {speciesList.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {getScientificName(s.taxonomyPath)} (#{s.id})
+              {form.speciesList.map((species) => (
+                <option key={species.id} value={species.id}>
+                  {getScientificName(species.taxonomyPath)} (#{species.id})
                 </option>
               ))}
             </select>
@@ -102,66 +69,50 @@ export function CreateImageModal({ open, onOpenChange, defaultSpeciesId }: Props
           {/* Tipo */}
           <div className="space-y-1.5">
             <Label>Tipo de imagem</Label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setType("online")}
-                className={`flex-1 flex items-center justify-center gap-2 rounded-md border py-2 text-sm font-medium transition-colors ${
-                  type === "online"
-                    ? "border-green-700 bg-green-50 text-green-800"
-                    : "border-input text-neutral-600 hover:border-neutral-400"
-                }`}
-              >
-                <Globe className="h-4 w-4" />
-                Referência online
-              </button>
-              <button
-                type="button"
-                onClick={() => setType("acervo")}
-                className={`flex-1 flex items-center justify-center gap-2 rounded-md border py-2 text-sm font-medium transition-colors ${
-                  type === "acervo"
-                    ? "border-green-700 bg-green-50 text-green-800"
-                    : "border-input text-neutral-600 hover:border-neutral-400"
-                }`}
-              >
-                <Camera className="h-4 w-4" />
-                Foto do acervo
-              </button>
-            </div>
+            <ImageOriginToggle value={form.type} onChange={form.setType} />
           </div>
 
-          {/* URL */}
-          <div className="space-y-1.5">
-            <Label htmlFor="img-url">URL da imagem *</Label>
-            <Input
-              id="img-url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://..."
-              required
+          {/* Origem da imagem: URL para referência online, upload para foto do acervo */}
+          {form.type === "online" ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="img-url">URL da imagem *</Label>
+              <Input
+                id="img-url"
+                value={form.url}
+                onChange={(e) => form.setUrl(e.target.value)}
+                placeholder="https://..."
+                required
+              />
+            </div>
+          ) : (
+            <ImageFileInput
+              previewUrl={form.previewUrl}
+              error={form.fileError}
+              disabled={form.isPending}
+              onSelect={form.selectFile}
             />
-          </div>
+          )}
 
           {/* Descrição */}
           <div className="space-y-1.5">
             <Label htmlFor="img-alt">Descrição</Label>
             <Input
               id="img-alt"
-              value={alt}
-              onChange={(e) => setAlt(e.target.value)}
+              value={form.alt}
+              onChange={(e) => form.setAlt(e.target.value)}
               placeholder="Descrição da imagem..."
             />
           </div>
 
           {/* Online fields */}
-          {type === "online" && (
+          {form.type === "online" && (
             <>
               <div className="space-y-1.5">
                 <Label htmlFor="img-source">URL da fonte</Label>
                 <Input
                   id="img-source"
-                  value={source}
-                  onChange={(e) => setSource(e.target.value)}
+                  value={form.source}
+                  onChange={(e) => form.setSource(e.target.value)}
                   placeholder="https://commons.wikimedia.org/..."
                 />
               </div>
@@ -169,8 +120,8 @@ export function CreateImageModal({ open, onOpenChange, defaultSpeciesId }: Props
                 <Label htmlFor="img-credit">Crédito (autor / licença)</Label>
                 <Input
                   id="img-credit"
-                  value={credit}
-                  onChange={(e) => setCredit(e.target.value)}
+                  value={form.credit}
+                  onChange={(e) => form.setCredit(e.target.value)}
                   placeholder="Autor · CC BY-SA 4.0"
                 />
               </div>
@@ -178,50 +129,23 @@ export function CreateImageModal({ open, onOpenChange, defaultSpeciesId }: Props
           )}
 
           {/* Acervo fields */}
-          {type === "acervo" && (
+          {form.type === "acervo" && (
             <div className="space-y-1.5">
-              <Label htmlFor="img-specimen">Espécime</Label>
-              <select
-                id="img-specimen"
-                value={specimenId}
-                onChange={(e) =>
-                  setSpecimenId(e.target.value === "" ? "" : Number(e.target.value))
-                }
-                className={SELECT_CLS}
-                disabled={availableSpecimens.length === 0}
-              >
-                <option value="">
-                  {availableSpecimens.length === 0
-                    ? speciesId === ""
-                      ? "Selecione uma espécie primeiro"
-                      : "Nenhum espécime vinculado a esta espécie"
-                    : "Selecionar espécime..."}
-                </option>
-                {availableSpecimens.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.code} ({s.exposicao === "seca" ? "seca" : "húmida"})
-                    {s.shelf != null ? ` · Prat. ${s.shelf}` : ""}
-                    {s.lot != null ? ` · Lote ${s.lot}` : ""}
-                  </option>
-                ))}
-              </select>
+              <Label>Espécime</Label>
+              <SpecimenPicker
+                specimens={form.specimens}
+                value={form.specimenId}
+                onChange={form.setSpecimenId}
+              />
             </div>
           )}
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              disabled={createMutation.isPending}
-            >
+            <Button type="button" variant="outline" onClick={handleClose} disabled={form.isPending}>
               Cancelar
             </Button>
-            <Button
-              type="submit"
-              disabled={createMutation.isPending || !url.trim() || speciesId === ""}
-            >
-              {createMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            <Button type="submit" disabled={form.isPending || !form.canSubmit}>
+              {form.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Adicionar
             </Button>
           </DialogFooter>

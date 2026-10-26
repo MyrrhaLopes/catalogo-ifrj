@@ -59,18 +59,22 @@ speciesRouter.get("/species/:id", async (req, res, next) => {
   }
 });
 
+speciesRouter.get("/species/:id/delete-impact", authorizeUser, async (req, res, next) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+    const impact = await SPECIES_SERVICE.getDeleteImpact(id);
+    return res.status(200).json({ impact });
+  } catch (err) {
+    next(err);
+  }
+});
+
 speciesRouter.delete("/species/:id", authorizeUser, async (req, res, next) => {
   try {
     const { id } = idParamSchema.parse(req.params);
     await SPECIES_SERVICE.deleteSpecie(id);
     return res.status(204).send();
   } catch (err) {
-    if (err instanceof Error && err.message === "species has linked records") {
-      return res.status(409).json({
-        message:
-          "Não é possível excluir esta espécie: existem artigos, nomes populares ou outros registros vinculados a ela.",
-      });
-    }
     next(err);
   }
 });

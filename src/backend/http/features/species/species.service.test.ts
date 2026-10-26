@@ -3,7 +3,7 @@ import { groupSpeciesRows, SPECIES_SERVICE } from "./species.service";
 import { db } from "@/backend/db/drizzle";
 
 // O módulo importa `db` no topo — mock evita tentativa de conexão ao banco
-vi.mock("@/backend/db/drizzle", () => ({ db: { delete: vi.fn() } }));
+vi.mock("@/backend/db/drizzle", () => ({ db: { delete: vi.fn(), select: vi.fn() } }));
 
 describe("groupSpeciesRows", () => {
   it("retorna array vazio para input vazio", () => {
@@ -96,18 +96,15 @@ describe("groupSpeciesRows", () => {
 });
 
 describe("SPECIES_SERVICE.deleteSpecie", () => {
-  it("traduz violação de foreign key (23503) em erro de domínio", async () => {
-    const pgError = Object.assign(new Error("update or delete violates foreign key constraint"), {
-      code: "23503",
-    });
+  it("resolve normalmente quando a exclusão não tem registros vinculados", async () => {
     vi.mocked(db.delete).mockReturnValue({
-      where: vi.fn().mockRejectedValue(pgError),
+      where: vi.fn().mockResolvedValue(undefined),
     } as never);
 
-    await expect(SPECIES_SERVICE.deleteSpecie(1)).rejects.toThrow("species has linked records");
+    await expect(SPECIES_SERVICE.deleteSpecie(1)).resolves.toBeUndefined();
   });
 
-  it("repropaga erros que não são violação de foreign key", async () => {
+  it("propaga erros inesperados do banco sem traduzi-los (a exclusão agora é em cascata)", async () => {
     const unexpectedError = new Error("connection lost");
     vi.mocked(db.delete).mockReturnValue({
       where: vi.fn().mockRejectedValue(unexpectedError),
@@ -115,12 +112,56 @@ describe("SPECIES_SERVICE.deleteSpecie", () => {
 
     await expect(SPECIES_SERVICE.deleteSpecie(1)).rejects.toBe(unexpectedError);
   });
+});
 
-  it("resolve normalmente quando a exclusão não tem registros vinculados", async () => {
-    vi.mocked(db.delete).mockReturnValue({
-      where: vi.fn().mockResolvedValue(undefined),
-    } as never);
+describe("SPECIES_SERVICE.getDeleteImpact", () => {
+  function mockSelectChain(resultsInCallOrder: Array<{ count: number }[]>) {
+    let i = 0;
+    const chain = {
+      from: () => chain,
+      innerJoin: () => chain,
+      where: () => Promise.resolve(resultsInCallOrder[i++]),
+    };
+    return vi.fn(() => chain) as unknown as typeof db.select;
+  }
 
-    await expect(SPECIES_SERVICE.deleteSpecie(1)).resolves.toBeUndefined();
+  it("agrega as contagens de artigo, atributos, nomes populares, specimens e imagens", async () => {
+    vi.mocked(db).select = mockSelectChain([
+      [{ count: 1 }], // article
+      [{ count: 3 }], // attrs
+      [{ count: 2 }], // popularNames
+      [{ count: 4 }], // specimens
+      [{ count: 5 }], // images
+    ]);
+
+    const impact = await SPECIES_SERVICE.getDeleteImpact(1);
+
+    expect(impact).toEqual({
+      hasArticle: true,
+      attributesCount: 3,
+      popularNamesCount: 2,
+      specimensCount: 4,
+      imagesCount: 5,
+    });
+  });
+
+  it("retorna hasArticle false e contagens 0 quando nada está vinculado", async () => {
+    vi.mocked(db).select = mockSelectChain([
+      [], // article
+      [], // attrs
+      [], // popularNames
+      [], // specimens
+      [], // images
+    ]);
+
+    const impact = await SPECIES_SERVICE.getDeleteImpact(1);
+
+    expect(impact).toEqual({
+      hasArticle: false,
+      attributesCount: 0,
+      popularNamesCount: 0,
+      specimensCount: 0,
+      imagesCount: 0,
+    });
   });
 });

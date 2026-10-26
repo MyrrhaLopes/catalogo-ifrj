@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
 import { useCreateSpecies } from "./useAdminSpecies";
 import { useTaxonomy } from "@/frontend/features/species/hooks/useTaxonomy";
 import {
@@ -40,7 +39,6 @@ export function useCreateSpeciesWithDraftTaxonomy() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const createSpecies = useCreateSpecies();
   const queryClient = useQueryClient();
-  const router = useRouter();
   const { data: realNodes = [] } = useTaxonomy();
 
   const isPending = isSubmitting || createSpecies.isPending;
@@ -73,7 +71,7 @@ export function useCreateSpeciesWithDraftTaxonomy() {
       const speciesRootId = selectedNode.id > 0 ? selectedNode.id : tempToReal.get(selectedNode.id)!;
       const created = await createSpecies.mutateAsync(speciesRootId);
 
-      router.navigate({ to: "/especies/$id", params: { id: String(created.id) } });
+      return created;
     } finally {
       setIsSubmitting(false);
     }

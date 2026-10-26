@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -8,6 +10,7 @@ import {
 } from "@/frontend/components/ui/dialog";
 import { Button } from "@/frontend/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { ApiError } from "@/frontend/shared/api/client";
 import { TaxonomyTree, type DraftTaxonomyNode } from "./TaxonomyTree";
 import { useCreateSpeciesWithDraftTaxonomy, type SelectedNode } from "../hooks/useCreateSpeciesWithDraftTaxonomy";
 
@@ -19,15 +22,24 @@ type CreateSpeciesModalProps = {
 export function CreateSpeciesModal({ open, onOpenChange }: CreateSpeciesModalProps) {
   const [selectedNode, setSelectedNode] = useState<SelectedNode | null>(null);
   const [draftNodes, setDraftNodes] = useState<DraftTaxonomyNode[]>([]);
+  const navigate = useNavigate();
 
   const { submit, isPending } = useCreateSpeciesWithDraftTaxonomy();
 
   async function handleSubmit() {
     if (!selectedNode) return;
-    await submit(selectedNode, draftNodes);
-    setSelectedNode(null);
-    setDraftNodes([]);
-    onOpenChange(false);
+    try {
+      const created = await submit(selectedNode, draftNodes);
+      setSelectedNode(null);
+      setDraftNodes([]);
+      onOpenChange(false);
+      void navigate({
+        to: "/admin",
+        search: { section: "species", selectedSpeciesId: created.id },
+      });
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Erro ao criar espécie. Tente novamente.");
+    }
   }
 
   function handleOpenChange(next: boolean) {
@@ -82,7 +94,7 @@ export function CreateSpeciesModal({ open, onOpenChange }: CreateSpeciesModalPro
           </Button>
           <Button onClick={handleSubmit} disabled={!selectedNode || isPending}>
             {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Criar espécie
+            Confirmar
           </Button>
         </DialogFooter>
       </DialogContent>

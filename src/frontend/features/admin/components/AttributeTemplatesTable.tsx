@@ -7,28 +7,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/frontend/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/frontend/components/ui/alert-dialog";
 import { Button } from "@/frontend/components/ui/button";
 import { Info, Loader2, Lock, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   useAttributeTemplatesList,
   useDeleteAttributeTemplate,
+  useAttributeTemplateDeleteImpact,
   useUpdateAttributeTemplate,
   useDistinctUnits,
   useDistinctLabels,
 } from "../hooks/useAdminAttributeTemplates";
 import { CreateAttributeTemplateModal } from "./CreateAttributeTemplateModal";
 import { SearchableField } from "./SearchableField";
+import { FullScreenDeleteWarning } from "./AdminTableShared";
 
 // ────────────────────────────────────────────────────────────────────
 // Inline editable cell with search
@@ -114,53 +105,35 @@ function LockedCell({ children }: { children: React.ReactNode }) {
 }
 
 function DeleteTemplateCell({ id, label }: { id: number; label: string }) {
+  const [warningOpen, setWarningOpen] = useState(false);
   const deleteMutation = useDeleteAttributeTemplate();
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const { data: impact, isFetching } = useAttributeTemplateDeleteImpact(id, warningOpen);
 
-  function handleDelete() {
-    setErrorMsg(null);
-    deleteMutation.mutate(id, {
-      onError: (err) => setErrorMsg(err instanceof Error ? err.message : "Erro ao excluir"),
-    });
+  function handleConfirm() {
+    deleteMutation.mutate(id, { onSuccess: () => setWarningOpen(false) });
   }
 
   return (
-    <AlertDialog onOpenChange={() => setErrorMsg(null)}>
-      <AlertDialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="text-destructive border-destructive/40 hover:bg-red-500 hover:text-white hover:border-red-500"
-        >
-          <Trash2 className="h-4 w-4 mr-1" />
-          Excluir
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Excluir template</AlertDialogTitle>
-          <AlertDialogDescription>
-            Tem certeza que deseja excluir o template <strong>"{label}"</strong>? Esta ação não pode
-            ser desfeita.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        {errorMsg && <p className="text-sm text-destructive px-1">{errorMsg}</p>}
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleDelete}
-            disabled={deleteMutation.isPending}
-            className="bg-destructive hover:bg-destructive/90"
-          >
-            {deleteMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              "Excluir"
-            )}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        className="text-destructive border-destructive/40 hover:bg-red-500 hover:text-white hover:border-red-500"
+        onClick={() => setWarningOpen(true)}
+      >
+        <Trash2 className="h-4 w-4 mr-1" />
+        Excluir
+      </Button>
+      <FullScreenDeleteWarning
+        open={warningOpen}
+        onOpenChange={setWarningOpen}
+        title={`Excluir o template "${label}"?`}
+        items={impact && impact.usageCount > 0 ? [`Remover esse atributo de ${impact.usageCount} espécie(s)`] : []}
+        isLoadingImpact={isFetching}
+        isPending={deleteMutation.isPending}
+        onConfirm={handleConfirm}
+      />
+    </>
   );
 }
 

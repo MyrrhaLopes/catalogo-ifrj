@@ -1,11 +1,15 @@
-import type { SpeciesBase } from "@/backend/http/features/species/species.schema";
+import type { SpeciesBase, SpeciesDeleteImpact } from "@/backend/http/features/species/species.schema";
 import type { TaxonomyNode, AffectedSpeciesItem } from "@/backend/http/features/taxonomy/taxonomy.schema";
 import type { UserListItem } from "@/backend/http/features/users/user.schema";
-import { speciesBaseSchema } from "@/backend/http/features/species/species.schema";
+import type { AttributeTemplateDeleteImpact } from "@/backend/http/features/attribute_templates/attribute_templates.schema";
+import { speciesBaseSchema, speciesDeleteImpactSchema } from "@/backend/http/features/species/species.schema";
 import { taxonomyNodeSchema, affectedSpeciesItemSchema } from "@/backend/http/features/taxonomy/taxonomy.schema";
 import { userListItemSchema } from "@/backend/http/features/users/user.schema";
+import { attributeTemplateDeleteImpactSchema } from "@/backend/http/features/attribute_templates/attribute_templates.schema";
 import { z } from "zod";
-import { apiFetch, ApiError } from "@/frontend/shared/api/client";
+import { apiFetch } from "@/frontend/shared/api/client";
+
+export type { SpeciesDeleteImpact, AttributeTemplateDeleteImpact };
 
 export type { AffectedSpeciesItem };
 
@@ -28,6 +32,12 @@ export async function createSpecies(speciesRoot: number): Promise<SpeciesBase> {
 
 export async function deleteSpecies(id: number): Promise<void> {
   await apiFetch(`/api/v1/species/${id}`, { method: "DELETE" });
+}
+
+export async function getSpeciesDeleteImpact(id: number): Promise<SpeciesDeleteImpact> {
+  const res = await apiFetch(`/api/v1/species/${id}/delete-impact`);
+  const { impact } = z.object({ impact: speciesDeleteImpactSchema }).parse(await res.json());
+  return impact;
 }
 
 export async function createTaxonomyNode(
@@ -106,15 +116,13 @@ export async function createAttributeTemplate(
 }
 
 export async function deleteAttributeTemplate(id: number): Promise<void> {
-  try {
-    await apiFetch(`/api/v1/attribute-templates/${id}`, { method: "DELETE" });
-  } catch (e) {
-    if (e instanceof ApiError && e.status === 409) {
-      const body = (await e.response.json()) as { message: string };
-      throw new Error(body.message);
-    }
-    throw e;
-  }
+  await apiFetch(`/api/v1/attribute-templates/${id}`, { method: "DELETE" });
+}
+
+export async function getAttributeTemplateDeleteImpact(id: number): Promise<AttributeTemplateDeleteImpact> {
+  const res = await apiFetch(`/api/v1/attribute-templates/${id}/delete-impact`);
+  const { impact } = z.object({ impact: attributeTemplateDeleteImpactSchema }).parse(await res.json());
+  return impact;
 }
 
 export async function updateAttributeTemplate(

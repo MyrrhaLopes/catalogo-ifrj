@@ -49,12 +49,21 @@ attributeTemplatesRouter.patch("/attribute-templates/:id", authorizeUser, async 
   }
 });
 
+attributeTemplatesRouter.get("/attribute-templates/:id/delete-impact", authorizeUser, async (req, res, next) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+    const usageCount = await ATTRIBUTE_TEMPLATES_SERVICE.getUsageCount(id);
+    return res.status(200).json({ impact: { usageCount } });
+  } catch (err) {
+    next(err);
+  }
+});
+
 attributeTemplatesRouter.delete("/attribute-templates/:id", authorizeUser, async (req, res, next) => {
   try {
     const { id } = idParamSchema.parse(req.params);
     const result = await ATTRIBUTE_TEMPLATES_SERVICE.delete(id);
     if (result === "not_found") return res.status(404).json({ message: "Template não encontrado" });
-    if (result === "in_use") return res.status(409).json({ message: "Template está em uso por uma ou mais espécies" });
     return res.status(204).send();
   } catch (err) {
     next(err);

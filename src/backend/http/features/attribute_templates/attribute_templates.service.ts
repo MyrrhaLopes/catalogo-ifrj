@@ -50,19 +50,20 @@ export const ATTRIBUTE_TEMPLATES_SERVICE = {
     return updated ?? null;
   },
 
-  delete: async (id: number): Promise<"not_found" | "in_use" | "ok"> => {
-    const [inUse] = await db
-      .select({ count: sql<number>`COUNT(*)::int` })
-      .from(attributeTable)
-      .where(eq(attributeTable.attribute, id));
-
-    if ((inUse?.count ?? 0) > 0) return "in_use";
-
+  delete: async (id: number): Promise<"not_found" | "ok"> => {
     const [deleted] = await db
       .delete(attributeTemplateTable)
       .where(eq(attributeTemplateTable.id, id))
       .returning({ id: attributeTemplateTable.id });
 
     return deleted ? "ok" : "not_found";
+  },
+
+  getUsageCount: async (id: number): Promise<number> => {
+    const [row] = await db
+      .select({ count: sql<number>`COUNT(*)::int` })
+      .from(attributeTable)
+      .where(eq(attributeTable.attribute, id));
+    return row?.count ?? 0;
   },
 };

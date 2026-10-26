@@ -1,9 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { getAttributeTemplates } from "@/frontend/features/species/species.api";
+import { ApiError } from "@/frontend/shared/api/client";
 import {
   getDistinctUnits,
   createAttributeTemplate,
   deleteAttributeTemplate,
+  getAttributeTemplateDeleteImpact,
   updateAttributeTemplate,
 } from "../admin.api";
 
@@ -37,12 +40,24 @@ export function useCreateAttributeTemplate() {
   });
 }
 
+export function useAttributeTemplateDeleteImpact(id: number, enabled: boolean) {
+  return useQuery({
+    queryKey: ["attribute-templates", "delete-impact", id],
+    queryFn: () => getAttributeTemplateDeleteImpact(id),
+    enabled,
+  });
+}
+
 export function useDeleteAttributeTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteAttributeTemplate,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["attribute-templates"] });
+      void queryClient.invalidateQueries({ queryKey: ["species"] });
+    },
+    onError: (err) => {
+      toast.error(err instanceof ApiError ? err.message : "Erro ao excluir modelo de atributo. Tente novamente.");
     },
   });
 }

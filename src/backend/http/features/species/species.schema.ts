@@ -110,6 +110,15 @@ const parseAttrs = (val: unknown) => {
   }
 };
 
+export const speciesDeleteImpactSchema = z.object({
+  hasArticle: z.boolean(),
+  attributesCount: z.number(),
+  popularNamesCount: z.number(),
+  specimensCount: z.number(),
+  imagesCount: z.number(),
+});
+export type SpeciesDeleteImpact = z.infer<typeof speciesDeleteImpactSchema>;
+
 export const setThumbnailSchema = z.object({
   imageId: z.number().int().positive().nullable(),
 });

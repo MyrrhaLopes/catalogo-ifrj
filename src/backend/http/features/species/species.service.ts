@@ -4,6 +4,7 @@ import {
   specimenTable,
   popularNameTable,
   speciesPopularNamePivot,
+  articleTable,
   taxonomyTable,
   attributeTable,
   attributeTemplateTable,
@@ -144,14 +145,41 @@ export const SPECIES_SERVICE = {
   },
 
   deleteSpecie: async (specieId: number) => {
-    try {
-      await db.delete(speciesTable).where(eq(speciesTable.id, specieId));
-    } catch (err) {
-      if (err && typeof err === "object" && "code" in err && err.code === "23503") {
-        throw new Error("species has linked records");
-      }
-      throw err;
-    }
+    await db.delete(speciesTable).where(eq(speciesTable.id, specieId));
+  },
+
+  getDeleteImpact: async (specieId: number) => {
+    const [[article], [attrs], [popularNames], [specimens], [images]] = await Promise.all([
+      db
+        .select({ count: sql<number>`COUNT(*)::int` })
+        .from(articleTable)
+        .where(eq(articleTable.species, specieId)),
+      db
+        .select({ count: sql<number>`COUNT(*)::int` })
+        .from(attributeTable)
+        .where(eq(attributeTable.species, specieId)),
+      db
+        .select({ count: sql<number>`COUNT(*)::int` })
+        .from(speciesPopularNamePivot)
+        .where(eq(speciesPopularNamePivot.speciesId, specieId)),
+      db
+        .select({ count: sql<number>`COUNT(*)::int` })
+        .from(specimenTable)
+        .where(eq(specimenTable.speciesId, specieId)),
+      db
+        .select({ count: sql<number>`COUNT(*)::int` })
+        .from(imageTable)
+        .innerJoin(articleTable, eq(imageTable.article, articleTable.id))
+        .where(eq(articleTable.species, specieId)),
+    ]);
+
+    return {
+      hasArticle: (article?.count ?? 0) > 0,
+      attributesCount: attrs?.count ?? 0,
+      popularNamesCount: popularNames?.count ?? 0,
+      specimensCount: specimens?.count ?? 0,
+      imagesCount: images?.count ?? 0,
+    };
   },
 
   addPopularName: async (specieId: number, name: string, origin?: string) => {
@@ -218,7 +246,7 @@ export const SPECIES_SERVICE = {
       )
       SELECT species_id, COUNT(*) OVER()::int AS total
       FROM matching
-      ORDER BY species_id
+      ORDER BY species_id DESC
       LIMIT ${pageSize} OFFSET ${offset}
     `);
 
@@ -289,12 +317,18 @@ export const SPECIES_SERVICE = {
         .from(specimenTable)
         .where(inArray(specimenTable.speciesId, speciesIds)),
       db
-        .select({ id: speciesTable.id, speciesRoot: speciesTable.speciesRoot })
+        .select({
+          id: speciesTable.id,
+          speciesRoot: speciesTable.speciesRoot,
+          createdAt: speciesTable.createdAt,
+          createdBy: speciesTable.createdBy,
+        })
         .from(speciesTable)
         .where(inArray(speciesTable.id, speciesIds)),
     ]);
 
     const speciesRootMap = new Map(speciesMetaRows.map((r) => [r.id, r.speciesRoot]));
+    const speciesMetaMap = new Map(speciesMetaRows.map((r) => [r.id, r]));
 
     type PathRow = { species_id: number; id: number; label: string; labelValue: string };
     const pathsBySpecies = groupByKey(pathRows.rows as PathRow[], (r) => r.species_id);
@@ -325,8 +359,8 @@ export const SPECIES_SERVICE = {
       id: sid,
       speciesRoot: speciesRootMap.get(sid) ?? 0,
       specimens: pivotBySpecies.get(sid) ?? [],
-      createdAt: null,
-      createdBy: "",
+      createdAt: speciesMetaMap.get(sid)?.createdAt?.toISOString() ?? null,
+      createdBy: speciesMetaMap.get(sid)?.createdBy ?? "",
       taxonomyPath: (pathsBySpecies.get(sid) ?? []).map((p) => ({
         id: p.id,
         label: p.label,

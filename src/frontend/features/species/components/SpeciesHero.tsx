@@ -48,7 +48,7 @@ export function SpeciesHero({ species, scientificName, popularName, isAdmin, isE
     <>
       <section
         className={cn(
-          "bg-[#e8f2d0] grid overflow-hidden lg:h-[420px] tv:h-[34rem]",
+          "bg-[#e8f2d0] grid overflow-hidden lg:min-h-[420px] tv:min-h-[34rem]",
           thumbnails.length > 0 ? "lg:grid-cols-[1fr_1fr_160px] tv:grid-cols-[1fr_1fr_220px]" : "lg:grid-cols-2",
         )}
       >

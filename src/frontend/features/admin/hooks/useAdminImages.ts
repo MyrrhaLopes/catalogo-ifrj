@@ -60,6 +60,10 @@ export function useDeleteImage() {
     mutationFn: (id: number) => deleteImage(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["images"] });
+      void queryClient.invalidateQueries({ queryKey: ["species"] });
+    },
+    onError: (err) => {
+      toast.error(err instanceof ApiError ? err.message : "Erro ao excluir imagem. Tente novamente.");
     },
   });
 }

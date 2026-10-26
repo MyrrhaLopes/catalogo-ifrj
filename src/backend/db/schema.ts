@@ -78,7 +78,7 @@ export const speciesPopularNamePivot = pgTable(
     popularNameId: integer("popular_name_id").references(
       () => popularNameTable.id,
     ),
-    speciesId: integer("species_id").references(() => speciesTable.id),
+    speciesId: integer("species_id").references(() => speciesTable.id, { onDelete: "cascade" }),
   },
   (table) => [primaryKey({ columns: [table.popularNameId, table.speciesId] })],
 );
@@ -87,7 +87,7 @@ export const articleTable = pgTable("articles", {
   id: serial("id").primaryKey(),
   content: jsonb("content").notNull(),
   species: integer("species")
-    .references(() => speciesTable.id)
+    .references(() => speciesTable.id, { onDelete: "cascade" })
     .notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
@@ -104,7 +104,7 @@ export const articleRecordTable = pgTable("article_records", {
     .references(() => usersTable.id)
     .notNull(),
   species: integer("species")
-    .references(() => speciesTable.id)
+    .references(() => speciesTable.id, { onDelete: "cascade" })
     .notNull(),
 });
 
@@ -118,9 +118,9 @@ export const attributeTable = pgTable(
   "attributes",
   {
     species: integer("species")
-      .references(() => speciesTable.id, { onDelete: "set null" })
+      .references(() => speciesTable.id, { onDelete: "cascade" })
       .notNull(),
-    attribute: integer("attribute").references(() => attributeTemplateTable.id),
+    attribute: integer("attribute").references(() => attributeTemplateTable.id, { onDelete: "cascade" }),
     value: text("value").notNull(),
     sourceId: integer("source_id").references(() => sourceTable.id, { onDelete: "set null" }),
   },
@@ -133,7 +133,7 @@ export const imageTable = pgTable("images", {
   id: serial("id").primaryKey(),
   url: text("url").notNull(),
   alt: text("alt"),
-  article: integer("article").references(() => articleTable.id),
+  article: integer("article").references(() => articleTable.id, { onDelete: "set null" }),
   // 'online' = referência da internet; 'acervo' = foto física do exemplar
   type: text("type").$type<"online" | "acervo">().notNull().default("online"),
   source: text("source"),   // URL do site de origem (ex: commons.wikimedia.org)
@@ -147,8 +147,8 @@ export const imageTable = pgTable("images", {
 export const imagesArticlePivotTable = pgTable(
   "images_article_pivot",
   {
-    imageId: integer("image_id").references(() => imageTable.id),
-    articleId: integer("article_id").references(() => articleTable.id),
+    imageId: integer("image_id").references(() => imageTable.id, { onDelete: "cascade" }),
+    articleId: integer("article_id").references(() => articleTable.id, { onDelete: "cascade" }),
   },
   (table) => [primaryKey({ columns: [table.imageId, table.articleId] })],
 );

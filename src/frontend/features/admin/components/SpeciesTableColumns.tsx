@@ -2,8 +2,8 @@ import { useState } from "react";
 import { tableFeatures, createColumnHelper } from "@tanstack/react-table";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/frontend/components/ui/button";
-import { BookOpen, ImageIcon, Pencil, X } from "lucide-react";
-import { useDeleteSpecies, useUpdateSpeciesAttributes, useSetSpeciesThumbnail } from "../hooks/useAdminSpecies";
+import { BookOpen, ImageIcon, Pencil, Trash2, X } from "lucide-react";
+import { useDeleteSpecies, useSpeciesDeleteImpact, useUpdateSpeciesAttributes, useSetSpeciesThumbnail } from "../hooks/useAdminSpecies";
 import { useUpdateSpecimen } from "@/frontend/features/specimens/hooks/useAdminSpecimen";
 import { useAttributeTemplates } from "@/frontend/features/species/hooks/useAttributeTemplates";
 import type { SpeciesSearchResult } from "@/backend/http/features/species/species.schema";
@@ -11,7 +11,8 @@ import { EditSpeciesAttributesModal } from "./EditSpeciesAttributesModal";
 import { ImagePickerModal } from "@/frontend/features/images/components/ImagePickerModal";
 import type { GalleryImage } from "@/frontend/features/images/images.api";
 import { getScientificName, buildTaxonomyBreadcrumb } from "@/frontend/shared/utils/taxonomy";
-import { ConfirmDeleteButton, CreatedAtCell, LockedCell } from "./AdminTableShared";
+import { isRecentlyCreated } from "../utils/recentlyCreated";
+import { CreatedAtCell, FullScreenDeleteWarning, LockedCell } from "./AdminTableShared";
 
 export const features = tableFeatures({});
 const columnHelper = createColumnHelper<typeof features, SpeciesSearchResult>();
@@ -191,20 +192,41 @@ function AttributesEditCell({ species }: { species: SpeciesSearchResult }) {
 }
 
 function DeleteCell({ species }: { species: SpeciesSearchResult }) {
+  const [warningOpen, setWarningOpen] = useState(false);
   const deleteMutation = useDeleteSpecies();
+  const { data: impact, isFetching } = useSpeciesDeleteImpact(species.id, warningOpen);
+
+  const items = impact
+    ? [
+        ...(impact.hasArticle ? ["Apagar o artigo desta espécie"] : []),
+        ...(impact.attributesCount > 0 ? [`Apagar ${impact.attributesCount} atributo(s)`] : []),
+        ...(impact.popularNamesCount > 0 ? [`Apagar ${impact.popularNamesCount} nome(s) popular(es)`] : []),
+        ...(impact.imagesCount > 0 ? [`Desvincular ${impact.imagesCount} imagem(ns) do artigo`] : []),
+        ...(impact.specimensCount > 0 ? [`Desvincular ${impact.specimensCount} espécime(s)`] : []),
+      ]
+    : [];
 
   return (
-    <ConfirmDeleteButton
-      title="Excluir espécie"
-      description={
-        <>
-          Tem certeza que deseja excluir a espécie <strong>#{species.id}</strong>? Esta ação não
-          pode ser desfeita.
-        </>
-      }
-      isPending={deleteMutation.isPending}
-      onConfirm={() => deleteMutation.mutate(species.id)}
-    />
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        className="text-destructive border-destructive/40 hover:bg-red-500 hover:text-white hover:border-red-500"
+        onClick={() => setWarningOpen(true)}
+      >
+        <Trash2 className="h-4 w-4 mr-1" />
+        Excluir
+      </Button>
+      <FullScreenDeleteWarning
+        open={warningOpen}
+        onOpenChange={setWarningOpen}
+        title={`Excluir a espécie #${species.id}?`}
+        items={items}
+        isLoadingImpact={isFetching}
+        isPending={deleteMutation.isPending}
+        onConfirm={() => deleteMutation.mutate(species.id, { onSuccess: () => setWarningOpen(false) })}
+      />
+    </>
   );
 }
 
@@ -222,7 +244,14 @@ export const columns = columnHelper.columns([
     id: "scientificName",
     header: "Nome científico",
     cell: (ctx) => (
-      <span className="italic">{getScientificName(ctx.row.original.taxonomyPath)}</span>
+      <span className="flex items-center gap-1.5">
+        <span className="italic">{getScientificName(ctx.row.original.taxonomyPath)}</span>
+        {isRecentlyCreated(ctx.row.original.createdAt) && (
+          <span className="inline-flex items-center rounded-full bg-green-100 text-green-700 text-[10px] font-medium px-1.5 py-0.5 dark:bg-green-900/40 dark:text-green-400">
+            Novo
+          </span>
+        )}
+      </span>
     ),
   }),
   columnHelper.display({

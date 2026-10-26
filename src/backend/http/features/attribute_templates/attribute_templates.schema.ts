@@ -15,3 +15,8 @@ export const updateAttributeTemplateSchema = z.object({
 export const idParamSchema = z.object({
   id: z.coerce.number().int().positive(),
 });
+
+export const attributeTemplateDeleteImpactSchema = z.object({
+  usageCount: z.number(),
+});
+export type AttributeTemplateDeleteImpact = z.infer<typeof attributeTemplateDeleteImpactSchema>;
