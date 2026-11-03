@@ -58,7 +58,7 @@ function FavoritesPage() {
 }
 
 function FavoriteCard({ species }: { species: SpeciesDetails }) {
-  const scientificName = getScientificName(species.taxonomyPath, "Espécie");
+  const scientificName = getScientificName(species.taxonomyPath, species.scientificNameOverride, "Espécie");
   const popularName = species.popularNames[0]?.name;
 
   return (

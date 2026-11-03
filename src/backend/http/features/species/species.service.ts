@@ -19,6 +19,7 @@ import type { SpeciesSearchResult } from "./species.schema";
 type SpeciesRow = {
   id: number;
   speciesRoot: number;
+  scientificNameOverride: string | null;
   createdAt: Date | null;
   createdBy: string;
   specimenId: number | null;
@@ -28,12 +29,26 @@ type SpeciesRow = {
   specimenShelf: number | null;
 };
 
+// Nome científico exibido: usa o override manual quando presente, senão deriva do
+// taxonomyPath (penúltimo nó "Espécie" + gênero).
+export function getScientificName(
+  taxonomyPath: Array<{ label: string; labelValue: string }>,
+  scientificNameOverride?: string | null,
+): string {
+  if (scientificNameOverride) return scientificNameOverride;
+  const last = taxonomyPath.at(-1);
+  const secondLast = taxonomyPath.at(-2);
+  if (last?.label === "Espécie" && secondLast) return `${secondLast.labelValue} ${last.labelValue}`;
+  return last?.labelValue ?? "";
+}
+
 export function groupSpeciesRows(rows: SpeciesRow[]) {
   const map = new Map<
     number,
     {
       id: number;
       speciesRoot: number;
+      scientificNameOverride: string | null;
       createdAt: Date | null;
       createdBy: string;
       specimens: { id: number; code: string; exposicao: "humida" | "seca"; lot: number | null; shelf: number | null }[];
@@ -45,6 +60,7 @@ export function groupSpeciesRows(rows: SpeciesRow[]) {
       map.set(row.id, {
         id: row.id,
         speciesRoot: row.speciesRoot,
+        scientificNameOverride: row.scientificNameOverride,
         createdAt: row.createdAt,
         createdBy: row.createdBy,
         specimens: [],
@@ -81,6 +97,7 @@ export const SPECIES_SERVICE = {
       .select({
         id: speciesTable.id,
         speciesRoot: speciesTable.speciesRoot,
+        scientificNameOverride: speciesTable.scientificNameOverride,
         createdAt: speciesTable.createdAt,
         createdBy: speciesTable.createdBy,
         specimenId: specimenTable.id,
@@ -141,6 +158,13 @@ export const SPECIES_SERVICE = {
     await db
       .update(speciesTable)
       .set({ thumbnailImageId: imageId })
+      .where(eq(speciesTable.id, speciesId));
+  },
+
+  setScientificName: async (speciesId: number, scientificName: string | null) => {
+    await db
+      .update(speciesTable)
+      .set({ scientificNameOverride: scientificName })
       .where(eq(speciesTable.id, speciesId));
   },
 
@@ -320,6 +344,7 @@ export const SPECIES_SERVICE = {
         .select({
           id: speciesTable.id,
           speciesRoot: speciesTable.speciesRoot,
+          scientificNameOverride: speciesTable.scientificNameOverride,
           createdAt: speciesTable.createdAt,
           createdBy: speciesTable.createdBy,
         })
@@ -358,6 +383,7 @@ export const SPECIES_SERVICE = {
     const species: SpeciesSearchResult[] = speciesIds.map((sid) => ({
       id: sid,
       speciesRoot: speciesRootMap.get(sid) ?? 0,
+      scientificNameOverride: speciesMetaMap.get(sid)?.scientificNameOverride ?? null,
       specimens: pivotBySpecies.get(sid) ?? [],
       createdAt: speciesMetaMap.get(sid)?.createdAt?.toISOString() ?? null,
       createdBy: speciesMetaMap.get(sid)?.createdBy ?? "",

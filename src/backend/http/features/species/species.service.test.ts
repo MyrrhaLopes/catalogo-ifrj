@@ -1,5 +1,5 @@
 import { vi, describe, it, expect } from "vitest";
-import { groupSpeciesRows, SPECIES_SERVICE } from "./species.service";
+import { groupSpeciesRows, getScientificName, SPECIES_SERVICE } from "./species.service";
 import { db } from "@/backend/db/drizzle";
 
 // O módulo importa `db` no topo — mock evita tentativa de conexão ao banco
@@ -12,8 +12,8 @@ describe("groupSpeciesRows", () => {
 
   it("agrupa múltiplos specimens sob a mesma espécie", () => {
     const rows = [
-      { id: 1, speciesRoot: 10, createdAt: null, createdBy: "u1", specimenId: 100, specimenCode: "SP-01", specimenExposicao: "seca" as const, specimenLot: null, specimenShelf: null },
-      { id: 1, speciesRoot: 10, createdAt: null, createdBy: "u1", specimenId: 101, specimenCode: "SP-02", specimenExposicao: "humida" as const, specimenLot: 2, specimenShelf: 3 },
+      { id: 1, speciesRoot: 10, scientificNameOverride: null, createdAt: null, createdBy: "u1", specimenId: 100, specimenCode: "SP-01", specimenExposicao: "seca" as const, specimenLot: null, specimenShelf: null },
+      { id: 1, speciesRoot: 10, scientificNameOverride: null, createdAt: null, createdBy: "u1", specimenId: 101, specimenCode: "SP-02", specimenExposicao: "humida" as const, specimenLot: 2, specimenShelf: 3 },
     ];
     const result = groupSpeciesRows(rows);
     expect(result).toHaveLength(1);
@@ -24,7 +24,7 @@ describe("groupSpeciesRows", () => {
 
   it("trata espécie sem specimens (linha de left join nula)", () => {
     const rows = [
-      { id: 1, speciesRoot: 10, createdAt: null, createdBy: "u1", specimenId: null, specimenCode: null, specimenExposicao: null, specimenLot: null, specimenShelf: null },
+      { id: 1, speciesRoot: 10, scientificNameOverride: null, createdAt: null, createdBy: "u1", specimenId: null, specimenCode: null, specimenExposicao: null, specimenLot: null, specimenShelf: null },
     ];
     const result = groupSpeciesRows(rows);
     expect(result).toHaveLength(1);
@@ -33,7 +33,7 @@ describe("groupSpeciesRows", () => {
 
   it("não adiciona specimen quando specimenCode é null mesmo com specimenId presente", () => {
     const rows = [
-      { id: 1, speciesRoot: 10, createdAt: null, createdBy: "u1", specimenId: 5, specimenCode: null, specimenExposicao: null, specimenLot: null, specimenShelf: null },
+      { id: 1, speciesRoot: 10, scientificNameOverride: null, createdAt: null, createdBy: "u1", specimenId: 5, specimenCode: null, specimenExposicao: null, specimenLot: null, specimenShelf: null },
     ];
     const result = groupSpeciesRows(rows);
     expect(result[0].specimens).toHaveLength(0);
@@ -41,8 +41,8 @@ describe("groupSpeciesRows", () => {
 
   it("lida com múltiplas espécies distintas", () => {
     const rows = [
-      { id: 1, speciesRoot: 10, createdAt: null, createdBy: "u1", specimenId: 100, specimenCode: "SP-01", specimenExposicao: "seca" as const, specimenLot: null, specimenShelf: null },
-      { id: 2, speciesRoot: 20, createdAt: null, createdBy: "u2", specimenId: 200, specimenCode: "SP-02", specimenExposicao: "humida" as const, specimenLot: null, specimenShelf: null },
+      { id: 1, speciesRoot: 10, scientificNameOverride: null, createdAt: null, createdBy: "u1", specimenId: 100, specimenCode: "SP-01", specimenExposicao: "seca" as const, specimenLot: null, specimenShelf: null },
+      { id: 2, speciesRoot: 20, scientificNameOverride: null, createdAt: null, createdBy: "u2", specimenId: 200, specimenCode: "SP-02", specimenExposicao: "humida" as const, specimenLot: null, specimenShelf: null },
     ];
     const result = groupSpeciesRows(rows);
     expect(result).toHaveLength(2);
@@ -54,7 +54,7 @@ describe("groupSpeciesRows", () => {
   it("converte createdAt Date para string ISO", () => {
     const date = new Date("2024-01-15T12:00:00.000Z");
     const rows = [
-      { id: 1, speciesRoot: 10, createdAt: date, createdBy: "u1", specimenId: null, specimenCode: null, specimenExposicao: null, specimenLot: null, specimenShelf: null },
+      { id: 1, speciesRoot: 10, scientificNameOverride: null, createdAt: date, createdBy: "u1", specimenId: null, specimenCode: null, specimenExposicao: null, specimenLot: null, specimenShelf: null },
     ];
     const result = groupSpeciesRows(rows);
     expect(result[0].createdAt).toBe("2024-01-15T12:00:00.000Z");
@@ -62,7 +62,7 @@ describe("groupSpeciesRows", () => {
 
   it("retorna null para createdAt null", () => {
     const rows = [
-      { id: 1, speciesRoot: 10, createdAt: null, createdBy: "u1", specimenId: null, specimenCode: null, specimenExposicao: null, specimenLot: null, specimenShelf: null },
+      { id: 1, speciesRoot: 10, scientificNameOverride: null, createdAt: null, createdBy: "u1", specimenId: null, specimenCode: null, specimenExposicao: null, specimenLot: null, specimenShelf: null },
     ];
     const result = groupSpeciesRows(rows);
     expect(result[0].createdAt).toBeNull();
@@ -70,7 +70,7 @@ describe("groupSpeciesRows", () => {
 
   it("preserva speciesRoot e createdBy de cada espécie", () => {
     const rows = [
-      { id: 5, speciesRoot: 99, createdAt: null, createdBy: "user-abc", specimenId: null, specimenCode: null, specimenExposicao: null, specimenLot: null, specimenShelf: null },
+      { id: 5, speciesRoot: 99, scientificNameOverride: null, createdAt: null, createdBy: "user-abc", specimenId: null, specimenCode: null, specimenExposicao: null, specimenLot: null, specimenShelf: null },
     ];
     const result = groupSpeciesRows(rows);
     expect(result[0].speciesRoot).toBe(99);
@@ -79,8 +79,8 @@ describe("groupSpeciesRows", () => {
 
   it("adiciona todas as linhas de um mesmo specimen duplicado (comportamento atual documentado)", () => {
     const rows = [
-      { id: 1, speciesRoot: 10, createdAt: null, createdBy: "u1", specimenId: 100, specimenCode: "SP-01", specimenExposicao: "seca" as const, specimenLot: null, specimenShelf: null },
-      { id: 1, speciesRoot: 10, createdAt: null, createdBy: "u1", specimenId: 100, specimenCode: "SP-01", specimenExposicao: "seca" as const, specimenLot: null, specimenShelf: null },
+      { id: 1, speciesRoot: 10, scientificNameOverride: null, createdAt: null, createdBy: "u1", specimenId: 100, specimenCode: "SP-01", specimenExposicao: "seca" as const, specimenLot: null, specimenShelf: null },
+      { id: 1, speciesRoot: 10, scientificNameOverride: null, createdAt: null, createdBy: "u1", specimenId: 100, specimenCode: "SP-01", specimenExposicao: "seca" as const, specimenLot: null, specimenShelf: null },
     ];
     const result = groupSpeciesRows(rows);
     expect(result[0].specimens).toHaveLength(2);
@@ -88,10 +88,77 @@ describe("groupSpeciesRows", () => {
 
   it("não adiciona specimen quando specimenExposicao é null mesmo com code presente", () => {
     const rows = [
-      { id: 1, speciesRoot: 10, createdAt: null, createdBy: "u1", specimenId: 100, specimenCode: "SP-01", specimenExposicao: null, specimenLot: null, specimenShelf: null },
+      { id: 1, speciesRoot: 10, scientificNameOverride: null, createdAt: null, createdBy: "u1", specimenId: 100, specimenCode: "SP-01", specimenExposicao: null, specimenLot: null, specimenShelf: null },
     ];
     const result = groupSpeciesRows(rows);
     expect(result[0].specimens).toHaveLength(0);
+  });
+
+  it("preserva o scientificNameOverride de cada espécie", () => {
+    const rows = [
+      { id: 1, speciesRoot: 10, scientificNameOverride: "Panthera onca", createdAt: null, createdBy: "u1", specimenId: null, specimenCode: null, specimenExposicao: null, specimenLot: null, specimenShelf: null },
+    ];
+    const result = groupSpeciesRows(rows);
+    expect(result[0].scientificNameOverride).toBe("Panthera onca");
+  });
+});
+
+describe("getScientificName", () => {
+  const taxonomyPath = [
+    { label: "Gênero", labelValue: "Panthera" },
+    { label: "Espécie", labelValue: "onca" },
+  ];
+
+  it("usa o override quando presente, ignorando o taxonomyPath", () => {
+    expect(getScientificName(taxonomyPath, "Nome customizado")).toBe("Nome customizado");
+  });
+
+  it("deriva gênero + espécie do taxonomyPath quando override é null", () => {
+    expect(getScientificName(taxonomyPath, null)).toBe("Panthera onca");
+  });
+
+  it("deriva gênero + espécie do taxonomyPath quando override é undefined", () => {
+    expect(getScientificName(taxonomyPath)).toBe("Panthera onca");
+  });
+
+  it("ignora override vazio e cai no taxonomyPath", () => {
+    expect(getScientificName(taxonomyPath, "")).toBe("Panthera onca");
+  });
+
+  it("retorna apenas o último nó quando ele não é do tipo Espécie", () => {
+    const genusOnlyPath = [{ label: "Gênero", labelValue: "Panthera" }];
+    expect(getScientificName(genusOnlyPath)).toBe("Panthera");
+  });
+
+  it("retorna string vazia para taxonomyPath vazio e sem override", () => {
+    expect(getScientificName([])).toBe("");
+  });
+
+  it("retorna o último labelValue quando o nó Espécie não tem penúltimo nó", () => {
+    const onlySpecies = [{ label: "Espécie", labelValue: "onca" }];
+    expect(getScientificName(onlySpecies)).toBe("onca");
+  });
+});
+
+describe("SPECIES_SERVICE.setScientificName", () => {
+  it("atualiza a coluna scientificNameOverride com o valor informado", async () => {
+    const whereMock = vi.fn().mockResolvedValue(undefined);
+    const setMock = vi.fn().mockReturnValue({ where: whereMock });
+    vi.mocked(db as unknown as { update: ReturnType<typeof vi.fn> }).update = vi.fn().mockReturnValue({ set: setMock });
+
+    await SPECIES_SERVICE.setScientificName(1, "Panthera onca");
+
+    expect(setMock).toHaveBeenCalledWith({ scientificNameOverride: "Panthera onca" });
+  });
+
+  it("limpa a coluna scientificNameOverride quando recebe null", async () => {
+    const whereMock = vi.fn().mockResolvedValue(undefined);
+    const setMock = vi.fn().mockReturnValue({ where: whereMock });
+    vi.mocked(db as unknown as { update: ReturnType<typeof vi.fn> }).update = vi.fn().mockReturnValue({ set: setMock });
+
+    await SPECIES_SERVICE.setScientificName(1, null);
+
+    expect(setMock).toHaveBeenCalledWith({ scientificNameOverride: null });
   });
 });
 

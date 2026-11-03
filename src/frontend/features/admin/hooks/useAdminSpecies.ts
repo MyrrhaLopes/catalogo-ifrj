@@ -3,7 +3,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { searchSpecies, setSpeciesThumbnail } from "@/frontend/features/species/species.api";
 import { ApiError } from "@/frontend/shared/api/client";
-import { createSpecies, deleteSpecies, getSpeciesDeleteImpact, updateSpeciesAttributes } from "../admin.api";
+import {
+  createSpecies,
+  deleteSpecies,
+  getSpeciesDeleteImpact,
+  updateSpeciesAttributes,
+  updateSpeciesScientificName,
+} from "../admin.api";
 
 export function useSpeciesList() {
   return useQuery({
@@ -109,6 +115,23 @@ export function useUpdateSpeciesAttributes() {
     }) => updateSpeciesAttributes(speciesId, attributes),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["species"] });
+    },
+  });
+}
+
+export function useUpdateSpeciesScientificName() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      speciesId,
+      scientificName,
+    }: {
+      speciesId: number;
+      scientificName: string | null;
+    }) => updateSpeciesScientificName(speciesId, scientificName),
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ["species"] });
+      void queryClient.invalidateQueries({ queryKey: ["species", "details", variables.speciesId] });
     },
   });
 }

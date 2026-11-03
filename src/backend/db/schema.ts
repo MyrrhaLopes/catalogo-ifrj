@@ -57,6 +57,8 @@ export const speciesTable = pgTable("species", {
     (): AnyPgColumn => imageTable.id,
     { onDelete: "set null" },
   ),
+  // nome científico manual; quando null, é derivado do taxonomyPath (gênero + espécie)
+  scientificNameOverride: text("scientific_name_override"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   createdBy: uuid("created_by")
     .references(() => usersTable.id)

@@ -8,6 +8,7 @@ import {
   speciesPopularNamePivot,
 } from "@/backend/db/schema";
 import { eq, inArray, sql } from "drizzle-orm";
+import { getScientificName } from "../species/species.service";
 
 type GalleryImageData = {
   id: number;
@@ -24,13 +25,6 @@ type GalleryImageData = {
   specimen: { code: string; exposicao: "humida" | "seca"; shelf: number | null; lot: number | null } | null;
   speciesThumbnail: string | null;
 };
-
-function getScientificName(path: { label: string; labelValue: string }[]): string {
-  const last = path.at(-1);
-  const secondLast = path.at(-2);
-  if (last?.label === "Espécie" && secondLast) return `${secondLast.labelValue} ${last.labelValue}`;
-  return last?.labelValue ?? "";
-}
 
 export const GALLERY_SERVICE = {
   getGallery: async (): Promise<GalleryImageData[]> => {
@@ -85,7 +79,11 @@ export const GALLERY_SERVICE = {
       .where(inArray(speciesPopularNamePivot.speciesId, speciesIds));
 
     const speciesMetaRows = await db
-      .select({ id: speciesTable.id, thumbnailImageId: speciesTable.thumbnailImageId })
+      .select({
+        id: speciesTable.id,
+        thumbnailImageId: speciesTable.thumbnailImageId,
+        scientificNameOverride: speciesTable.scientificNameOverride,
+      })
       .from(speciesTable)
       .where(inArray(speciesTable.id, speciesIds));
 
@@ -141,11 +139,13 @@ export const GALLERY_SERVICE = {
     }
 
     const thumbnailBySpecies = new Map<number, string | null>();
+    const scientificNameOverrideBySpecies = new Map<number, string | null>();
     for (const s of speciesMetaRows) {
       const url = s.thumbnailImageId
         ? (thumbnailUrlMap.get(s.thumbnailImageId) ?? null)
         : null;
       thumbnailBySpecies.set(s.id, url);
+      scientificNameOverrideBySpecies.set(s.id, s.scientificNameOverride);
     }
 
     return imageRows.map((r) => {
@@ -159,7 +159,7 @@ export const GALLERY_SERVICE = {
         credit: r.credit,
         createdAt: r.createdAt.toISOString(),
         speciesId: r.speciesId,
-        speciesName: getScientificName(path),
+        speciesName: getScientificName(path, scientificNameOverrideBySpecies.get(r.speciesId)),
         popularName: popularNameBySpecies.get(r.speciesId) ?? null,
         taxonomyPath: path,
         specimen: r.specimenId ? (specimenMap.get(r.specimenId) ?? null) : null,

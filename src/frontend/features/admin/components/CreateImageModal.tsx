@@ -60,7 +60,7 @@ export function CreateImageModal({ open, onOpenChange, defaultSpeciesId }: Props
               <option value="">Selecione uma espécie...</option>
               {form.speciesList.map((species) => (
                 <option key={species.id} value={species.id}>
-                  {getScientificName(species.taxonomyPath)} (#{species.id})
+                  {getScientificName(species.taxonomyPath, species.scientificNameOverride)} (#{species.id})
                 </option>
               ))}
             </select>

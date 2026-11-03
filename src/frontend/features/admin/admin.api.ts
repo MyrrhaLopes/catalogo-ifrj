@@ -145,3 +145,13 @@ export async function updateSpeciesAttributes(
     body: JSON.stringify({ attributes }),
   });
 }
+
+export async function updateSpeciesScientificName(
+  speciesId: number,
+  scientificName: string | null,
+): Promise<void> {
+  await apiFetch(`/api/v1/species/${speciesId}/scientific-name`, {
+    method: "PATCH",
+    body: JSON.stringify({ scientificName }),
+  });
+}

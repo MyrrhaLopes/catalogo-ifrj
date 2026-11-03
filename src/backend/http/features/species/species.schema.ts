@@ -34,6 +34,7 @@ export const speciesBaseSchema = z.object({
   id: z.number(),
   speciesRoot: z.number(),
   specimens: z.array(linkedSpecimenSchema),
+  scientificNameOverride: z.string().nullable(),
   createdAt: z.string().nullable(),
   createdBy: z.string(),
 });
@@ -121,6 +122,10 @@ export type SpeciesDeleteImpact = z.infer<typeof speciesDeleteImpactSchema>;
 
 export const setThumbnailSchema = z.object({
   imageId: z.number().int().positive().nullable(),
+});
+
+export const setScientificNameSchema = z.object({
+  scientificName: z.string().trim().min(1).nullable(),
 });
 
 export const setSpeciesAttributesSchema = z.object({

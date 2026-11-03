@@ -140,7 +140,9 @@ export function EditSpeciesAttributesModal({ open, onOpenChange, species }: Prop
     isDirty &&
     [...selectedIds].every((id) => (values.get(id)?.trim() ?? "").length > 0);
 
-  const scientificName = species ? getScientificName(species.taxonomyPath) : "";
+  const scientificName = species
+    ? getScientificName(species.taxonomyPath, species.scientificNameOverride)
+    : "";
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>

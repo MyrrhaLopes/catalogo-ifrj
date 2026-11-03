@@ -40,7 +40,7 @@ function LinkedChip({
   isPending: boolean;
 }) {
   const navigate = useNavigate();
-  const scientificName = getScientificName(species.taxonomyPath);
+  const scientificName = getScientificName(species.taxonomyPath, species.scientificNameOverride);
 
   return (
     <span className="inline-flex items-center gap-1.5 rounded border px-2 py-1 text-sm bg-primary/10 border-primary/30">
@@ -208,7 +208,7 @@ export function SelectSpeciesModal({ open, onOpenChange, specimen }: SelectSpeci
                       </TableCell>
                       <TableCell>
                         <span className="italic text-sm">
-                          {getScientificName(sp.taxonomyPath)}
+                          {getScientificName(sp.taxonomyPath, sp.scientificNameOverride)}
                         </span>
                       </TableCell>
                       <TableCell>

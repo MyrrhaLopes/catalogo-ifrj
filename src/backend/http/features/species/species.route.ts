@@ -9,6 +9,7 @@ import {
   speciesListQuerySchema,
   setSpeciesAttributesSchema,
   setThumbnailSchema,
+  setScientificNameSchema,
 } from "./species.schema";
 
 export const speciesRouter = Router();
@@ -95,6 +96,17 @@ speciesRouter.patch("/species/:id/thumbnail", authorizeUser, async (req, res, ne
     const { id } = idParamSchema.parse(req.params);
     const { imageId } = setThumbnailSchema.parse(req.body);
     await SPECIES_SERVICE.setThumbnail(id, imageId);
+    return res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+});
+
+speciesRouter.patch("/species/:id/scientific-name", authorizeUser, async (req, res, next) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+    const { scientificName } = setScientificNameSchema.parse(req.body);
+    await SPECIES_SERVICE.setScientificName(id, scientificName);
     return res.status(204).send();
   } catch (err) {
     next(err);

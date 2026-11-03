@@ -2,8 +2,10 @@ export type TaxonomyPathItem = { id?: number; label: string; labelValue: string 
 
 export function getScientificName(
   taxonomyPath: readonly TaxonomyPathItem[],
+  scientificNameOverride?: string | null,
   fallback = "—",
 ): string {
+  if (scientificNameOverride) return scientificNameOverride;
   const last = taxonomyPath.at(-1);
   if (!last) return fallback;
   const secondLast = taxonomyPath.at(-2);

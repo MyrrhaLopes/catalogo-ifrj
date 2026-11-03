@@ -321,7 +321,7 @@ function SpeciesViewBody({
 
 function SpeciesViewLoaded({ id, species, editArticle }: LoadedProps) {
   const state = useSpeciesViewState(id, species, editArticle);
-  const scientificName = getScientificName(species.taxonomyPath, "Espécie");
+  const scientificName = getScientificName(species.taxonomyPath, species.scientificNameOverride, "Espécie");
   const popularName = getPopularName(species);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
