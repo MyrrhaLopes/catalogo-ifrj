@@ -4,7 +4,7 @@ import { Input } from "@/frontend/components/ui/input";
 import { useSpeciesAdminTable } from "../hooks/useAdminSpecies";
 import { columns, features } from "./SpeciesTableColumns";
 import { AdminDataTable } from "./AdminTableShared";
-import { SpeciesTablePagination } from "./SpeciesTablePagination";
+import { AdminTablePagination } from "./AdminTablePagination";
 
 type SpeciesTableProps = {
   selectedSpeciesId?: number;
@@ -45,7 +45,7 @@ export function SpeciesTable({ selectedSpeciesId }: SpeciesTableProps) {
         data={species}
       />
 
-      <SpeciesTablePagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      <AdminTablePagination page={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
   );
 }

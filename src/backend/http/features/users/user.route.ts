@@ -5,6 +5,7 @@ import {
   userRegisterSchema,
   userLoginSchema,
   updateUserSchema,
+  userListQuerySchema,
 } from "./user.schema";
 import { USER_SERVICE } from "./user.service";
 import { authorizeUser } from "../../middleware/authorizeUser";
@@ -72,10 +73,11 @@ userRouter.delete("/users/", authorizeUser, async (req, res, next) => {
   }
 });
 
-userRouter.get("/users/", authorizeUser, async (_req, res, next) => {
+userRouter.get("/users/", authorizeUser, async (req, res, next) => {
   try {
-    const users = await USER_SERVICE.getUsers();
-    return res.status(200).json({ users });
+    const { page, pageSize } = userListQuerySchema.parse(req.query);
+    const result = await USER_SERVICE.getUsers({ page, pageSize });
+    return res.status(200).json(result);
   } catch (err) {
     next(err);
   }

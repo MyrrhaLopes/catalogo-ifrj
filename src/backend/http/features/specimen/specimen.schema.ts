@@ -33,10 +33,19 @@ export const specimenListResponseSchema = z.object({
   total: z.number(),
 });
 
+export const specimenPaginatedResponseSchema = z.object({
+  specimens: z.array(specimenSchema),
+  total: z.number(),
+  page: z.number(),
+  pageSize: z.number(),
+});
+
 export const idParamSchema = z.object({
   id: z.coerce.number().int().positive(),
 });
 
 export const specimenSearchQuerySchema = z.object({
   q: z.string().optional(),
+  page: z.coerce.number().int().positive().optional(),
+  pageSize: z.coerce.number().int().positive().max(100).optional(),
 });

@@ -1,7 +1,8 @@
 import { tableFeatures, createColumnHelper, useTable } from "@tanstack/react-table";
-import { useUsers } from "../hooks/useAdminUsers";
+import { useUsersAdminTable } from "../hooks/useAdminUsers";
 import type { UserListItem } from "@/backend/http/features/users/user.schema";
 import { AdminDataTable, CreatedAtCell, LockedCell } from "./AdminTableShared";
+import { AdminTablePagination } from "./AdminTablePagination";
 
 const features = tableFeatures({});
 const columnHelper = createColumnHelper<typeof features, UserListItem>();
@@ -33,7 +34,7 @@ const columns = columnHelper.columns([
 ]);
 
 export function UsersTable() {
-  const { data: users = [], isLoading, isError } = useUsers();
+  const { users, isLoading, isError, page, setPage, totalPages } = useUsersAdminTable();
 
   const table = useTable({
     features,
@@ -42,14 +43,18 @@ export function UsersTable() {
   });
 
   return (
-    <AdminDataTable
-      table={table}
-      colCount={columns.length}
-      emptyMessage="Nenhum usuário cadastrado"
-      isLoading={isLoading}
-      loadingMessage="Carregando usuários…"
-      isError={isError}
-      errorMessage="Erro ao carregar usuários."
-    />
+    <div className="flex flex-col gap-3">
+      <AdminDataTable
+        table={table}
+        colCount={columns.length}
+        emptyMessage="Nenhum usuário cadastrado"
+        isLoading={isLoading}
+        loadingMessage="Carregando usuários…"
+        isError={isError}
+        errorMessage="Erro ao carregar usuários."
+      />
+
+      <AdminTablePagination page={page} totalPages={totalPages} onPageChange={setPage} />
+    </div>
   );
 }

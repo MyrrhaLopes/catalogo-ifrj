@@ -1,6 +1,6 @@
 import { db } from "@/backend/db/drizzle";
 import { specimenTable, type SpecimenTableInsert } from "@/backend/db/schema";
-import { desc, eq, ilike } from "drizzle-orm";
+import { desc, eq, ilike, sql } from "drizzle-orm";
 
 const specimenSelect = {
   id: specimenTable.id,
@@ -55,6 +55,25 @@ export const SPECIMEN_SERVICE = {
       .orderBy(desc(specimenTable.id));
 
     return rows.map(mapSpecimenRow);
+  },
+
+  listSpecimensPaginated: async (params: { q?: string; page: number; pageSize: number }) => {
+    const { q, page, pageSize } = params;
+    const offset = (page - 1) * pageSize;
+    const whereClause = q ? ilike(specimenTable.code, `%${q}%`) : undefined;
+
+    const [rows, [countRow]] = await Promise.all([
+      db
+        .select(specimenSelect)
+        .from(specimenTable)
+        .where(whereClause)
+        .orderBy(desc(specimenTable.id))
+        .limit(pageSize)
+        .offset(offset),
+      db.select({ count: sql<number>`COUNT(*)::int` }).from(specimenTable).where(whereClause),
+    ]);
+
+    return { specimens: rows.map(mapSpecimenRow), total: countRow?.count ?? 0, page, pageSize };
   },
 
   getSpecimenById: async (id: number) => {

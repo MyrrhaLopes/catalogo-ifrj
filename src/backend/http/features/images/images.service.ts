@@ -1,6 +1,6 @@
 import { db } from "@/backend/db/drizzle";
 import { imageTable, articleTable } from "@/backend/db/schema";
-import { eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 
 const imageWithSpeciesSelect = {
   id: imageTable.id,
@@ -29,6 +29,24 @@ export const IMAGES_SERVICE = {
       .select(imageWithSpeciesSelect)
       .from(imageTable)
       .leftJoin(articleTable, eq(imageTable.article, articleTable.id));
+  },
+
+  getAllPaginated: async (params: { page: number; pageSize: number }) => {
+    const { page, pageSize } = params;
+    const offset = (page - 1) * pageSize;
+
+    const [rows, [countRow]] = await Promise.all([
+      db
+        .select(imageWithSpeciesSelect)
+        .from(imageTable)
+        .leftJoin(articleTable, eq(imageTable.article, articleTable.id))
+        .orderBy(desc(imageTable.id))
+        .limit(pageSize)
+        .offset(offset),
+      db.select({ count: sql<number>`COUNT(*)::int` }).from(imageTable),
+    ]);
+
+    return { images: rows, total: countRow?.count ?? 0, page, pageSize };
   },
 
   create: async (data: {

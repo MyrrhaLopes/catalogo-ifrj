@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ApiError } from "@/frontend/shared/api/client";
 import {
   listSpecimens,
+  listSpecimensPaginated,
   createSpecimen,
   updateSpecimen,
   deleteSpecimen,
@@ -13,6 +15,29 @@ export function useSpecimenList() {
     queryKey: ["specimens"],
     queryFn: () => listSpecimens().then((r) => r.specimens),
   });
+}
+
+export const SPECIMEN_ADMIN_PAGE_SIZE = 20;
+
+export function useSpecimenAdminTable() {
+  const [page, setPage] = useState(1);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["specimens", "admin-list", page],
+    queryFn: () => listSpecimensPaginated(page, SPECIMEN_ADMIN_PAGE_SIZE),
+    placeholderData: (prev) => prev,
+  });
+
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / SPECIMEN_ADMIN_PAGE_SIZE)) : 1;
+
+  return {
+    page,
+    setPage,
+    specimens: data?.specimens ?? [],
+    totalPages,
+    isLoading,
+    isError,
+  };
 }
 
 export function useCreateSpecimen() {

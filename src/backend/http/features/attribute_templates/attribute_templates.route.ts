@@ -5,12 +5,20 @@ import {
   createAttributeTemplateSchema,
   updateAttributeTemplateSchema,
   idParamSchema,
+  attributeTemplateListQuerySchema,
 } from "./attribute_templates.schema";
 
 export const attributeTemplatesRouter = Router();
 
-attributeTemplatesRouter.get("/attribute-templates", async (_req, res, next) => {
+attributeTemplatesRouter.get("/attribute-templates", async (req, res, next) => {
   try {
+    const { page, pageSize } = attributeTemplateListQuerySchema.parse(req.query);
+
+    if (page !== undefined) {
+      const result = await ATTRIBUTE_TEMPLATES_SERVICE.listPaginated({ page, pageSize: pageSize ?? 20 });
+      return res.status(200).json(result);
+    }
+
     const templates = await ATTRIBUTE_TEMPLATES_SERVICE.listAll();
     return res.status(200).json({ templates });
   } catch (err) {

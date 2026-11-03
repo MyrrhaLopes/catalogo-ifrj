@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import { db } from "../../../db/drizzle";
 import { sessionsTable, usersTable } from "../../../db/schema";
-import { eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import type { UpdateUserInput } from "./user.schema";
 
 
@@ -50,15 +50,26 @@ export const USER_SERVICE = {
     await db.delete(usersTable).where(eq(usersTable.id, userId));
   },
 
-  getUsers: async () => {
-    return await db
-      .select({
-        id: usersTable.id,
-        name: usersTable.name,
-        email: usersTable.email,
-        createdAt: usersTable.createdAt,
-      })
-      .from(usersTable);
+  getUsers: async (params: { page: number; pageSize: number }) => {
+    const { page, pageSize } = params;
+    const offset = (page - 1) * pageSize;
+
+    const [rows, [countRow]] = await Promise.all([
+      db
+        .select({
+          id: usersTable.id,
+          name: usersTable.name,
+          email: usersTable.email,
+          createdAt: usersTable.createdAt,
+        })
+        .from(usersTable)
+        .orderBy(desc(usersTable.createdAt))
+        .limit(pageSize)
+        .offset(offset),
+      db.select({ count: sql<number>`COUNT(*)::int` }).from(usersTable),
+    ]);
+
+    return { users: rows, total: countRow?.count ?? 0, page, pageSize };
   },
 
   updateUser: async (userId: string, data: UpdateUserInput) => {

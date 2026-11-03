@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { imageSchema } from "@/backend/http/features/article/article.schema";
 
 export const imageIdParamSchema = z.object({
   id: z.coerce.number().int().positive(),
@@ -6,6 +7,15 @@ export const imageIdParamSchema = z.object({
 
 export const speciesIdQuerySchema = z.object({
   speciesId: z.coerce.number().int().positive().optional(),
+  page: z.coerce.number().int().positive().optional(),
+  pageSize: z.coerce.number().int().positive().max(100).optional(),
+});
+
+export const imagesPaginatedResponseSchema = z.object({
+  images: z.array(imageSchema),
+  total: z.number(),
+  page: z.number(),
+  pageSize: z.number(),
 });
 
 const imageTypeSchema = z.enum(["online", "acervo"]);

@@ -1,13 +1,13 @@
 import { Button } from "@/frontend/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-type SpeciesTablePaginationProps = {
+type AdminTablePaginationProps = {
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
 };
 
-export function SpeciesTablePagination({ page, totalPages, onPageChange }: SpeciesTablePaginationProps) {
+export function AdminTablePagination({ page, totalPages, onPageChange }: AdminTablePaginationProps) {
   if (totalPages <= 1) return null;
 
   return (

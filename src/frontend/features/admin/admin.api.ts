@@ -4,8 +4,11 @@ import type { UserListItem } from "@/backend/http/features/users/user.schema";
 import type { AttributeTemplateDeleteImpact } from "@/backend/http/features/attribute_templates/attribute_templates.schema";
 import { speciesBaseSchema, speciesDeleteImpactSchema } from "@/backend/http/features/species/species.schema";
 import { taxonomyNodeSchema, affectedSpeciesItemSchema } from "@/backend/http/features/taxonomy/taxonomy.schema";
-import { userListItemSchema } from "@/backend/http/features/users/user.schema";
-import { attributeTemplateDeleteImpactSchema } from "@/backend/http/features/attribute_templates/attribute_templates.schema";
+import { userListResponseSchema } from "@/backend/http/features/users/user.schema";
+import {
+  attributeTemplateDeleteImpactSchema,
+  attributeTemplatePaginatedResponseSchema,
+} from "@/backend/http/features/attribute_templates/attribute_templates.schema";
 import { z } from "zod";
 import { apiFetch } from "@/frontend/shared/api/client";
 
@@ -15,10 +18,16 @@ export type { AffectedSpeciesItem };
 
 export type { UserListItem };
 
-export async function getUsers(): Promise<UserListItem[]> {
-  const res = await apiFetch("/api/v1/users/");
-  const { users } = z.object({ users: z.array(userListItemSchema) }).parse(await res.json());
-  return users;
+export type UserListResponse = {
+  users: UserListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export async function getUsers(page: number, pageSize: number): Promise<UserListResponse> {
+  const res = await apiFetch(`/api/v1/users/?page=${page}&pageSize=${pageSize}`);
+  return userListResponseSchema.parse(await res.json());
 }
 
 export async function createSpecies(speciesRoot: number): Promise<SpeciesBase> {
@@ -103,6 +112,21 @@ export async function getDistinctUnits(): Promise<string[]> {
   const res = await apiFetch("/api/v1/attribute-templates/units");
   const { units } = z.object({ units: z.array(z.string()) }).parse(await res.json());
   return units;
+}
+
+export type AttributeTemplatePaginatedResponse = {
+  templates: AttributeTemplateItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export async function getAttributeTemplatesPaginated(
+  page: number,
+  pageSize: number,
+): Promise<AttributeTemplatePaginatedResponse> {
+  const res = await apiFetch(`/api/v1/attribute-templates?page=${page}&pageSize=${pageSize}`);
+  return attributeTemplatePaginatedResponseSchema.parse(await res.json());
 }
 
 export async function createAttributeTemplate(

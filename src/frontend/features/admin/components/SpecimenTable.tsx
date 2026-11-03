@@ -3,11 +3,12 @@ import { tableFeatures, createColumnHelper, useTable } from "@tanstack/react-tab
 import { useNavigate } from "@tanstack/react-router";
 import { Input } from "@/frontend/components/ui/input";
 import { Pencil } from "lucide-react";
-import { useSpecimenList, useUpdateSpecimen, useDeleteSpecimen } from "@/frontend/features/specimens/hooks/useAdminSpecimen";
+import { useSpecimenAdminTable, useUpdateSpecimen, useDeleteSpecimen } from "@/frontend/features/specimens/hooks/useAdminSpecimen";
 import { cn } from "@/lib/utils";
 import type { Specimen } from "@/frontend/features/specimens/specimen.api";
 import { SelectSpeciesModal } from "./SelectSpeciesModal";
 import { AdminDataTable, ConfirmDeleteButton, CreatedAtCell, LockedCell } from "./AdminTableShared";
+import { AdminTablePagination } from "./AdminTablePagination";
 
 // ────────────────────────────────────────────────────────────────────
 // Inline editable cell
@@ -266,21 +267,25 @@ type SpecimenTableProps = {
 };
 
 export function SpecimenTable({ selectedSpecimenId }: SpecimenTableProps) {
-  const { data: specimens = [], isLoading, isError } = useSpecimenList();
+  const { specimens, isLoading, isError, page, setPage, totalPages } = useSpecimenAdminTable();
   const table = useTable({ features, data: specimens, columns });
 
   return (
-    <AdminDataTable
-      table={table}
-      colCount={columns.length}
-      emptyMessage="Nenhum espécime cadastrado"
-      isLoading={isLoading}
-      loadingMessage="Carregando espécimes…"
-      isError={isError}
-      errorMessage="Erro ao carregar espécimes."
-      selectedId={selectedSpecimenId}
-      clearSection="specimen"
-      data={specimens}
-    />
+    <div className="flex flex-col gap-3">
+      <AdminDataTable
+        table={table}
+        colCount={columns.length}
+        emptyMessage="Nenhum espécime cadastrado"
+        isLoading={isLoading}
+        loadingMessage="Carregando espécimes…"
+        isError={isError}
+        errorMessage="Erro ao carregar espécimes."
+        selectedId={selectedSpecimenId}
+        clearSection="specimen"
+        data={specimens}
+      />
+
+      <AdminTablePagination page={page} totalPages={totalPages} onPageChange={setPage} />
+    </div>
   );
 }

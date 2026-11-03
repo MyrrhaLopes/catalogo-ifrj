@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getAttributeTemplates } from "@/frontend/features/species/species.api";
 import { ApiError } from "@/frontend/shared/api/client";
 import {
   getDistinctUnits,
+  getAttributeTemplatesPaginated,
   createAttributeTemplate,
   deleteAttributeTemplate,
   getAttributeTemplateDeleteImpact,
@@ -15,6 +17,29 @@ export function useAttributeTemplatesList() {
     queryKey: ["attribute-templates"],
     queryFn: getAttributeTemplates,
   });
+}
+
+export const ATTRIBUTE_TEMPLATES_ADMIN_PAGE_SIZE = 20;
+
+export function useAttributeTemplatesAdminTable() {
+  const [page, setPage] = useState(1);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["attribute-templates", "admin-list", page],
+    queryFn: () => getAttributeTemplatesPaginated(page, ATTRIBUTE_TEMPLATES_ADMIN_PAGE_SIZE),
+    placeholderData: (prev) => prev,
+  });
+
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / ATTRIBUTE_TEMPLATES_ADMIN_PAGE_SIZE)) : 1;
+
+  return {
+    page,
+    setPage,
+    templates: data?.templates ?? [],
+    totalPages,
+    isLoading,
+    isError,
+  };
 }
 
 export function useDistinctUnits() {

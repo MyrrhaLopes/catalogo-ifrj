@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { imageSchema } from "@/backend/http/features/article/article.schema";
+import { imagesPaginatedResponseSchema } from "@/backend/http/features/images/images.schema";
 import { apiFetch } from "@/frontend/shared/api/client";
 
 export type GalleryImage = z.infer<typeof imageSchema>;
@@ -7,6 +8,13 @@ export type GalleryImage = z.infer<typeof imageSchema>;
 const imagesResponseSchema = z.object({
   images: z.array(imageSchema),
 });
+
+export type ImagesPaginatedResponse = {
+  images: GalleryImage[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
 
 export async function getImagesBySpecies(speciesId: number): Promise<GalleryImage[]> {
   const res = await apiFetch(`/api/v1/images?speciesId=${speciesId}`);
@@ -16,6 +24,11 @@ export async function getImagesBySpecies(speciesId: number): Promise<GalleryImag
 export async function getAllImages(): Promise<GalleryImage[]> {
   const res = await apiFetch("/api/v1/images");
   return imagesResponseSchema.parse(await res.json()).images;
+}
+
+export async function getAllImagesPaginated(page: number, pageSize: number): Promise<ImagesPaginatedResponse> {
+  const res = await apiFetch(`/api/v1/images?page=${page}&pageSize=${pageSize}`);
+  return imagesPaginatedResponseSchema.parse(await res.json());
 }
 
 export async function createImage(data: {

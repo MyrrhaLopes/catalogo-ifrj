@@ -70,6 +70,18 @@ export const userListItemSchema = z.object({
 });
 export type UserListItem = z.infer<typeof userListItemSchema>;
 
+export const userListQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(100).default(20),
+});
+
+export const userListResponseSchema = z.object({
+  users: z.array(userListItemSchema),
+  total: z.number(),
+  page: z.number(),
+  pageSize: z.number(),
+});
+
 export const updateUserSchema = z
   .object({
     name: z.string().min(1).max(100).optional(),

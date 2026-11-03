@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { tableFeatures, createColumnHelper, useTable } from "@tanstack/react-table";
 import { Button } from "@/frontend/components/ui/button";
 import { ImageIcon, Loader2, Pencil, Plus } from "lucide-react";
-import { useImagesList, useDeleteImage, useUpdateImage } from "../hooks/useAdminImages";
+import { useImagesAdminTable, useDeleteImage, useUpdateImage } from "../hooks/useAdminImages";
 import { CreateImageModal } from "./CreateImageModal";
 import type { GalleryImage } from "@/frontend/features/images/images.api";
 import { AdminDataTable, ConfirmDeleteIconButton, CreatedAtCell, LockedCell } from "./AdminTableShared";
+import { AdminTablePagination } from "./AdminTablePagination";
 
 // ── AltTextCell ─────────────────────────────────────────────────────
 // Floating textarea that uses position:fixed to escape table overflow-auto.
@@ -167,7 +168,7 @@ const columns = columnHelper.columns([
 
 export function ImagesTable() {
   const [createOpen, setCreateOpen] = useState(false);
-  const { data: images = [], isLoading } = useImagesList();
+  const { images, isLoading, page, setPage, totalPages } = useImagesAdminTable();
 
   const table = useTable({
     features,
@@ -199,6 +200,8 @@ export function ImagesTable() {
         colCount={columns.length}
         emptyMessage="Nenhuma imagem cadastrada."
       />
+
+      <AdminTablePagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       <CreateImageModal open={createOpen} onOpenChange={setCreateOpen} />
     </div>

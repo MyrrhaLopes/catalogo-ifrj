@@ -20,3 +20,21 @@ export const attributeTemplateDeleteImpactSchema = z.object({
   usageCount: z.number(),
 });
 export type AttributeTemplateDeleteImpact = z.infer<typeof attributeTemplateDeleteImpactSchema>;
+
+export const attributeTemplateListQuerySchema = z.object({
+  page: z.coerce.number().int().positive().optional(),
+  pageSize: z.coerce.number().int().positive().max(100).optional(),
+});
+
+const attributeTemplateItemSchema = z.object({
+  id: z.number(),
+  label: z.string(),
+  unit: z.string(),
+});
+
+export const attributeTemplatePaginatedResponseSchema = z.object({
+  templates: z.array(attributeTemplateItemSchema),
+  total: z.number(),
+  page: z.number(),
+  pageSize: z.number(),
+});

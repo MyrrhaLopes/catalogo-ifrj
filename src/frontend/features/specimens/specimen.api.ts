@@ -1,4 +1,7 @@
-import { specimenListResponseSchema } from "@/backend/http/features/specimen/specimen.schema";
+import {
+  specimenListResponseSchema,
+  specimenPaginatedResponseSchema,
+} from "@/backend/http/features/specimen/specimen.schema";
 import type { Specimen } from "@/backend/http/features/specimen/specimen.schema";
 import { apiFetch } from "@/frontend/shared/api/client";
 
@@ -7,6 +10,13 @@ export type { Specimen };
 export type SpecimenSearchResponse = {
   specimens: Specimen[];
   total: number;
+};
+
+export type SpecimenPaginatedResponse = {
+  specimens: Specimen[];
+  total: number;
+  page: number;
+  pageSize: number;
 };
 
 export async function searchSpecimens(q: string): Promise<SpecimenSearchResponse> {
@@ -19,6 +29,19 @@ export async function searchSpecimens(q: string): Promise<SpecimenSearchResponse
 export async function listSpecimens(): Promise<SpecimenSearchResponse> {
   const res = await apiFetch("/api/v1/specimens/");
   return specimenListResponseSchema.parse(await res.json());
+}
+
+export async function listSpecimensPaginated(
+  page: number,
+  pageSize: number,
+  q?: string,
+): Promise<SpecimenPaginatedResponse> {
+  const url = new URL("/api/v1/specimens/", window.location.origin);
+  url.searchParams.set("page", String(page));
+  url.searchParams.set("pageSize", String(pageSize));
+  if (q) url.searchParams.set("q", q);
+  const res = await apiFetch(url.toString());
+  return specimenPaginatedResponseSchema.parse(await res.json());
 }
 
 export async function createSpecimen(data: {

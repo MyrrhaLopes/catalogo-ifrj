@@ -10,7 +10,7 @@ import {
 import { Button } from "@/frontend/components/ui/button";
 import { Info, Loader2, Lock, Pencil, Plus, Trash2 } from "lucide-react";
 import {
-  useAttributeTemplatesList,
+  useAttributeTemplatesAdminTable,
   useDeleteAttributeTemplate,
   useAttributeTemplateDeleteImpact,
   useUpdateAttributeTemplate,
@@ -20,6 +20,7 @@ import {
 import { CreateAttributeTemplateModal } from "./CreateAttributeTemplateModal";
 import { SearchableField } from "./SearchableField";
 import { DeleteImpactDialog } from "./AdminTableShared";
+import { AdminTablePagination } from "./AdminTablePagination";
 
 // ────────────────────────────────────────────────────────────────────
 // Inline editable cell with search
@@ -142,7 +143,7 @@ function DeleteTemplateCell({ id, label }: { id: number; label: string }) {
 // ────────────────────────────────────────────────────────────────────
 
 export function AttributeTemplatesTable() {
-  const { data: templates = [], isLoading, isError } = useAttributeTemplatesList();
+  const { templates, isLoading, isError, page, setPage, totalPages } = useAttributeTemplatesAdminTable();
   const { data: existingUnits = [] } = useDistinctUnits();
   const existingLabels = useDistinctLabels();
   const [createOpen, setCreateOpen] = useState(false);
@@ -227,6 +228,8 @@ export function AttributeTemplatesTable() {
           </TableBody>
         </Table>
       </div>
+
+      <AdminTablePagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       <CreateAttributeTemplateModal open={createOpen} onOpenChange={setCreateOpen} />
     </>

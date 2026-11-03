@@ -14,6 +14,27 @@ export const ATTRIBUTE_TEMPLATES_SERVICE = {
       .orderBy(attributeTemplateTable.id);
   },
 
+  listPaginated: async (params: { page: number; pageSize: number }) => {
+    const { page, pageSize } = params;
+    const offset = (page - 1) * pageSize;
+
+    const [rows, [countRow]] = await Promise.all([
+      db
+        .select({
+          id: attributeTemplateTable.id,
+          label: attributeTemplateTable.label,
+          unit: attributeTemplateTable.unit,
+        })
+        .from(attributeTemplateTable)
+        .orderBy(attributeTemplateTable.id)
+        .limit(pageSize)
+        .offset(offset),
+      db.select({ count: sql<number>`COUNT(*)::int` }).from(attributeTemplateTable),
+    ]);
+
+    return { templates: rows, total: countRow?.count ?? 0, page, pageSize };
+  },
+
   listDistinctUnits: async (): Promise<string[]> => {
     const rows = await db
       .selectDistinct({ unit: attributeTemplateTable.unit })

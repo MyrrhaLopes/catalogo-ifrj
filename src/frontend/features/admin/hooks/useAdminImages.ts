@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   getAllImages,
+  getAllImagesPaginated,
   getImagesBySpecies,
   createImage,
   updateImage,
@@ -15,6 +17,29 @@ export function useImagesList(speciesId?: number) {
     queryFn: () =>
       speciesId !== undefined ? getImagesBySpecies(speciesId) : getAllImages(),
   });
+}
+
+export const IMAGES_ADMIN_PAGE_SIZE = 20;
+
+export function useImagesAdminTable() {
+  const [page, setPage] = useState(1);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["images", "admin-list", page],
+    queryFn: () => getAllImagesPaginated(page, IMAGES_ADMIN_PAGE_SIZE),
+    placeholderData: (prev) => prev,
+  });
+
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / IMAGES_ADMIN_PAGE_SIZE)) : 1;
+
+  return {
+    page,
+    setPage,
+    images: data?.images ?? [],
+    totalPages,
+    isLoading,
+    isError,
+  };
 }
 
 export function useCreateImage() {
