@@ -89,7 +89,7 @@ export const SPECIES_SERVICE = {
       .insert(speciesTable)
       .values(values)
       .returning();
-    return newSpecies;
+    return { ...newSpecies, specimens: [] };
   },
 
   getSpecies: async () => {
