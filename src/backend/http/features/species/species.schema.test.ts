@@ -46,3 +46,75 @@ describe("speciesListQuerySchema — campo exposicao (filtro da busca pública)"
     expect(result.attrs).toEqual([{ templateId: 3, valueInBaseUnit: 10, operator: "=" }]);
   });
 });
+
+describe("speciesListQuerySchema — operadores de attrs (>=, <=, entre)", () => {
+  it("aceita o operador >=", () => {
+    const result = speciesListQuerySchema.parse({
+      attrs: JSON.stringify([{ templateId: 1, valueInBaseUnit: 5, operator: ">=" }]),
+    });
+    expect(result.attrs).toEqual([{ templateId: 1, valueInBaseUnit: 5, operator: ">=" }]);
+  });
+
+  it("aceita o operador <=", () => {
+    const result = speciesListQuerySchema.parse({
+      attrs: JSON.stringify([{ templateId: 1, valueInBaseUnit: 5, operator: "<=" }]),
+    });
+    expect(result.attrs).toEqual([{ templateId: 1, valueInBaseUnit: 5, operator: "<=" }]);
+  });
+
+  it("aceita o operador entre com valueInBaseUnit2", () => {
+    const result = speciesListQuerySchema.parse({
+      attrs: JSON.stringify([
+        { templateId: 1, valueInBaseUnit: 5, valueInBaseUnit2: 10, operator: "entre" },
+      ]),
+    });
+    expect(result.attrs).toEqual([
+      { templateId: 1, valueInBaseUnit: 5, valueInBaseUnit2: 10, operator: "entre" },
+    ]);
+  });
+
+  it("cai para = quando o operador é inválido", () => {
+    const result = speciesListQuerySchema.parse({
+      attrs: JSON.stringify([{ templateId: 1, valueInBaseUnit: 5, operator: "!=" }]),
+    });
+    expect(result.attrs).toEqual([{ templateId: 1, valueInBaseUnit: 5, operator: "=" }]);
+  });
+});
+
+describe("speciesListQuerySchema — attrs categóricos (kind: categorical)", () => {
+  it("aceita um attr categórico com values", () => {
+    const result = speciesListQuerySchema.parse({
+      attrs: JSON.stringify([{ kind: "categorical", templateId: 13, values: ["LC", "VU"] }]),
+    });
+    expect(result.attrs).toEqual([{ kind: "categorical", templateId: 13, values: ["LC", "VU"] }]);
+  });
+
+  it("rejeita attr categórico sem nenhum value", () => {
+    expect(() =>
+      speciesListQuerySchema.parse({
+        attrs: JSON.stringify([{ kind: "categorical", templateId: 13, values: [] }]),
+      }),
+    ).toThrow();
+  });
+
+  it("combina um attr numérico e um categórico no mesmo array", () => {
+    const result = speciesListQuerySchema.parse({
+      attrs: JSON.stringify([
+        { templateId: 3, valueInBaseUnit: 5, operator: ">=" },
+        { kind: "categorical", templateId: 13, values: ["LC"] },
+      ]),
+    });
+    expect(result.attrs).toEqual([
+      { templateId: 3, valueInBaseUnit: 5, operator: ">=" },
+      { kind: "categorical", templateId: 13, values: ["LC"] },
+    ]);
+  });
+
+  it("rejeita quando templateId não é informado no attr categórico", () => {
+    expect(() =>
+      speciesListQuerySchema.parse({
+        attrs: JSON.stringify([{ kind: "categorical", values: ["LC"] }]),
+      }),
+    ).toThrow();
+  });
+});

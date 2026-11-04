@@ -1,34 +1,65 @@
-import { useEffect, useRef, useState } from "react";
-import { Trash2, ChevronDown } from "lucide-react";
-import { useAttributeTemplates } from "@/frontend/features/species/hooks/useAttributeTemplates";
-import {
-  toBaseUnit,
-  getDisplayUnits,
-  getDefaultDisplayUnit,
-  type DisplayUnit,
-} from "../utils/unitConversion";
-import { unitLabels } from "../utils/unitLabels";
+import { Trash2 } from "lucide-react";
+import { toBaseUnit, type DisplayUnit } from "../utils/unitConversion";
 import type { AttributeTemplate } from "@/frontend/features/species/species.api";
-import { Input } from "@/frontend/components/ui/input";
-import { AttributeTemplateDropdown } from "./AttributeTemplateDropdown";
+import { NumericAttrFilterRow } from "./NumericAttrFilterRow";
+import { CategoricalAttrFilterRow } from "./CategoricalAttrFilterRow";
 
-export type AttrOperator = "=" | ">" | "<";
+export type AttrOperator = "=" | ">" | "<" | ">=" | "<=" | "entre";
 
-export type ActiveAttrFilter = {
+export type NumericActiveAttrFilter = {
+  kind: "numeric";
   templateId: number;
   template: AttributeTemplate;
   displayValue: string;
+  displayValue2: string;
   displayUnit: DisplayUnit;
   operator: AttrOperator;
 };
 
+export type CategoricalActiveAttrFilter = {
+  kind: "categorical";
+  templateId: number;
+  template: AttributeTemplate;
+  selectedValues: string[];
+};
+
+export type ActiveAttrFilter = NumericActiveAttrFilter | CategoricalActiveAttrFilter;
+
+export type AttrSearchEntry =
+  | {
+      kind: "numeric";
+      templateId: number;
+      valueInBaseUnit: number;
+      valueInBaseUnit2?: number;
+      operator: AttrOperator;
+      displayUnit: string;
+    }
+  | { kind: "categorical"; templateId: number; values: string[] };
+
 type FilterListProps = {
   filters: ActiveAttrFilter[];
   onChange: (filters: ActiveAttrFilter[]) => void;
-  onSearchChange: (
-    attrs: Array<{ templateId: number; valueInBaseUnit: number; operator: AttrOperator; displayUnit: string }>,
-  ) => void;
+  onSearchChange: (attrs: AttrSearchEntry[]) => void;
 };
+
+function toSearchEntry(f: ActiveAttrFilter): AttrSearchEntry | null {
+  if (f.kind === "categorical") {
+    return f.selectedValues.length > 0
+      ? { kind: "categorical", templateId: f.templateId, values: f.selectedValues }
+      : null;
+  }
+  if (f.displayValue === "" || isNaN(Number(f.displayValue))) return null;
+  if (f.operator === "entre" && (f.displayValue2 === "" || isNaN(Number(f.displayValue2)))) return null;
+  return {
+    kind: "numeric",
+    templateId: f.templateId,
+    valueInBaseUnit: toBaseUnit(Number(f.displayValue), f.displayUnit, f.template.unit),
+    valueInBaseUnit2:
+      f.operator === "entre" ? toBaseUnit(Number(f.displayValue2), f.displayUnit, f.template.unit) : undefined,
+    operator: f.operator,
+    displayUnit: f.displayUnit,
+  };
+}
 
 /** Renders the active attribute filter rows inside a card. No add button — use AddAttributeButton for that. */
 export function AttributeFilters({ filters, onChange, onSearchChange }: FilterListProps) {
@@ -38,24 +69,14 @@ export function AttributeFilters({ filters, onChange, onSearchChange }: FilterLi
     syncToSearch(next);
   }
 
-  function updateFilter(
-    templateId: number,
-    patch: Partial<Pick<ActiveAttrFilter, "displayValue" | "displayUnit" | "operator">>,
-  ) {
-    const next = filters.map((f) => (f.templateId === templateId ? { ...f, ...patch } : f));
+  function updateFilter(templateId: number, patch: Partial<NumericActiveAttrFilter> | Partial<CategoricalActiveAttrFilter>) {
+    const next = filters.map((f) => (f.templateId === templateId ? ({ ...f, ...patch } as ActiveAttrFilter) : f));
     onChange(next);
     syncToSearch(next);
   }
 
   function syncToSearch(current: ActiveAttrFilter[]) {
-    const attrs = current
-      .filter((f) => f.displayValue !== "" && !isNaN(Number(f.displayValue)))
-      .map((f) => ({
-        templateId: f.templateId,
-        valueInBaseUnit: toBaseUnit(Number(f.displayValue), f.displayUnit, f.template.unit),
-        operator: f.operator,
-        displayUnit: f.displayUnit,
-      }));
+    const attrs = current.map(toSearchEntry).filter((e): e is AttrSearchEntry => e !== null);
     onSearchChange(attrs);
   }
 
@@ -74,95 +95,16 @@ export function AttributeFilters({ filters, onChange, onSearchChange }: FilterLi
               <Trash2 size={14} />
             </button>
           </div>
-          <div className="flex items-center gap-2">
-            <select
-              className="rounded-md border border-neutral-200 px-2 py-1 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-green-500"
-              value={f.operator}
-              onChange={(e) =>
-                updateFilter(f.templateId, { operator: e.target.value as AttrOperator })
-              }
-            >
-              <option value="=">=</option>
-              <option value=">">&gt;</option>
-              <option value="<">&lt;</option>
-            </select>
-            <Input
-              type="number"
-              className="min-w-0 flex-1 px-2 py-1 text-sm"
-              value={f.displayValue}
-              onChange={(e) => updateFilter(f.templateId, { displayValue: e.target.value })}
-              placeholder="0"
+          {f.kind === "numeric" ? (
+            <NumericAttrFilterRow filter={f} onChange={(patch) => updateFilter(f.templateId, patch)} />
+          ) : (
+            <CategoricalAttrFilterRow
+              filter={f}
+              onChange={(selectedValues) => updateFilter(f.templateId, { selectedValues })}
             />
-            <select
-              className="rounded-md border border-neutral-200 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              value={f.displayUnit}
-              onChange={(e) =>
-                updateFilter(f.templateId, { displayUnit: e.target.value as DisplayUnit })
-              }
-            >
-              {getDisplayUnits(f.template.unit).map((u) => (
-                <option key={u} value={u}>
-                  {unitLabels[u] ?? u}
-                </option>
-              ))}
-            </select>
-          </div>
+          )}
         </div>
       ))}
-    </div>
-  );
-}
-
-type AddButtonProps = {
-  activeFilters: ActiveAttrFilter[];
-  onAdd: (filter: ActiveAttrFilter) => void;
-};
-
-/** Standalone "Adicionar atributo" dropdown — place this wherever needed in the parent layout. */
-export function AddAttributeButton({ activeFilters, onAdd }: AddButtonProps) {
-  const { data: templates = [], isLoading } = useAttributeTemplates();
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
-
-  if (isLoading) return null;
-
-  const usedIds = new Set(activeFilters.map((f) => f.templateId));
-  const available = templates.filter((t) => !usedIds.has(t.id));
-
-  if (available.length === 0) return null;
-
-  function handleAdd(template: AttributeTemplate) {
-    onAdd({
-      templateId: template.id,
-      template,
-      displayValue: "",
-      displayUnit: getDefaultDisplayUnit(template.unit),
-      operator: "=",
-    });
-    setOpen(false);
-  }
-
-  return (
-    <div className="relative" ref={containerRef}>
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1 rounded-md border border-neutral-200 bg-white px-2.5 py-1 text-xs text-neutral-600 transition-colors hover:border-green-500 hover:text-green-700"
-      >
-        Adicionar atributo
-        <ChevronDown size={12} />
-      </button>
-      {open && <AttributeTemplateDropdown templates={available} onSelect={handleAdd} />}
     </div>
   );
 }

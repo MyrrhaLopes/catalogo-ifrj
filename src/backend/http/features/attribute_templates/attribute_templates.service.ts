@@ -1,17 +1,19 @@
 import { db } from "@/backend/db/drizzle";
 import { attributeTemplateTable, attributeTable } from "@/backend/db/schema";
 import { eq, or, ilike, sql, type SQL } from "drizzle-orm";
+import type { AttributeTemplateKind } from "./attribute_templates.schema";
+
+const TEMPLATE_COLUMNS = {
+  id: attributeTemplateTable.id,
+  label: attributeTemplateTable.label,
+  unit: attributeTemplateTable.unit,
+  kind: attributeTemplateTable.kind,
+  options: attributeTemplateTable.options,
+};
 
 export const ATTRIBUTE_TEMPLATES_SERVICE = {
   listAll: async () => {
-    return await db
-      .select({
-        id: attributeTemplateTable.id,
-        label: attributeTemplateTable.label,
-        unit: attributeTemplateTable.unit,
-      })
-      .from(attributeTemplateTable)
-      .orderBy(attributeTemplateTable.id);
+    return await db.select(TEMPLATE_COLUMNS).from(attributeTemplateTable).orderBy(attributeTemplateTable.id);
   },
 
   listPaginated: async (params: { page: number; pageSize: number; q?: string }) => {
@@ -24,11 +26,7 @@ export const ATTRIBUTE_TEMPLATES_SERVICE = {
 
     const [rows, [countRow]] = await Promise.all([
       db
-        .select({
-          id: attributeTemplateTable.id,
-          label: attributeTemplateTable.label,
-          unit: attributeTemplateTable.unit,
-        })
+        .select(TEMPLATE_COLUMNS)
         .from(attributeTemplateTable)
         .where(where)
         .orderBy(attributeTemplateTable.id)
@@ -44,35 +42,42 @@ export const ATTRIBUTE_TEMPLATES_SERVICE = {
     const rows = await db
       .selectDistinct({ unit: attributeTemplateTable.unit })
       .from(attributeTemplateTable)
+      .where(sql`${attributeTemplateTable.unit} <> ''`)
       .orderBy(attributeTemplateTable.unit);
     return rows.map((r) => r.unit);
   },
 
-  create: async (label: string, unit: string) => {
+  create: async (data: { label: string; unit?: string; kind: AttributeTemplateKind; options?: string[] }) => {
     const [template] = await db
       .insert(attributeTemplateTable)
-      .values({ label, unit })
-      .returning({
-        id: attributeTemplateTable.id,
-        label: attributeTemplateTable.label,
-        unit: attributeTemplateTable.unit,
-      });
+      .values({
+        label: data.label,
+        unit: data.kind === "categorical" ? "" : (data.unit ?? ""),
+        kind: data.kind,
+        options: data.kind === "categorical" ? data.options : null,
+      })
+      .returning(TEMPLATE_COLUMNS);
     return template;
   },
 
   update: async (
     id: number,
-    patch: { label?: string; unit?: string },
-  ): Promise<{ id: number; label: string; unit: string } | null> => {
+    patch: { label?: string; unit?: string; kind?: AttributeTemplateKind; options?: string[] },
+  ) => {
+    const values: Partial<typeof attributeTemplateTable.$inferInsert> = { ...patch };
+    // Trocar pra numérico limpa opções órfãs; trocar pra categórico limpa a
+    // unidade (não faz sentido um atributo categórico ter unidade de medida).
+    if (patch.kind === "numeric") values.options = null;
+    else if (patch.kind === "categorical") {
+      values.options = patch.options;
+      values.unit = "";
+    }
+
     const [updated] = await db
       .update(attributeTemplateTable)
-      .set(patch)
+      .set(values)
       .where(eq(attributeTemplateTable.id, id))
-      .returning({
-        id: attributeTemplateTable.id,
-        label: attributeTemplateTable.label,
-        unit: attributeTemplateTable.unit,
-      });
+      .returning(TEMPLATE_COLUMNS);
     return updated ?? null;
   },
 

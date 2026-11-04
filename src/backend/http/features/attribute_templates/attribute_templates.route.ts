@@ -37,8 +37,8 @@ attributeTemplatesRouter.get("/attribute-templates/units", async (_req, res, nex
 
 attributeTemplatesRouter.post("/attribute-templates", authorizeUser, async (req, res, next) => {
   try {
-    const { label, unit } = createAttributeTemplateSchema.parse(req.body);
-    const template = await ATTRIBUTE_TEMPLATES_SERVICE.create(label, unit);
+    const data = createAttributeTemplateSchema.parse(req.body);
+    const template = await ATTRIBUTE_TEMPLATES_SERVICE.create(data);
     return res.status(201).json({ template });
   } catch (err) {
     next(err);

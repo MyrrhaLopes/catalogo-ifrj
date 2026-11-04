@@ -5,7 +5,7 @@ export const homeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   component: HomePage,
-  beforeLoad: () => { throw redirect({ to: "/especies/buscar", search: { searchIn: "species", exposicao: ["humida", "seca"] } }) }
+  beforeLoad: () => { throw redirect({ to: "/especies/buscar", search: { searchIn: "species", exposicoes: ["humida", "seca"] } }) }
 });
 
 function HomePage() {

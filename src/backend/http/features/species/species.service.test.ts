@@ -5,6 +5,7 @@ import {
   getScientificName,
   SPECIES_SERVICE,
   buildAttrFilterCondition,
+  buildCategoricalAttrFilterCondition,
   buildSearchWhereClause,
   NUMERIC_VALUE_REGEX,
 } from "./species.service";
@@ -307,6 +308,70 @@ describe("buildAttrFilterCondition", () => {
     );
     expect(rendered).toMatch(/END\) < 3/);
   });
+
+  it("usa o operador >= quando informado", () => {
+    const rendered = renderSql(
+      buildAttrFilterCondition({ templateId: 1, valueInBaseUnit: 3, operator: ">=" }),
+    );
+    expect(rendered).toMatch(/END\) >= 3/);
+  });
+
+  it("usa o operador <= quando informado", () => {
+    const rendered = renderSql(
+      buildAttrFilterCondition({ templateId: 1, valueInBaseUnit: 3, operator: "<=" }),
+    );
+    expect(rendered).toMatch(/END\) <= 3/);
+  });
+
+  it("usa BETWEEN com os dois valores quando operador é entre", () => {
+    const rendered = renderSql(
+      buildAttrFilterCondition({
+        templateId: 1,
+        valueInBaseUnit: 3,
+        valueInBaseUnit2: 8,
+        operator: "entre",
+      }),
+    );
+    expect(rendered).toMatch(/END\) BETWEEN 3 AND 8/);
+  });
+
+  it("usa o próprio valueInBaseUnit como limite superior quando entre não informa valueInBaseUnit2", () => {
+    const rendered = renderSql(
+      buildAttrFilterCondition({ templateId: 1, valueInBaseUnit: 3, operator: "entre" }),
+    );
+    expect(rendered).toMatch(/END\) BETWEEN 3 AND 3/);
+  });
+});
+
+describe("buildCategoricalAttrFilterCondition", () => {
+  it("usa = ANY(...) com os valores selecionados, cada um entre aspas duplas", () => {
+    const rendered = renderSql(
+      buildCategoricalAttrFilterCondition({ kind: "categorical", templateId: 13, values: ["LC", "VU"] }),
+    );
+    expect(rendered).toContain("attr_f.attribute = 13");
+    expect(rendered).toContain(`attr_f.value = ANY('{"LC","VU"}'::text[])`);
+  });
+
+  it("escapa aspas duplas e barras invertidas dentro de um valor", () => {
+    const rendered = renderSql(
+      buildCategoricalAttrFilterCondition({ kind: "categorical", templateId: 1, values: ['a"b', "c\\d"] }),
+    );
+    expect(rendered).toContain(`'{"a\\"b","c\\\\d"}'`);
+  });
+
+  it("não usa o guard de valor numérico — compara attr_f.value diretamente", () => {
+    const rendered = renderSql(
+      buildCategoricalAttrFilterCondition({ kind: "categorical", templateId: 1, values: ["LC"] }),
+    );
+    expect(rendered).not.toContain("CASE WHEN");
+  });
+
+  it("monta um único valor como array de um elemento", () => {
+    const rendered = renderSql(
+      buildCategoricalAttrFilterCondition({ kind: "categorical", templateId: 1, values: ["CR"] }),
+    );
+    expect(rendered).toContain(`'{"CR"}'::text[]`);
+  });
 });
 
 describe("buildSearchWhereClause", () => {
@@ -346,5 +411,25 @@ describe("buildSearchWhereClause", () => {
     expect(rendered).toContain("sp_ex.exposicao = ANY");
     // as três condições devem estar unidas por AND, não apenas concatenadas
     expect(rendered.match(/\bAND\b/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+  });
+
+  it("usa a condição categórica (= ANY) quando o attr tem kind categorical", () => {
+    const rendered = renderSql(
+      buildSearchWhereClause(undefined, undefined, [{ kind: "categorical", templateId: 13, values: ["LC", "NT"] }]),
+    );
+    expect(rendered).toContain(`attr_f.value = ANY('{"LC","NT"}'::text[])`);
+    expect(rendered).not.toContain("CASE WHEN");
+  });
+
+  it("combina um attr numérico e um categórico no mesmo filtro com AND", () => {
+    const rendered = renderSql(
+      buildSearchWhereClause(undefined, undefined, [
+        { templateId: 3, valueInBaseUnit: 5, operator: ">=" },
+        { kind: "categorical", templateId: 13, values: ["LC"] },
+      ]),
+    );
+    expect(rendered).toMatch(/END\) >= 5/);
+    expect(rendered).toContain(`attr_f.value = ANY('{"LC"}'::text[])`);
+    expect(rendered.match(/\bAND\b/g)?.length ?? 0).toBeGreaterThanOrEqual(1);
   });
 });

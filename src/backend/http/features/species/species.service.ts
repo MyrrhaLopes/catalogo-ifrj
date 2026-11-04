@@ -245,7 +245,7 @@ export const SPECIES_SERVICE = {
     page: number;
     pageSize: number;
     taxNodes?: number[];
-    attrs?: Array<{ templateId: number; valueInBaseUnit: number; operator?: "=" | ">" | "<" }>;
+    attrs?: AttrFilter[];
     exposicao?: ("humida" | "seca")[];
   }): Promise<{ species: SpeciesSearchResult[]; total: number; page: number; pageSize: number }> => {
     const { q, page, pageSize, taxNodes, attrs, exposicao } = params;
@@ -532,10 +532,45 @@ const SAFE_NUMERIC_VALUE = sql.raw(
   `(CASE WHEN attr_f.value ~ '${NUMERIC_VALUE_REGEX_SOURCE}' THEN attr_f.value::numeric END)`,
 );
 
+export type AttrFilterOperator = "=" | ">" | "<" | ">=" | "<=" | "entre";
+
+export type NumericAttrFilter = {
+  kind?: "numeric";
+  templateId: number;
+  valueInBaseUnit: number;
+  valueInBaseUnit2?: number;
+  operator?: AttrFilterOperator;
+};
+
+export type CategoricalAttrFilter = {
+  kind: "categorical";
+  templateId: number;
+  values: string[];
+};
+
+export type AttrFilter = NumericAttrFilter | CategoricalAttrFilter;
+
+// Cada elemento é sempre colocado entre aspas duplas — sintaxe de array literal
+// do Postgres — pra suportar com segurança valores com vírgula, chave ou aspas.
+function quotePgArrayElement(value: string): string {
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
+export function buildCategoricalAttrFilterCondition(attr: CategoricalAttrFilter): SQL {
+  const valuesLiteral = `{${attr.values.map(quotePgArrayElement).join(",")}}`;
+  return sql`EXISTS (
+    SELECT 1 FROM attributes attr_f
+    WHERE attr_f.species = s.id
+      AND attr_f.attribute = ${attr.templateId}
+      AND attr_f.value = ANY(${valuesLiteral}::text[])
+  )`;
+}
+
 export function buildAttrFilterCondition(attr: {
   templateId: number;
   valueInBaseUnit: number;
-  operator?: "=" | ">" | "<";
+  valueInBaseUnit2?: number;
+  operator?: AttrFilterOperator;
 }): SQL {
   const op = attr.operator ?? "=";
   const comparison =
@@ -543,7 +578,13 @@ export function buildAttrFilterCondition(attr: {
       ? sql`${SAFE_NUMERIC_VALUE} > ${attr.valueInBaseUnit}`
       : op === "<"
         ? sql`${SAFE_NUMERIC_VALUE} < ${attr.valueInBaseUnit}`
-        : sql`${SAFE_NUMERIC_VALUE} = ${attr.valueInBaseUnit}`;
+        : op === ">="
+          ? sql`${SAFE_NUMERIC_VALUE} >= ${attr.valueInBaseUnit}`
+          : op === "<="
+            ? sql`${SAFE_NUMERIC_VALUE} <= ${attr.valueInBaseUnit}`
+            : op === "entre"
+              ? sql`${SAFE_NUMERIC_VALUE} BETWEEN ${attr.valueInBaseUnit} AND ${attr.valueInBaseUnit2 ?? attr.valueInBaseUnit}`
+              : sql`${SAFE_NUMERIC_VALUE} = ${attr.valueInBaseUnit}`;
   return sql`EXISTS (
     SELECT 1 FROM attributes attr_f
     WHERE attr_f.species = s.id
@@ -555,7 +596,7 @@ export function buildAttrFilterCondition(attr: {
 export function buildSearchWhereClause(
   q?: string,
   taxNodes?: number[],
-  attrs?: Array<{ templateId: number; valueInBaseUnit: number; operator?: "=" | ">" | "<" }>,
+  attrs?: AttrFilter[],
   exposicao?: ("humida" | "seca")[],
 ): SQL {
   const conditions: SQL[] = [];
@@ -588,7 +629,9 @@ export function buildSearchWhereClause(
   }
 
   for (const attr of attrs ?? []) {
-    conditions.push(buildAttrFilterCondition(attr));
+    conditions.push(
+      attr.kind === "categorical" ? buildCategoricalAttrFilterCondition(attr) : buildAttrFilterCondition(attr),
+    );
   }
 
   // Uma espécie sem nenhum specimen cadastrado deve sempre continuar aparecendo,

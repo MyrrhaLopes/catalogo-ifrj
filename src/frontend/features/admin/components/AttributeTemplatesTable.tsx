@@ -18,6 +18,7 @@ import {
   useDistinctLabels,
 } from "../hooks/useAdminAttributeTemplates";
 import { CreateAttributeTemplateModal } from "./CreateAttributeTemplateModal";
+import { AttributeKindCell } from "./AttributeKindCell";
 import { SearchableField } from "./SearchableField";
 import { DeleteImpactDialog } from "./AdminTableShared";
 import { AdminTablePagination } from "./AdminTablePagination";
@@ -178,26 +179,27 @@ export function AttributeTemplatesTable() {
               <TableHead>ID</TableHead>
               <TableHead>Label</TableHead>
               <TableHead className="w-40">Unidade</TableHead>
+              <TableHead>Tipo</TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                   <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
                   Carregando templates…
                 </TableCell>
               </TableRow>
             ) : isError ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-destructive py-8">
+                <TableCell colSpan={5} className="text-center text-destructive py-8">
                   Erro ao carregar templates.
                 </TableCell>
               </TableRow>
             ) : templates.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                   {query ? "Nenhum template encontrado para essa busca" : "Nenhum template cadastrado"}
                 </TableCell>
               </TableRow>
@@ -216,12 +218,19 @@ export function AttributeTemplatesTable() {
                     />
                   </TableCell>
                   <TableCell className="w-40">
-                    <InlineSearchableCell
-                      templateId={t.id}
-                      field="unit"
-                      value={t.unit}
-                      options={existingUnits}
-                    />
+                    {t.kind === "categorical" ? (
+                      <span className="text-muted-foreground text-sm">—</span>
+                    ) : (
+                      <InlineSearchableCell
+                        templateId={t.id}
+                        field="unit"
+                        value={t.unit}
+                        options={existingUnits}
+                      />
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <AttributeKindCell template={t} />
                   </TableCell>
                   <TableCell>
                     <DeleteTemplateCell id={t.id} label={t.label} />

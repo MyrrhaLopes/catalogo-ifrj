@@ -100,8 +100,13 @@ export function useDeleteAttributeTemplate() {
 export function useUpdateAttributeTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, patch }: { id: number; patch: { label?: string; unit?: string } }) =>
-      updateAttributeTemplate(id, patch),
+    mutationFn: ({
+      id,
+      patch,
+    }: {
+      id: number;
+      patch: { label?: string; unit?: string; kind?: "numeric" | "categorical"; options?: string[] };
+    }) => updateAttributeTemplate(id, patch),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["attribute-templates"] });
     },

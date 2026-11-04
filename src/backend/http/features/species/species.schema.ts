@@ -76,6 +76,8 @@ export const attributeTemplateSchema = z.object({
   id: z.number(),
   label: z.string(),
   unit: z.string(),
+  kind: z.enum(["numeric", "categorical"]),
+  options: z.array(z.string()).nullable(),
 });
 export type AttributeTemplate = z.infer<typeof attributeTemplateSchema>;
 
@@ -154,11 +156,20 @@ export const speciesListQuerySchema = z.object({
     parseAttrs,
     z
       .array(
-        z.object({
-          templateId: z.number().int().positive(),
-          valueInBaseUnit: z.number(),
-          operator: z.enum(["=", ">", "<"]).catch("="),
-        }),
+        z.union([
+          z.object({
+            kind: z.literal("categorical"),
+            templateId: z.number().int().positive(),
+            values: z.array(z.string().min(1)).min(1),
+          }),
+          z.object({
+            kind: z.literal("numeric").optional(),
+            templateId: z.number().int().positive(),
+            valueInBaseUnit: z.number(),
+            valueInBaseUnit2: z.number().optional(),
+            operator: z.enum(["=", ">", "<", ">=", "<=", "entre"]).catch("="),
+          }),
+        ]),
       )
       .optional(),
   ),

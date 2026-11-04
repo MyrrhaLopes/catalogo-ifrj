@@ -62,7 +62,16 @@ export type SearchParams = {
   page?: number;
   pageSize?: number;
   taxNodes?: number[];
-  attrs?: Array<{ templateId: number; valueInBaseUnit: number; operator?: "=" | ">" | "<" }>;
+  attrs?: Array<
+    | {
+        kind?: "numeric";
+        templateId: number;
+        valueInBaseUnit: number;
+        valueInBaseUnit2?: number;
+        operator?: "=" | ">" | "<" | ">=" | "<=" | "entre";
+      }
+    | { kind: "categorical"; templateId: number; values: string[] }
+  >;
   exposicao?: Array<"humida" | "seca">;
 };
 

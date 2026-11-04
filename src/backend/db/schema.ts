@@ -114,6 +114,9 @@ export const attributeTemplateTable = pgTable("attributes_templates", {
   id: serial("id").primaryKey(),
   label: text("label").notNull(),
   unit: text("unit").notNull(),
+  kind: text("kind").$type<"numeric" | "categorical">().notNull().default("numeric"),
+  // Só preenchido quando kind = "categorical" — lista fechada de valores aceitos.
+  options: text("options").array(),
 });
 
 export const attributeTable = pgTable(

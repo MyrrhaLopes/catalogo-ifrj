@@ -11,7 +11,11 @@ import {
   SpeciesResultsSection,
   SpecimenResultsSection,
 } from "../features/search/components/SearchResultsSections";
-import { type ActiveAttrFilter, type AttrOperator } from "../features/search/components/AttributeFilters";
+import {
+  type ActiveAttrFilter,
+  type AttrOperator,
+  type AttrSearchEntry,
+} from "../features/search/components/AttributeFilters";
 import { mapUrlAttrsToActiveFilters } from "../features/search/utils/urlAttrs";
 import { Search, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { Input } from "../components/ui/input";
@@ -23,16 +27,25 @@ const searchParamsSchema = z.object({
   taxNodes: z.array(z.number()).optional(),
   attrs: z
     .array(
-      z.object({
-        tid: z.number(),
-        val: z.number(),
-        displayUnit: z.string(),
-        op: z.enum(["=", ">", "<"]).catch("="),
-      }),
+      z.union([
+        z.object({
+          kind: z.literal("categorical"),
+          tid: z.number(),
+          values: z.array(z.string()).min(1),
+        }),
+        z.object({
+          kind: z.literal("numeric").optional(),
+          tid: z.number(),
+          val: z.number(),
+          val2: z.number().optional(),
+          displayUnit: z.string(),
+          op: z.enum(["=", ">", "<", ">=", "<=", "entre"]).catch("="),
+        }),
+      ]),
     )
     .optional(),
   searchIn: z.enum(["species", "specimen", "both"]).default("species"),
-  exposicao: z.array(z.enum(["humida", "seca"])).default(["humida", "seca"]),
+  exposicoes: z.array(z.enum(["humida", "seca"])).default(["humida", "seca"]),
 });
 
 type SearchParams = z.infer<typeof searchParamsSchema>;
@@ -67,9 +80,9 @@ function getSafeArray<T>(arr?: T[]): T[] {
 // na opção que falta junta as duas; clicar em uma das duas quando ambas estão
 // selecionadas deixa apenas a outra marcada.
 function getToggledExposicao(
-  current: SearchParams["exposicao"],
+  current: SearchParams["exposicoes"],
   type: "humida" | "seca",
-): SearchParams["exposicao"] {
+): SearchParams["exposicoes"] {
   if (current.length === 1 && current[0] === type) return current;
   if (current.length === 2) return current.filter((v) => v !== type);
   return ["humida", "seca"];
@@ -84,7 +97,7 @@ function useSearchRouteParams() {
   const taxNodes = getSafeArray(search.taxNodes);
   const urlAttrs = getSafeArray(search.attrs);
   const searchIn = search.searchIn;
-  const exposicao = search.exposicao;
+  const exposicao = search.exposicoes;
 
   const setSearch = useCallback(
     (patch: Partial<SearchParams>) => {
@@ -93,7 +106,7 @@ function useSearchRouteParams() {
         search: (prev) => ({
           ...prev,
           searchIn: prev.searchIn ?? "species",
-          exposicao: prev.exposicao ?? ["humida", "seca"],
+          exposicoes: prev.exposicoes ?? ["humida", "seca"],
           ...patch,
           page: 1,
         }),
@@ -113,7 +126,7 @@ function useSearchRouteParams() {
   const toggleExposicao = useCallback(
     (type: "humida" | "seca") => {
       const next = getToggledExposicao(exposicao, type);
-      if (next !== exposicao) setSearch({ exposicao: next });
+      if (next !== exposicao) setSearch({ exposicoes: next });
     },
     [exposicao, setSearch],
   );
@@ -125,7 +138,7 @@ function useSearchRouteParams() {
         search: (p) => ({
           ...p,
           searchIn: p.searchIn ?? "species",
-          exposicao: p.exposicao ?? ["humida", "seca"],
+          exposicoes: p.exposicoes ?? ["humida", "seca"],
           page: nextPage,
         }),
       });
@@ -183,17 +196,21 @@ function useActiveAttributeFilters(
     setActiveFilters(mapUrlAttrsToActiveFilters(urlAttrs, templates));
   }, [templates, urlAttrs]);
 
-  const handleAttrsSearchChange = (
-    searchAttrs: Array<{ templateId: number; valueInBaseUnit: number; operator: AttrOperator; displayUnit: string }>,
-  ) => {
+  const handleAttrsSearchChange = (searchAttrs: AttrSearchEntry[]) => {
     if (attrDebounceRef.current) clearTimeout(attrDebounceRef.current);
     attrDebounceRef.current = setTimeout(() => {
-      const formatted = searchAttrs.map((a) => ({
-        tid: a.templateId,
-        val: a.valueInBaseUnit,
-        displayUnit: a.displayUnit,
-        op: a.operator,
-      }));
+      const formatted = searchAttrs.map((a) =>
+        a.kind === "categorical"
+          ? { kind: "categorical" as const, tid: a.templateId, values: a.values }
+          : {
+              kind: "numeric" as const,
+              tid: a.templateId,
+              val: a.valueInBaseUnit,
+              val2: a.valueInBaseUnit2,
+              displayUnit: a.displayUnit,
+              op: a.operator,
+            },
+      );
       setSearch({
         attrs: formatted.length > 0 ? formatted : undefined,
       });
@@ -208,13 +225,19 @@ function buildSearchArgs(
   page: number,
   taxNodes: number[],
   urlAttrs: NonNullable<SearchParams["attrs"]>,
-  exposicao: SearchParams["exposicao"],
+  exposicao: SearchParams["exposicoes"],
 ) {
-  const attrs = urlAttrs.map((a) => ({
-    templateId: a.tid,
-    valueInBaseUnit: a.val,
-    operator: a.op as AttrOperator,
-  }));
+  const attrs = urlAttrs.map((a) =>
+    a.kind === "categorical"
+      ? { kind: "categorical" as const, templateId: a.tid, values: a.values }
+      : {
+          kind: "numeric" as const,
+          templateId: a.tid,
+          valueInBaseUnit: a.val,
+          valueInBaseUnit2: a.val2,
+          operator: a.op as AttrOperator,
+        },
+  );
   return {
     q: q.length ? q : undefined,
     page,
@@ -231,7 +254,7 @@ function useSpeciesSearchResults(
   taxNodes: number[],
   urlAttrs: NonNullable<SearchParams["attrs"]>,
   searchIn: SearchParams["searchIn"],
-  exposicao: SearchParams["exposicao"],
+  exposicao: SearchParams["exposicoes"],
 ) {
   const includesSpecies = searchIn !== "specimen";
   const includesSpecimen = searchIn !== "species";
@@ -285,7 +308,7 @@ function useSearchFilterReset(
       search: (p) => ({
         q: p.q,
         searchIn: p.searchIn ?? "species",
-        exposicao: ["humida", "seca"],
+        exposicoes: ["humida", "seca"],
         page: 1,
       }),
     });

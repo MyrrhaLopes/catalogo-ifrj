@@ -1,11 +1,7 @@
 import { TaxonomyFilters } from "./TaxonomyFilters";
 import { TogglePillGroup } from "./TogglePillGroup";
-import {
-  AttributeFilters,
-  AddAttributeButton,
-  type ActiveAttrFilter,
-  type AttrOperator,
-} from "./AttributeFilters";
+import { AttributeFilters, type ActiveAttrFilter, type AttrSearchEntry } from "./AttributeFilters";
+import { AddAttributeButton } from "./AddAttributeButton";
 
 const SEARCH_IN_OPTIONS = [
   { key: "species", label: "Espécies" },
@@ -30,9 +26,7 @@ type Props = {
   onTaxNodesChange: (ids: number[]) => void;
   activeFilters: ActiveAttrFilter[];
   onActiveFiltersChange: (filters: ActiveAttrFilter[]) => void;
-  onAttrsSearchChange: (
-    attrs: Array<{ templateId: number; valueInBaseUnit: number; operator: AttrOperator; displayUnit: string }>,
-  ) => void;
+  onAttrsSearchChange: (attrs: AttrSearchEntry[]) => void;
   hasActiveFilters: boolean;
   onClearFilters: () => void;
 };

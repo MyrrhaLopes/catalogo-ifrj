@@ -228,16 +228,33 @@ export function EditSpeciesAttributesModal({ open, onOpenChange, species }: Prop
                         />
                       </TableCell>
                       <TableCell>{t.label}</TableCell>
-                      <TableCell>{t.unit}</TableCell>
+                      <TableCell>{t.kind === "categorical" ? "—" : t.unit}</TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         {isSelected ? (
-                          <Input
-                            className="h-7 w-32 text-sm"
-                            placeholder="Ex: 0.30"
-                            value={values.get(t.id) ?? ""}
-                            onChange={(e) => setValue(t.id, e.target.value)}
-                            autoFocus={false}
-                          />
+                          t.kind === "categorical" ? (
+                            <select
+                              className="h-7 w-32 rounded-md border border-input bg-background px-1.5 text-sm"
+                              value={values.get(t.id) ?? ""}
+                              onChange={(e) => setValue(t.id, e.target.value)}
+                            >
+                              <option value="" disabled>
+                                Selecione…
+                              </option>
+                              {(t.options ?? []).map((option) => (
+                                <option key={option} value={option}>
+                                  {option}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <Input
+                              className="h-7 w-32 text-sm"
+                              placeholder="Ex: 0.30"
+                              value={values.get(t.id) ?? ""}
+                              onChange={(e) => setValue(t.id, e.target.value)}
+                              autoFocus={false}
+                            />
+                          )
                         ) : (
                           <span className="text-muted-foreground text-sm">—</span>
                         )}

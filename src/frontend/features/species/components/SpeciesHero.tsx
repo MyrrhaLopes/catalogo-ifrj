@@ -55,7 +55,7 @@ export function SpeciesHero({
         )}
       >
         <div className="order-2 flex flex-col justify-end px-6 py-8 sm:px-8 md:px-10 lg:order-1 lg:px-12 lg:py-10 tv:px-16 tv:py-14">
-          <Breadcrumb nodes={species.taxonomyPath} onNodeClick={(nodeId) => void navigate({ to: "/especies/buscar", search: { taxNodes: [nodeId], searchIn: "species", exposicao: ["humida", "seca"] } })} />
+          <Breadcrumb nodes={species.taxonomyPath} onNodeClick={(nodeId) => void navigate({ to: "/especies/buscar", search: { taxNodes: [nodeId], searchIn: "species", exposicoes: ["humida", "seca"] } })} />
           <h1 className="mt-4 text-3xl font-bold italic leading-tight text-neutral-900 sm:text-4xl md:text-5xl lg:mt-6 tv:text-6xl">
             {scientificName}
           </h1>

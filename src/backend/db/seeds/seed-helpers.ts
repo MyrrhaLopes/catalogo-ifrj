@@ -125,3 +125,17 @@ export async function getOrCreateAttributeTemplate(
     .returning({ id: attributeTemplateTable.id });
   return inserted.id;
 }
+
+// Marca um template de atributo já existente (por label) como categórico, com
+// a lista fechada de valores aceitos. Também zera a unit — atributo
+// categórico não tem unidade de medida. Roda depois do seed principal — os
+// atributos em si continuam sendo criados pelo fluxo genérico acima.
+export async function markAttributeTemplateCategorical(
+  label: string,
+  options: string[],
+): Promise<void> {
+  await db
+    .update(attributeTemplateTable)
+    .set({ kind: "categorical", options, unit: "" })
+    .where(eq(attributeTemplateTable.label, label));
+}

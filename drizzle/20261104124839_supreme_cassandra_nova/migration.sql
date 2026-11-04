@@ -1,0 +1,2 @@
+ALTER TABLE "attributes_templates" ADD COLUMN IF NOT EXISTS "kind" text DEFAULT 'numeric' NOT NULL;--> statement-breakpoint
+ALTER TABLE "attributes_templates" ADD COLUMN IF NOT EXISTS "options" text[];

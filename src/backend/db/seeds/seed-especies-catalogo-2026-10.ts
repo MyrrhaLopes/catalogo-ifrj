@@ -1203,7 +1203,7 @@ export async function seedCatalogo(user: { id: string }) {
 
   const atplg_100113 = await getOrCreateAttributeTemplate("Comprimento do manto", "centímetro");
   const atplg_100114 = await getOrCreateAttributeTemplate("Comprimento do manto (macho)", "centímetro");
-  const atplg_100115 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "categoria");
+  const atplg_100115 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "");
 
   await db.insert(attributeTable).values([
     { species: species_lula_1.id, attribute: atplg_100113, value: "15", sourceId: src_25 },
@@ -1484,7 +1484,7 @@ export async function seedCatalogo(user: { id: string }) {
   const atplg_100104 = await getOrCreateAttributeTemplate("Comprimento do manto", "centímetro");
   const atplg_100105 = await getOrCreateAttributeTemplate("Profundidade de ocorrência", "metro");
   const atplg_100106 = await getOrCreateAttributeTemplate("Tolerância de salinidade", "ppt");
-  const atplg_100107 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "categoria");
+  const atplg_100107 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "");
 
   await db.insert(attributeTable).values([
     { species: species_lula_2.id, attribute: atplg_100102, value: "11", sourceId: src_33 },
@@ -1586,7 +1586,7 @@ export async function seedCatalogo(user: { id: string }) {
   const atplg_100098 = await getOrCreateAttributeTemplate("Comprimento do manto", "centímetro");
   const atplg_100099 = await getOrCreateAttributeTemplate("Massa corporal", "grama");
   const atplg_100100 = await getOrCreateAttributeTemplate("Profundidade de ocorrência", "metro");
-  const atplg_100101 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "categoria");
+  const atplg_100101 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "");
 
   await db.insert(attributeTable).values([
     { species: species_polvo.id, attribute: atplg_100098, value: "até 25", sourceId: src_39 },
@@ -1693,7 +1693,7 @@ export async function seedCatalogo(user: { id: string }) {
 
   const atplg_100095 = await getOrCreateAttributeTemplate("Comprimento corporal", "centímetro");
   const atplg_100096 = await getOrCreateAttributeTemplate("Ovos por postura", "unidade");
-  const atplg_100097 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "categoria");
+  const atplg_100097 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "");
 
   await db.insert(attributeTable).values([
     { species: species_sanguessuga.id, attribute: atplg_100095, value: "20", sourceId: src_43 },
@@ -2106,7 +2106,7 @@ export async function seedCatalogo(user: { id: string }) {
   const atplg_100087 = await getOrCreateAttributeTemplate("Comprimento corporal (operária)", "centímetro");
   const atplg_100088 = await getOrCreateAttributeTemplate("Comprimento corporal (rainha)", "centímetro");
   const atplg_100089 = await getOrCreateAttributeTemplate("Longevidade média (rainha)", "ano");
-  const atplg_100090 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "categoria");
+  const atplg_100090 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "");
 
   await db.insert(attributeTable).values([
     { species: species_abelha.id, attribute: atplg_100087, value: "1-1.5", sourceId: src_69 },
@@ -2558,7 +2558,7 @@ export async function seedCatalogo(user: { id: string }) {
   const atplg_100074 = await getOrCreateAttributeTemplate("Envergadura (fêmea)", "centímetro");
   const atplg_100075 = await getOrCreateAttributeTemplate("Envergadura (macho)", "centímetro");
   const atplg_100076 = await getOrCreateAttributeTemplate("Comprimento corporal (larva)", "centímetro");
-  const atplg_100077 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "categoria");
+  const atplg_100077 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "");
 
   await db.insert(attributeTable).values([
     { species: species_mariposa.id, attribute: atplg_100074, value: "24", sourceId: src_82 },
@@ -3435,7 +3435,7 @@ export async function seedCatalogo(user: { id: string }) {
 
   const atplg_100044 = await getOrCreateAttributeTemplate("Comprimento corporal", "centímetro");
   const atplg_100045 = await getOrCreateAttributeTemplate("Duração do ciclo de vida", "dia");
-  const atplg_100046 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "categoria");
+  const atplg_100046 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "");
 
   await db.insert(attributeTable).values([
     { species: species_besouros.id, attribute: atplg_100044, value: "17.7", sourceId: src_126 },
@@ -3990,7 +3990,7 @@ export async function seedCatalogo(user: { id: string }) {
 
   const atplg_100030 = await getOrCreateAttributeTemplate("Comprimento corporal (fêmea)", "centímetro");
   const atplg_100031 = await getOrCreateAttributeTemplate("Comprimento corporal (macho)", "centímetro");
-  const atplg_100032 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "categoria");
+  const atplg_100032 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "");
 
   await db.insert(attributeTable).values([
     { species: species_aranhas.id, attribute: atplg_100030, value: "2.4 a 4", sourceId: src_144 },
@@ -4956,7 +4956,7 @@ export async function seedCatalogo(user: { id: string }) {
   const atplg_100014 = await getOrCreateAttributeTemplate("Comprimento corporal (macho)", "centímetro");
   const atplg_100015 = await getOrCreateAttributeTemplate("Comprimento corporal (fêmea)", "centímetro");
   const atplg_100016 = await getOrCreateAttributeTemplate("Faixa de temperatura tolerada", "celsius");
-  const atplg_100017 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "categoria");
+  const atplg_100017 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "");
 
   await db.insert(attributeTable).values([
     { species: species_lagosta_filtradora.id, attribute: atplg_100014, value: "14", sourceId: src_188 },
@@ -5467,7 +5467,7 @@ export async function seedCatalogo(user: { id: string }) {
 
   const atplg_100006 = await getOrCreateAttributeTemplate("Largura da carapaça", "centímetro");
   const atplg_100007 = await getOrCreateAttributeTemplate("Massa corporal", "grama");
-  const atplg_100008 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "categoria");
+  const atplg_100008 = await getOrCreateAttributeTemplate("Status de conservação (IUCN)", "");
 
   await db.insert(attributeTable).values([
     { species: species_caranguejo_2.id, attribute: atplg_100006, value: "até 15", sourceId: src_213 },

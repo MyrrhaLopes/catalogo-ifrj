@@ -1,12 +1,17 @@
 import type { SpeciesBase, SpeciesDeleteImpact } from "@/backend/http/features/species/species.schema";
 import type { TaxonomyNode, AffectedSpeciesItem } from "@/backend/http/features/taxonomy/taxonomy.schema";
 import type { UserListItem } from "@/backend/http/features/users/user.schema";
-import type { AttributeTemplateDeleteImpact } from "@/backend/http/features/attribute_templates/attribute_templates.schema";
+import type {
+  AttributeTemplateDeleteImpact,
+  AttributeTemplateItem,
+  AttributeTemplateKind,
+} from "@/backend/http/features/attribute_templates/attribute_templates.schema";
 import { speciesBaseSchema, speciesDeleteImpactSchema } from "@/backend/http/features/species/species.schema";
 import { taxonomyNodeSchema, affectedSpeciesItemSchema } from "@/backend/http/features/taxonomy/taxonomy.schema";
 import { userListResponseSchema } from "@/backend/http/features/users/user.schema";
 import {
   attributeTemplateDeleteImpactSchema,
+  attributeTemplateItemSchema,
   attributeTemplatePaginatedResponseSchema,
 } from "@/backend/http/features/attribute_templates/attribute_templates.schema";
 import { z } from "zod";
@@ -97,11 +102,9 @@ export async function getTaxonomyAffectedSpecies(nodeId: number): Promise<Affect
   return species;
 }
 
-export type AttributeTemplateItem = { id: number; label: string; unit: string };
+export type { AttributeTemplateItem, AttributeTemplateKind };
 
-const attributeTemplateResponseSchema = z.object({
-  template: z.object({ id: z.number(), label: z.string(), unit: z.string() }),
-});
+const attributeTemplateResponseSchema = z.object({ template: attributeTemplateItemSchema });
 
 async function parseAttributeTemplateResponse(res: Response): Promise<AttributeTemplateItem> {
   const { template } = attributeTemplateResponseSchema.parse(await res.json());
@@ -135,7 +138,7 @@ export async function getAttributeTemplatesPaginated(
 }
 
 export async function createAttributeTemplate(
-  data: { label: string; unit: string },
+  data: { label: string; unit?: string; kind: AttributeTemplateKind; options?: string[] },
 ): Promise<AttributeTemplateItem> {
   const res = await apiFetch("/api/v1/attribute-templates", {
     method: "POST",
@@ -156,7 +159,7 @@ export async function getAttributeTemplateDeleteImpact(id: number): Promise<Attr
 
 export async function updateAttributeTemplate(
   id: number,
-  patch: { label?: string; unit?: string },
+  patch: { label?: string; unit?: string; kind?: AttributeTemplateKind; options?: string[] },
 ): Promise<AttributeTemplateItem> {
   const res = await apiFetch(`/api/v1/attribute-templates/${id}`, {
     method: "PATCH",

@@ -39,7 +39,7 @@ export function CatalogHeader({ className }: CatalogHeaderProps) {
         />
         <Link
           to="/especies/buscar"
-          search={{ searchIn: "species", exposicao: ["humida", "seca"] }}
+          search={{ searchIn: "species", exposicoes: ["humida", "seca"] }}
           className="text-base font-bold text-white lg:hidden"
         >
           Catálogo IFRJ
@@ -49,21 +49,28 @@ export function CatalogHeader({ className }: CatalogHeaderProps) {
       <nav className="hidden flex-1 items-center gap-6 lg:flex">
         <Link
           to="/especies/buscar"
-          search={{ searchIn: "species", exposicao: ["humida", "seca"] }}
+          search={{ searchIn: "species", exposicoes: ["humida", "seca"] }}
           className="text-xl font-bold text-white tv:text-2xl"
         >
           Catálogo IFRJ
         </Link>
         <Link
           to="/especies/buscar"
-          search={{ searchIn: "species", exposicao: ["humida", "seca"] }}
+          search={{ searchIn: "species", exposicoes: ["humida", "seca"] }}
           className="text-sm text-white transition-colors hover:underline tv:text-base"
         >
           Espécies
         </Link>
         <Link
           to="/galeria"
-          search={{ search: "", origin: "all", groupBy: "especie", taxPath: [], thumbSize: "medium" }}
+          search={{
+            search: "",
+            origin: "all",
+            exposicao: "all",
+            groupBy: "especie",
+            taxPath: [],
+            thumbSize: "medium",
+          }}
           className="text-sm text-white transition-colors hover:underline tv:text-base"
         >
           Galeria
