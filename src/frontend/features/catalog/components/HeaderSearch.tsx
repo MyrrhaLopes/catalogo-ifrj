@@ -36,7 +36,7 @@ export function HeaderSearch({ className, onNavigate }: Props = {}) {
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter" && query.trim()) {
       setIsOpen(false);
-      navigate({ to: "/especies/buscar", search: { searchIn: "species", q: query.trim() } });
+      navigate({ to: "/especies/buscar", search: { searchIn: "species", exposicao: ["humida", "seca"], q: query.trim() } });
       onNavigate?.();
     }
     if (e.key === "Escape") setIsOpen(false);
@@ -99,7 +99,7 @@ export function HeaderSearch({ className, onNavigate }: Props = {}) {
               className="text-xs text-green-700 hover:underline"
               onMouseDown={() => {
                 setIsOpen(false);
-                navigate({ to: "/especies/buscar", search: { searchIn: "species", q: query } });
+                navigate({ to: "/especies/buscar", search: { searchIn: "species", exposicao: ["humida", "seca"], q: query } });
                 onNavigate?.();
               }}
             >

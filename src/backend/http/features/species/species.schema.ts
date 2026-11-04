@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { imageSchema } from "@/backend/http/features/article/article.schema";
+import { exposicaoSchema } from "@/backend/http/features/specimen/specimen.schema";
 
 // Response schemas
 const taxonomyNodeSchema = z.object({
@@ -102,6 +103,12 @@ const parseIntArray = (val: unknown): number[] | undefined => {
   return undefined;
 };
 
+const parseExposicaoArray = (val: unknown): string[] | undefined => {
+  if (typeof val === "string" && val.length > 0) return val.split(",");
+  if (Array.isArray(val)) return val as string[];
+  return undefined;
+};
+
 const parseAttrs = (val: unknown) => {
   if (typeof val !== "string") return undefined;
   try {
@@ -155,4 +162,5 @@ export const speciesListQuerySchema = z.object({
       )
       .optional(),
   ),
+  exposicao: z.preprocess(parseExposicaoArray, z.array(exposicaoSchema).optional()),
 });

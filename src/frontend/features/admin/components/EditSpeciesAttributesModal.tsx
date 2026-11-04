@@ -37,6 +37,24 @@ export function EditSpeciesAttributesModal({ open, onOpenChange, species }: Prop
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [values, setValues] = useState<Map<number, string>>(new Map());
   const [sourceUrls, setSourceUrls] = useState<Map<number, string>>(new Map());
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    if (!open) setSearch("");
+  }, [open]);
+
+  // Mantém selecionados sempre visíveis, mesmo que não batam com a busca, para
+  // o usuário não perder a referência do que já marcou.
+  const visibleTemplates = (() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return templates;
+    return templates.filter(
+      (t) =>
+        selectedIds.has(t.id) ||
+        t.label.toLowerCase().includes(term) ||
+        t.unit.toLowerCase().includes(term),
+    );
+  })();
 
   useEffect(() => {
     if (!open || !species) return;
@@ -154,6 +172,13 @@ export function EditSpeciesAttributesModal({ open, onOpenChange, species }: Prop
           </DialogTitle>
         </DialogHeader>
 
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar atributo…"
+          className="shrink-0"
+        />
+
         <div className="rounded-md border overflow-auto max-h-96">
           <Table>
             <TableHeader>
@@ -173,14 +198,16 @@ export function EditSpeciesAttributesModal({ open, onOpenChange, species }: Prop
                     Carregando…
                   </TableCell>
                 </TableRow>
-              ) : templates.length === 0 ? (
+              ) : visibleTemplates.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
-                    Nenhum template cadastrado
+                    {search.trim()
+                      ? "Nenhum atributo encontrado para essa busca"
+                      : "Nenhum template cadastrado"}
                   </TableCell>
                 </TableRow>
               ) : (
-                templates.map((t) => {
+                visibleTemplates.map((t) => {
                   const isSelected = selectedIds.has(t.id);
                   return (
                     <TableRow

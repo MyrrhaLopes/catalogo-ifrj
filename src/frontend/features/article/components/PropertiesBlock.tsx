@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/frontend/components/ui/card";
+import { getAttributeUnitSuffix } from "./utils";
 
 type Props = {
   species: SpeciesDetails;
@@ -29,7 +30,7 @@ export function PropertiesBlock({ species, sourcesMap }: Props) {
                   <span className="text-primary font-medium">{attr.label}</span>
                   <span className="text-neutral-600 relative">
                     {attr.value}
-                    {attr.unit === "meter" ? "m" : attr.unit === "minute" ? "min" : ""}
+                    {getAttributeUnitSuffix(attr.unit)}
                     {citationNumber !== undefined && (
                       <sup className="ml-0.5">
                         <a

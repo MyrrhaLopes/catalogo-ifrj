@@ -8,7 +8,7 @@ import { useGallery } from "../features/gallery/hooks/useGallery";
 import { ImageViewer } from "../features/images/components/ImageViewer";
 import { GalleryMainContent } from "../features/gallery/components/GalleryMainContent";
 import { GallerySidebar } from "../features/gallery/components/GallerySidebar";
-import type { EnrichedImage, GroupBy, Origin, ThumbSize } from "../features/gallery/gallery.api";
+import type { EnrichedImage, Exposicao, GroupBy, Origin, ThumbSize } from "../features/gallery/gallery.api";
 import { Input } from "../components/ui/input";
 import { cn } from "@/lib/utils";
 import {
@@ -21,6 +21,7 @@ import {
 const gallerySearchSchema = z.object({
   search: z.string().optional().default(""),
   origin: z.enum(["all", "acervo", "online"]).optional().default("all"),
+  exposicao: z.enum(["all", "seca", "humida"]).optional().default("all"),
   groupBy: z.enum(["especie", "familia", "ordem", "data"]).optional().default("especie"),
   taxPath: z.array(z.string()).optional().default([]),
   thumbSize: z.enum(["small", "medium", "large"]).optional().default("medium"),
@@ -52,10 +53,17 @@ function useGalleryViewerState() {
 }
 
 function useGalleryFiltersState(
-  urlSearch: { search: string; origin: Origin; groupBy: GroupBy; taxPath: string[]; thumbSize: ThumbSize },
+  urlSearch: {
+    search: string;
+    origin: Origin;
+    exposicao: Exposicao;
+    groupBy: GroupBy;
+    taxPath: string[];
+    thumbSize: ThumbSize;
+  },
 ) {
   const navigate = useNavigate({ from: "/galeria" });
-  const { search, origin, groupBy, taxPath, thumbSize } = urlSearch;
+  const { search, origin, exposicao, groupBy, taxPath, thumbSize } = urlSearch;
   const [searchInput, setSearchInput] = useState(search);
   const [syncedSearch, setSyncedSearch] = useState(search);
   const deferredSearch = useDeferredValue(searchInput);
@@ -78,6 +86,9 @@ function useGalleryFiltersState(
   function setOrigin(value: Origin) {
     void navigate({ search: (prev) => ({ ...prev, origin: value }), replace: true });
   }
+  function setExposicao(value: Exposicao) {
+    void navigate({ search: (prev) => ({ ...prev, exposicao: value }), replace: true });
+  }
   function setGroupBy(value: GroupBy) {
     void navigate({ search: (prev) => ({ ...prev, groupBy: value }), replace: true });
   }
@@ -91,6 +102,7 @@ function useGalleryFiltersState(
   return {
     search,
     origin,
+    exposicao,
     groupBy,
     taxPath,
     thumbSize,
@@ -100,6 +112,7 @@ function useGalleryFiltersState(
     setMobileFiltersOpen,
     handleSearchChange,
     setOrigin,
+    setExposicao,
     setGroupBy,
     setTaxPath,
     setThumbSize,
@@ -126,12 +139,23 @@ function useGalleryState() {
 
   const taxLabels = useMemo(() => extractTaxonomyLabels(allImages), [allImages]);
   const filtered = useMemo(
-    () => filterGalleryImages(allImages, filters.origin, taxLabels, filters.taxPath, filters.deferredSearch),
-    [allImages, filters.origin, taxLabels, filters.taxPath, filters.deferredSearch],
+    () =>
+      filterGalleryImages(
+        allImages,
+        filters.origin,
+        filters.exposicao,
+        taxLabels,
+        filters.taxPath,
+        filters.deferredSearch,
+      ),
+    [allImages, filters.origin, filters.exposicao, taxLabels, filters.taxPath, filters.deferredSearch],
   );
   const groups = useMemo(() => groupImages(filtered, filters.groupBy), [filtered, filters.groupBy]);
   const { acervoTotal, onlineTotal } = useMemo(() => countImagesByOrigin(allImages), [allImages]);
-  const activeFilterCount = (filters.origin !== "all" ? 1 : 0) + filters.taxPath.filter(Boolean).length;
+  const activeFilterCount =
+    (filters.origin !== "all" ? 1 : 0) +
+    (filters.exposicao !== "all" ? 1 : 0) +
+    filters.taxPath.filter(Boolean).length;
 
   return {
     allImages,
@@ -226,6 +250,8 @@ function GalleryPage() {
                 onlineTotal={g.onlineTotal}
                 origin={g.origin}
                 onOriginChange={g.setOrigin}
+                exposicao={g.exposicao}
+                onExposicaoChange={g.setExposicao}
                 groupBy={g.groupBy}
                 onGroupByChange={g.setGroupBy}
                 taxLabels={g.taxLabels}

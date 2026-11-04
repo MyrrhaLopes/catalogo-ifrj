@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useDeferredValue, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ApiError } from "@/frontend/shared/api/client";
@@ -21,10 +21,17 @@ export const SPECIMEN_ADMIN_PAGE_SIZE = 20;
 
 export function useSpecimenAdminTable() {
   const [page, setPage] = useState(1);
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
+
+  function setSearch(value: string) {
+    setQuery(value);
+    setPage(1);
+  }
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["specimens", "admin-list", page],
-    queryFn: () => listSpecimensPaginated(page, SPECIMEN_ADMIN_PAGE_SIZE),
+    queryKey: ["specimens", "admin-list", page, deferredQuery],
+    queryFn: () => listSpecimensPaginated(page, SPECIMEN_ADMIN_PAGE_SIZE, deferredQuery || undefined),
     placeholderData: (prev) => prev,
   });
 
@@ -33,6 +40,8 @@ export function useSpecimenAdminTable() {
   return {
     page,
     setPage,
+    query,
+    setSearch,
     specimens: data?.specimens ?? [],
     totalPages,
     isLoading,

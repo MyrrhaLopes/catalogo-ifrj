@@ -1,6 +1,6 @@
 import { db } from "@/backend/db/drizzle";
 import { attributeTemplateTable, attributeTable } from "@/backend/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, or, ilike, sql, type SQL } from "drizzle-orm";
 
 export const ATTRIBUTE_TEMPLATES_SERVICE = {
   listAll: async () => {
@@ -14,9 +14,13 @@ export const ATTRIBUTE_TEMPLATES_SERVICE = {
       .orderBy(attributeTemplateTable.id);
   },
 
-  listPaginated: async (params: { page: number; pageSize: number }) => {
-    const { page, pageSize } = params;
+  listPaginated: async (params: { page: number; pageSize: number; q?: string }) => {
+    const { page, pageSize, q } = params;
     const offset = (page - 1) * pageSize;
+
+    const where: SQL | undefined = q
+      ? or(ilike(attributeTemplateTable.label, `%${q}%`), ilike(attributeTemplateTable.unit, `%${q}%`))
+      : undefined;
 
     const [rows, [countRow]] = await Promise.all([
       db
@@ -26,10 +30,11 @@ export const ATTRIBUTE_TEMPLATES_SERVICE = {
           unit: attributeTemplateTable.unit,
         })
         .from(attributeTemplateTable)
+        .where(where)
         .orderBy(attributeTemplateTable.id)
         .limit(pageSize)
         .offset(offset),
-      db.select({ count: sql<number>`COUNT(*)::int` }).from(attributeTemplateTable),
+      db.select({ count: sql<number>`COUNT(*)::int` }).from(attributeTemplateTable).where(where),
     ]);
 
     return { templates: rows, total: countRow?.count ?? 0, page, pageSize };

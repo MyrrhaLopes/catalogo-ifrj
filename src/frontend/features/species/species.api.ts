@@ -63,6 +63,7 @@ export type SearchParams = {
   pageSize?: number;
   taxNodes?: number[];
   attrs?: Array<{ templateId: number; valueInBaseUnit: number; operator?: "=" | ">" | "<" }>;
+  exposicao?: Array<"humida" | "seca">;
 };
 
 export async function searchSpecies(params: SearchParams): Promise<SearchResponse> {
@@ -73,6 +74,7 @@ export async function searchSpecies(params: SearchParams): Promise<SearchRespons
   if (params.pageSize) url.searchParams.set("pageSize", String(params.pageSize));
   if (params.taxNodes?.length) url.searchParams.set("taxNodes", params.taxNodes.join(","));
   if (params.attrs?.length) url.searchParams.set("attrs", JSON.stringify(params.attrs));
+  if (params.exposicao?.length) url.searchParams.set("exposicao", params.exposicao.join(","));
 
   const res = await apiFetch(url.toString());
   return searchResponseSchema.parse(await res.json());

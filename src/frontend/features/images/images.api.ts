@@ -26,8 +26,16 @@ export async function getAllImages(): Promise<GalleryImage[]> {
   return imagesResponseSchema.parse(await res.json()).images;
 }
 
-export async function getAllImagesPaginated(page: number, pageSize: number): Promise<ImagesPaginatedResponse> {
-  const res = await apiFetch(`/api/v1/images?page=${page}&pageSize=${pageSize}`);
+export async function getAllImagesPaginated(
+  page: number,
+  pageSize: number,
+  q?: string,
+): Promise<ImagesPaginatedResponse> {
+  const url = new URL("/api/v1/images", window.location.origin);
+  url.searchParams.set("page", String(page));
+  url.searchParams.set("pageSize", String(pageSize));
+  if (q) url.searchParams.set("q", q);
+  const res = await apiFetch(url.toString());
   return imagesPaginatedResponseSchema.parse(await res.json());
 }
 

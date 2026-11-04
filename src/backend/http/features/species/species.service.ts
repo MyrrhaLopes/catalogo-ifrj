@@ -13,7 +13,7 @@ import {
   type SpeciesTableInsert,
 } from "@/backend/db/schema";
 import { SOURCES_SERVICE } from "../sources/sources.service";
-import { eq, inArray, sql, type SQL } from "drizzle-orm";
+import { and, eq, inArray, sql, type SQL } from "drizzle-orm";
 import type { SpeciesSearchResult } from "./species.schema";
 
 type SpeciesRow = {
@@ -246,11 +246,12 @@ export const SPECIES_SERVICE = {
     pageSize: number;
     taxNodes?: number[];
     attrs?: Array<{ templateId: number; valueInBaseUnit: number; operator?: "=" | ">" | "<" }>;
+    exposicao?: ("humida" | "seca")[];
   }): Promise<{ species: SpeciesSearchResult[]; total: number; page: number; pageSize: number }> => {
-    const { q, page, pageSize, taxNodes, attrs } = params;
+    const { q, page, pageSize, taxNodes, attrs, exposicao } = params;
     const offset = (page - 1) * pageSize;
 
-    const whereClause = buildSearchWhereClause(q, taxNodes, attrs);
+    const whereClause = buildSearchWhereClause(q, taxNodes, attrs, exposicao);
 
     const searchRows = await db.execute(sql`
       WITH RECURSIVE tax_path AS (
@@ -339,7 +340,11 @@ export const SPECIES_SERVICE = {
           specimenShelf: specimenTable.shelf,
         })
         .from(specimenTable)
-        .where(inArray(specimenTable.speciesId, speciesIds)),
+        .where(
+          exposicao && exposicao.length > 0
+            ? and(inArray(specimenTable.speciesId, speciesIds), inArray(specimenTable.exposicao, exposicao))
+            : inArray(specimenTable.speciesId, speciesIds),
+        ),
       db
         .select({
           id: speciesTable.id,
@@ -514,7 +519,20 @@ async function fetchThumbnailImage(thumbnailImageId: number | null) {
   return rows[0] ?? null;
 }
 
-function buildAttrFilterCondition(attr: {
+// Fonte do regex usado para validar se attr_f.value "parece" um número antes do CAST.
+// Compartilhada com o teste unitário (species.service.test.ts) via NUMERIC_VALUE_REGEX,
+// para garantir que o teste exercite exatamente o padrão usado na query SQL.
+export const NUMERIC_VALUE_REGEX_SOURCE = "^-?\\d+(\\.\\d+)?$";
+export const NUMERIC_VALUE_REGEX = new RegExp(NUMERIC_VALUE_REGEX_SOURCE);
+
+// attr_f.value é text e pode conter valores não numéricos no banco (ex: "1 a 5", "LC").
+// O CASE WHEN protege o CAST: valores não numéricos resultam em NULL em vez de lançar
+// uma exceção do Postgres (22P02), que derrubaria a query inteira com um 500 genérico.
+const SAFE_NUMERIC_VALUE = sql.raw(
+  `(CASE WHEN attr_f.value ~ '${NUMERIC_VALUE_REGEX_SOURCE}' THEN attr_f.value::numeric END)`,
+);
+
+export function buildAttrFilterCondition(attr: {
   templateId: number;
   valueInBaseUnit: number;
   operator?: "=" | ">" | "<";
@@ -522,10 +540,10 @@ function buildAttrFilterCondition(attr: {
   const op = attr.operator ?? "=";
   const comparison =
     op === ">"
-      ? sql`CAST(attr_f.value AS NUMERIC) > ${attr.valueInBaseUnit}`
+      ? sql`${SAFE_NUMERIC_VALUE} > ${attr.valueInBaseUnit}`
       : op === "<"
-        ? sql`CAST(attr_f.value AS NUMERIC) < ${attr.valueInBaseUnit}`
-        : sql`CAST(attr_f.value AS NUMERIC) = ${attr.valueInBaseUnit}`;
+        ? sql`${SAFE_NUMERIC_VALUE} < ${attr.valueInBaseUnit}`
+        : sql`${SAFE_NUMERIC_VALUE} = ${attr.valueInBaseUnit}`;
   return sql`EXISTS (
     SELECT 1 FROM attributes attr_f
     WHERE attr_f.species = s.id
@@ -534,10 +552,11 @@ function buildAttrFilterCondition(attr: {
   )`;
 }
 
-function buildSearchWhereClause(
+export function buildSearchWhereClause(
   q?: string,
   taxNodes?: number[],
   attrs?: Array<{ templateId: number; valueInBaseUnit: number; operator?: "=" | ">" | "<" }>,
+  exposicao?: ("humida" | "seca")[],
 ): SQL {
   const conditions: SQL[] = [];
 
@@ -570,6 +589,21 @@ function buildSearchWhereClause(
 
   for (const attr of attrs ?? []) {
     conditions.push(buildAttrFilterCondition(attr));
+  }
+
+  // Uma espécie sem nenhum specimen cadastrado deve sempre continuar aparecendo,
+  // independentemente do filtro de exposição selecionado. Por isso a condição é
+  // NOT EXISTS(specimens) OR EXISTS(specimens cuja exposição está no conjunto
+  // selecionado) — nunca um EXISTS puro, que excluiria espécies sem specimens.
+  if (exposicao && exposicao.length > 0) {
+    const exposicaoLiteral = `{${exposicao.join(",")}}`;
+    conditions.push(sql`(
+      NOT EXISTS (SELECT 1 FROM specimens sp_ex WHERE sp_ex.species_id = s.id)
+      OR EXISTS (
+        SELECT 1 FROM specimens sp_ex
+        WHERE sp_ex.species_id = s.id AND sp_ex.exposicao = ANY(${exposicaoLiteral}::text[])
+      )
+    )`);
   }
 
   return conditions.length > 0

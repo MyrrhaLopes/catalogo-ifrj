@@ -18,6 +18,7 @@ function flattenSectionBlocks(
   if (!section) return [];
   return section.flatMap((item) => {
     if (typeof item !== "object") return [];
+    if (item.type === "default") return [];
     return item.type === "column" ? item.columns.flat() : [item];
   });
 }

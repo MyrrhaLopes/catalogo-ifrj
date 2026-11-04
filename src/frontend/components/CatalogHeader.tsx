@@ -39,7 +39,7 @@ export function CatalogHeader({ className }: CatalogHeaderProps) {
         />
         <Link
           to="/especies/buscar"
-          search={{ searchIn: "species" }}
+          search={{ searchIn: "species", exposicao: ["humida", "seca"] }}
           className="text-base font-bold text-white lg:hidden"
         >
           Catálogo IFRJ
@@ -49,14 +49,14 @@ export function CatalogHeader({ className }: CatalogHeaderProps) {
       <nav className="hidden flex-1 items-center gap-6 lg:flex">
         <Link
           to="/especies/buscar"
-          search={{ searchIn: "species" }}
+          search={{ searchIn: "species", exposicao: ["humida", "seca"] }}
           className="text-xl font-bold text-white tv:text-2xl"
         >
           Catálogo IFRJ
         </Link>
         <Link
           to="/especies/buscar"
-          search={{ searchIn: "species" }}
+          search={{ searchIn: "species", exposicao: ["humida", "seca"] }}
           className="text-sm text-white transition-colors hover:underline tv:text-base"
         >
           Espécies

@@ -24,6 +24,7 @@ export type AttributeTemplateDeleteImpact = z.infer<typeof attributeTemplateDele
 export const attributeTemplateListQuerySchema = z.object({
   page: z.coerce.number().int().positive().optional(),
   pageSize: z.coerce.number().int().positive().max(100).optional(),
+  q: z.string().optional(),
 });
 
 const attributeTemplateItemSchema = z.object({

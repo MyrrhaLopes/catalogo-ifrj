@@ -1,6 +1,14 @@
 import { db } from "@/backend/db/drizzle";
 import { specimenTable, type SpecimenTableInsert } from "@/backend/db/schema";
-import { desc, eq, ilike, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, sql, type SQL } from "drizzle-orm";
+
+function buildSpecimenSearchWhere(q?: string, exposicao?: ("humida" | "seca")[]): SQL | undefined {
+  const conditions: SQL[] = [];
+  if (q) conditions.push(ilike(specimenTable.code, `%${q}%`));
+  if (exposicao?.length) conditions.push(inArray(specimenTable.exposicao, exposicao));
+  if (conditions.length === 0) return undefined;
+  return conditions.length === 1 ? conditions[0] : and(...conditions);
+}
 
 const specimenSelect = {
   id: specimenTable.id,
@@ -47,20 +55,26 @@ export const SPECIMEN_SERVICE = {
     return rows.map(mapSpecimenRow);
   },
 
-  searchSpecimens: async (q: string) => {
+  searchSpecimens: async (params: { q?: string; exposicao?: ("humida" | "seca")[] }) => {
+    const whereClause = buildSpecimenSearchWhere(params.q, params.exposicao);
     const rows = await db
       .select(specimenSelect)
       .from(specimenTable)
-      .where(ilike(specimenTable.code, `%${q}%`))
+      .where(whereClause)
       .orderBy(desc(specimenTable.id));
 
     return rows.map(mapSpecimenRow);
   },
 
-  listSpecimensPaginated: async (params: { q?: string; page: number; pageSize: number }) => {
-    const { q, page, pageSize } = params;
+  listSpecimensPaginated: async (params: {
+    q?: string;
+    page: number;
+    pageSize: number;
+    exposicao?: ("humida" | "seca")[];
+  }) => {
+    const { q, page, pageSize, exposicao } = params;
     const offset = (page - 1) * pageSize;
-    const whereClause = q ? ilike(specimenTable.code, `%${q}%`) : undefined;
+    const whereClause = buildSpecimenSearchWhere(q, exposicao);
 
     const [rows, [countRow]] = await Promise.all([
       db

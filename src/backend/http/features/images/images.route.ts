@@ -13,7 +13,7 @@ export const imagesRouter = Router();
 
 imagesRouter.get("/images", async (req, res, next) => {
   try {
-    const { speciesId, page, pageSize } = speciesIdQuerySchema.parse(req.query);
+    const { speciesId, page, pageSize, q } = speciesIdQuerySchema.parse(req.query);
 
     if (speciesId !== undefined) {
       const images = await IMAGES_SERVICE.getBySpecies(speciesId);
@@ -21,7 +21,7 @@ imagesRouter.get("/images", async (req, res, next) => {
     }
 
     if (page !== undefined) {
-      const result = await IMAGES_SERVICE.getAllPaginated({ page, pageSize: pageSize ?? 20 });
+      const result = await IMAGES_SERVICE.getAllPaginated({ page, pageSize: pageSize ?? 20, q });
       return res.status(200).json(result);
     }
 

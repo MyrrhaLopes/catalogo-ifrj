@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useDeferredValue, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getAttributeTemplates } from "@/frontend/features/species/species.api";
@@ -23,10 +23,18 @@ export const ATTRIBUTE_TEMPLATES_ADMIN_PAGE_SIZE = 20;
 
 export function useAttributeTemplatesAdminTable() {
   const [page, setPage] = useState(1);
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
+
+  function setSearch(value: string) {
+    setQuery(value);
+    setPage(1);
+  }
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["attribute-templates", "admin-list", page],
-    queryFn: () => getAttributeTemplatesPaginated(page, ATTRIBUTE_TEMPLATES_ADMIN_PAGE_SIZE),
+    queryKey: ["attribute-templates", "admin-list", page, deferredQuery],
+    queryFn: () =>
+      getAttributeTemplatesPaginated(page, ATTRIBUTE_TEMPLATES_ADMIN_PAGE_SIZE, deferredQuery || undefined),
     placeholderData: (prev) => prev,
   });
 
@@ -35,6 +43,8 @@ export function useAttributeTemplatesAdminTable() {
   return {
     page,
     setPage,
+    query,
+    setSearch,
     templates: data?.templates ?? [],
     totalPages,
     isLoading,

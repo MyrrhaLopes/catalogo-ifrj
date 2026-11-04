@@ -63,20 +63,28 @@ describe("filterGalleryImages", () => {
   const all = [acervo, online];
 
   it("returns everything with no filters", () => {
-    expect(filterGalleryImages(all, "all", [], [], "")).toEqual(all);
+    expect(filterGalleryImages(all, "all", "all", [], [], "")).toEqual(all);
   });
 
   it("filters by origin", () => {
-    expect(filterGalleryImages(all, "acervo", [], [], "")).toEqual([acervo]);
+    expect(filterGalleryImages(all, "acervo", "all", [], [], "")).toEqual([acervo]);
+  });
+
+  it("filters by exposicao, excluding images without a specimen", () => {
+    const seca = makeImage({ id: 3, specimen: { code: "IFRJ-010", exposicao: "seca", shelf: null, lot: null } });
+    const humida = makeImage({ id: 4, specimen: { code: "IFRJ-011", exposicao: "humida", shelf: null, lot: null } });
+    const images = [acervo, online, seca, humida];
+    expect(filterGalleryImages(images, "all", "seca", [], [], "")).toEqual([seca]);
+    expect(filterGalleryImages(images, "all", "humida", [], [], "")).toEqual([humida]);
   });
 
   it("filters by search text, ignoring case and surrounding whitespace", () => {
-    expect(filterGalleryImages(all, "all", [], [], "  APIS ")).toEqual([acervo]);
+    expect(filterGalleryImages(all, "all", "all", [], [], "  APIS ")).toEqual([acervo]);
   });
 
   it("filters by taxonomy path", () => {
     const other = makeImage({ id: 3, taxonomyPath: [{ label: "Ordem", labelValue: "Hymenoptera" }] });
-    expect(filterGalleryImages([online, other], "all", ["Ordem"], ["Hymenoptera"], "")).toEqual([other]);
+    expect(filterGalleryImages([online, other], "all", "all", ["Ordem"], ["Hymenoptera"], "")).toEqual([other]);
   });
 });
 

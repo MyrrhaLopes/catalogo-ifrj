@@ -37,7 +37,7 @@ export function MobileNav({ open, onOpenChange, isAdmin }: Props) {
           <nav className="flex flex-col gap-1 text-base font-medium text-neutral-800">
             <Link
               to="/especies/buscar"
-              search={{ searchIn: "species" }}
+              search={{ searchIn: "species", exposicao: ["humida", "seca"] }}
               onClick={close}
               className="rounded-md px-3 py-2.5 transition-colors hover:bg-neutral-100"
             >

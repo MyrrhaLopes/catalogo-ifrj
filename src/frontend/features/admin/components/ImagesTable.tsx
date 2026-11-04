@@ -7,6 +7,7 @@ import { CreateImageModal } from "./CreateImageModal";
 import type { GalleryImage } from "@/frontend/features/images/images.api";
 import { AdminDataTable, ConfirmDeleteIconButton, CreatedAtCell, LockedCell } from "./AdminTableShared";
 import { AdminTablePagination } from "./AdminTablePagination";
+import { AdminSearchInput } from "./AdminSearchInput";
 
 // ── AltTextCell ─────────────────────────────────────────────────────
 // Floating textarea that uses position:fixed to escape table overflow-auto.
@@ -168,22 +169,13 @@ const columns = columnHelper.columns([
 
 export function ImagesTable() {
   const [createOpen, setCreateOpen] = useState(false);
-  const { images, isLoading, page, setPage, totalPages } = useImagesAdminTable();
+  const { images, isLoading, isError, page, setPage, query, setSearch, totalPages } = useImagesAdminTable();
 
   const table = useTable({
     features,
     data: images,
     columns,
   });
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-40 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin mr-2" />
-        Carregando imagens…
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
@@ -195,10 +187,17 @@ export function ImagesTable() {
         </Button>
       </div>
 
+      <AdminSearchInput value={query} onChange={setSearch} placeholder="Buscar imagem…" />
+
       <AdminDataTable
         table={table}
         colCount={columns.length}
-        emptyMessage="Nenhuma imagem cadastrada."
+        emptyMessage={query ? "Nenhuma imagem encontrada para essa busca" : "Nenhuma imagem cadastrada."}
+        isLoading={isLoading}
+        loadingMessage="Carregando imagens…"
+        isError={isError}
+        errorMessage="Erro ao carregar imagens."
+        data={images}
       />
 
       <AdminTablePagination page={page} totalPages={totalPages} onPageChange={setPage} />

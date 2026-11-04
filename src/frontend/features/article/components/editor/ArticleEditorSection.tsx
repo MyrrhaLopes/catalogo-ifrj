@@ -12,7 +12,7 @@ type Props = {
   speciesId: number;
   onAdd: (index: number, item: DraftItem) => void;
   onRemove: (id: string) => void;
-  onUpdate: (id: string, block: ArticleBlock) => void;
+  onUpdate: (id: string, next: DraftItem) => void;
   onToggleDefault: (id: string) => void;
   onDeleteNestedBlock?: (block: ArticleBlock) => void;
 };
@@ -27,6 +27,7 @@ export function ArticleEditorSection({
   onToggleDefault,
   onDeleteNestedBlock,
 }: Props) {
+  // O id do droppable da seção é o próprio sectionKey (ver draftTree.resolveContainerId).
   const { setNodeRef } = useDroppable({ id: sectionKey });
 
   return (
@@ -37,10 +38,9 @@ export function ArticleEditorSection({
           <Fragment key={item.id}>
             <EditorBlockItem
               item={item}
-              sectionKey={sectionKey}
               speciesId={speciesId}
               onRemove={() => onRemove(item.id)}
-              onUpdate={(block) => onUpdate(item.id, block)}
+              onUpdate={(next) => onUpdate(item.id, next)}
               onToggleDefault={() => onToggleDefault(item.id)}
               onDeleteNestedBlock={onDeleteNestedBlock}
             />

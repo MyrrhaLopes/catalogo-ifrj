@@ -9,6 +9,7 @@ import type { Specimen } from "@/frontend/features/specimens/specimen.api";
 import { SelectSpeciesModal } from "./SelectSpeciesModal";
 import { AdminDataTable, ConfirmDeleteButton, CreatedAtCell, LockedCell } from "./AdminTableShared";
 import { AdminTablePagination } from "./AdminTablePagination";
+import { AdminSearchInput } from "./AdminSearchInput";
 
 // ────────────────────────────────────────────────────────────────────
 // Inline editable cell
@@ -267,15 +268,18 @@ type SpecimenTableProps = {
 };
 
 export function SpecimenTable({ selectedSpecimenId }: SpecimenTableProps) {
-  const { specimens, isLoading, isError, page, setPage, totalPages } = useSpecimenAdminTable();
+  const { specimens, isLoading, isError, page, setPage, query, setSearch, totalPages } =
+    useSpecimenAdminTable();
   const table = useTable({ features, data: specimens, columns });
 
   return (
     <div className="flex flex-col gap-3">
+      <AdminSearchInput value={query} onChange={setSearch} placeholder="Buscar espécime…" />
+
       <AdminDataTable
         table={table}
         colCount={columns.length}
-        emptyMessage="Nenhum espécime cadastrado"
+        emptyMessage={query ? "Nenhum espécime encontrado para essa busca" : "Nenhum espécime cadastrado"}
         isLoading={isLoading}
         loadingMessage="Carregando espécimes…"
         isError={isError}

@@ -60,6 +60,7 @@ export function CreateAttributeTemplateModal({ open, onOpenChange }: Props) {
               id="create-attr-label"
               value={label}
               onChange={setLabel}
+              onSelect={setLabel}
               options={existingLabels}
               placeholder="Ex: Comprimento máximo"
               autoFocus
@@ -74,6 +75,7 @@ export function CreateAttributeTemplateModal({ open, onOpenChange }: Props) {
               id="create-attr-unit"
               value={unit}
               onChange={setUnit}
+              onSelect={setUnit}
               options={existingUnits}
               placeholder="Ex: metro, centímetro, quilograma…"
             />

@@ -124,8 +124,13 @@ export type AttributeTemplatePaginatedResponse = {
 export async function getAttributeTemplatesPaginated(
   page: number,
   pageSize: number,
+  q?: string,
 ): Promise<AttributeTemplatePaginatedResponse> {
-  const res = await apiFetch(`/api/v1/attribute-templates?page=${page}&pageSize=${pageSize}`);
+  const url = new URL("/api/v1/attribute-templates", window.location.origin);
+  url.searchParams.set("page", String(page));
+  url.searchParams.set("pageSize", String(pageSize));
+  if (q) url.searchParams.set("q", q);
+  const res = await apiFetch(url.toString());
   return attributeTemplatePaginatedResponseSchema.parse(await res.json());
 }
 

@@ -3,141 +3,91 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
-  pointerWithin,
   useSensor,
   useSensors,
   MeasuringStrategy,
   type DragEndEvent,
   type DragOverEvent,
 } from "@dnd-kit/core";
-import { arrayMove } from "@dnd-kit/sortable";
 import { GripVertical } from "lucide-react";
 import { ArticleEditorSection } from "./editor/ArticleEditorSection";
-import { useArticleEditor, type SectionKey, type DraftSections } from "@/frontend/features/article/hooks/useArticleEditor";
+import { findItemLocation } from "./editor/draftTree";
+import { createEditorCollisionDetection } from "./editor/editorCollision";
+import {
+  useArticleEditor,
+  type DraftItem,
+  type SectionKey,
+} from "@/frontend/features/article/hooks/useArticleEditor";
 
 type ArticleEditControllerProps = {
   id: string;
   editor: ReturnType<typeof useArticleEditor>;
 };
 
+const SECTION_LAYOUT: { key: SectionKey; label: string; className: string }[] = [
+  { key: "left", label: "Esquerda", className: "lg:w-44 lg:shrink-0" },
+  { key: "center", label: "Centro", className: "min-w-0 lg:flex-1" },
+  { key: "right", label: "Direita", className: "lg:w-52 lg:shrink-0" },
+];
+
 export function ArticleEditController({ id, editor }: ArticleEditControllerProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-  function findContainer(itemId: string): SectionKey | null {
-    if (itemId === "left" || itemId === "center" || itemId === "right") return itemId as SectionKey;
-    for (const key of ["left", "center", "right"] as SectionKey[]) {
-      if (editor.sections[key].some((item) => item.id === itemId)) return key;
-    }
-    return null;
-  }
-
-  function resolveDragEndpoints(event: { active: { id: string | number }; over: { id: string | number } | null }) {
-    if (!event.over) return null;
-    const aId = String(event.active.id);
-    const oId = String(event.over.id);
-    const fromContainer = findContainer(aId);
-    const toContainer = findContainer(oId);
-    if (!fromContainer || !toContainer) return null;
-    return { aId, oId, fromContainer, toContainer };
-  }
+  // Recriada a cada render para sempre enxergar o estado mais recente das seções.
+  const collisionDetection = createEditorCollisionDetection(() => editor.sections);
 
   function handleDragOver(event: DragOverEvent) {
-    const endpoints = resolveDragEndpoints(event);
-    if (!endpoints || endpoints.fromContainer === endpoints.toContainer) return;
-    const { aId, oId, fromContainer, toContainer } = endpoints;
-    editor.setSections((prev: DraftSections) => {
-      const fromItems = [...prev[fromContainer]];
-      const toItems = [...prev[toContainer]];
-      const fromIdx = fromItems.findIndex((i) => i.id === aId);
-      if (fromIdx < 0) return prev;
-      const toIdx = toItems.findIndex((i) => i.id === oId);
-      const [item] = fromItems.splice(fromIdx, 1);
-      const insertAt = toIdx >= 0 ? toIdx : toItems.length;
-      return { ...prev, [fromContainer]: fromItems, [toContainer]: [...toItems.slice(0, insertAt), item, ...toItems.slice(insertAt)] };
-    });
+    if (!event.over) return;
+    editor.moveItem(String(event.active.id), String(event.over.id), "over");
   }
 
   function handleDragEnd(event: DragEndEvent) {
     setActiveId(null);
-    const endpoints = resolveDragEndpoints(event);
-    if (!endpoints || endpoints.fromContainer !== endpoints.toContainer) return;
-    const { aId, oId, fromContainer, toContainer } = endpoints;
-    const fromIdx = editor.sections[fromContainer].findIndex((i) => i.id === aId);
-    const toIdx = editor.sections[toContainer].findIndex((i) => i.id === oId);
-    if (fromIdx !== toIdx) {
-      editor.setSections((prev: DraftSections) => ({
-        ...prev,
-        [fromContainer]: arrayMove(prev[fromContainer], fromIdx, toIdx),
-      }));
-    }
+    if (!event.over) return;
+    editor.moveItem(String(event.active.id), String(event.over.id), "end");
   }
 
-  const activeItem = activeId
-    ? (["left", "center", "right"] as SectionKey[]).flatMap((key) => editor.sections[key]).find((item) => item.id === activeId)
-    : null;
+  const activeItem = activeId ? findItemLocation(editor.sections, activeId)?.item ?? null : null;
 
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={pointerWithin}
+      collisionDetection={collisionDetection}
       measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
       onDragStart={(e) => setActiveId(String(e.active.id))}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
+      onDragCancel={() => setActiveId(null)}
     >
       <div className="mx-auto flex max-w-screen-xl flex-col gap-8 px-4 py-6 sm:px-6 md:px-8 lg:flex-row lg:gap-10 lg:px-10 lg:py-10">
-        <aside className="lg:w-44 lg:shrink-0">
-          <p className="text-xs font-medium text-muted-foreground mb-2">Esquerda</p>
-          <ArticleEditorSection
-            sectionKey="left"
-            speciesId={Number(id)}
-            items={editor.sections.left}
-            onAdd={(i, item) => editor.addItem("left", i, item)}
-            onRemove={(itemId) => editor.removeItem("left", itemId)}
-            onUpdate={(itemId, block) => editor.updateBlockContent("left", itemId, block)}
-            onToggleDefault={(itemId) => editor.toggleDefaultBlock(itemId)}
-            onDeleteNestedBlock={(block) => editor.trackDeletedBlock(block)}
-          />
-        </aside>
-        <article className="min-w-0 lg:flex-1">
-          <p className="text-xs font-medium text-muted-foreground mb-2">Centro</p>
-          <ArticleEditorSection
-            sectionKey="center"
-            speciesId={Number(id)}
-            items={editor.sections.center}
-            onAdd={(i, item) => editor.addItem("center", i, item)}
-            onRemove={(itemId) => editor.removeItem("center", itemId)}
-            onUpdate={(itemId, block) => editor.updateBlockContent("center", itemId, block)}
-            onToggleDefault={(itemId) => editor.toggleDefaultBlock(itemId)}
-            onDeleteNestedBlock={(block) => editor.trackDeletedBlock(block)}
-          />
-        </article>
-        <aside className="lg:w-52 lg:shrink-0">
-          <p className="text-xs font-medium text-muted-foreground mb-2">Direita</p>
-          <ArticleEditorSection
-            sectionKey="right"
-            speciesId={Number(id)}
-            items={editor.sections.right}
-            onAdd={(i, item) => editor.addItem("right", i, item)}
-            onRemove={(itemId) => editor.removeItem("right", itemId)}
-            onUpdate={(itemId, block) => editor.updateBlockContent("right", itemId, block)}
-            onToggleDefault={(itemId) => editor.toggleDefaultBlock(itemId)}
-            onDeleteNestedBlock={(block) => editor.trackDeletedBlock(block)}
-          />
-        </aside>
-      </div>
-      <DragOverlay>
-        {activeItem && (
-          <div className="flex items-center gap-1 px-2 py-1 rounded text-sm bg-background border shadow-md">
-            <GripVertical className="h-3 w-3 text-muted-foreground" />
-            {activeItem.kind === "default"
-              ? <span className="text-xs text-muted-foreground">{activeItem.name}</span>
-              : <span className="text-xs text-muted-foreground capitalize">{activeItem.block.type}</span>
-            }
+        {SECTION_LAYOUT.map(({ key, label, className }) => (
+          <div key={key} className={className}>
+            <p className="text-xs font-medium text-muted-foreground mb-2">{label}</p>
+            <ArticleEditorSection
+              sectionKey={key}
+              speciesId={Number(id)}
+              items={editor.sections[key]}
+              onAdd={(i, item) => editor.addItem(key, i, item)}
+              onRemove={(itemId) => editor.removeItem(key, itemId)}
+              onUpdate={(itemId, next) => editor.updateItem(key, itemId, next)}
+              onToggleDefault={(itemId) => editor.toggleDefaultBlock(itemId)}
+              onDeleteNestedBlock={(block) => editor.trackDeletedBlock(block)}
+            />
           </div>
-        )}
-      </DragOverlay>
+        ))}
+      </div>
+      <DragOverlay>{activeItem && <DragPreview item={activeItem} />}</DragOverlay>
     </DndContext>
+  );
+}
+
+function DragPreview({ item }: { item: DraftItem }) {
+  const label = item.kind === "default" ? item.name : item.kind === "column" ? "column" : item.block.type;
+  return (
+    <div className="flex items-center gap-1 px-2 py-1 rounded text-sm bg-background border shadow-md">
+      <GripVertical className="h-3 w-3 text-muted-foreground" />
+      <span className="text-xs text-muted-foreground capitalize">{label}</span>
+    </div>
   );
 }

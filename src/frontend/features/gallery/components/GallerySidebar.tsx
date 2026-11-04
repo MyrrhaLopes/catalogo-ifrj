@@ -1,5 +1,5 @@
 import { Camera, Globe } from "lucide-react";
-import type { EnrichedImage, GroupBy, Origin, ThumbSize } from "../gallery.api";
+import type { EnrichedImage, Exposicao, GroupBy, Origin, ThumbSize } from "../gallery.api";
 import { CascadingTaxFilter } from "./CascadingTaxFilter";
 
 type Props = {
@@ -8,6 +8,8 @@ type Props = {
   onlineTotal: number;
   origin: Origin;
   onOriginChange: (v: Origin) => void;
+  exposicao: Exposicao;
+  onExposicaoChange: (v: Exposicao) => void;
   groupBy: GroupBy;
   onGroupByChange: (v: GroupBy) => void;
   taxLabels: string[];
@@ -23,6 +25,8 @@ export function GallerySidebar({
   onlineTotal,
   origin,
   onOriginChange,
+  exposicao,
+  onExposicaoChange,
   groupBy,
   onGroupByChange,
   taxLabels,
@@ -59,6 +63,20 @@ export function GallerySidebar({
               <strong>Online</strong> — imagens de referência da espécie.
             </p>
           </div>
+        </div>
+      </SidebarSection>
+
+      <SidebarSection title="Exposição">
+        <div className="flex flex-wrap gap-1.5">
+          <ChipButton active={exposicao === "all"} onClick={() => onExposicaoChange("all")}>
+            Todas
+          </ChipButton>
+          <ChipButton active={exposicao === "seca"} onClick={() => onExposicaoChange("seca")}>
+            Seca
+          </ChipButton>
+          <ChipButton active={exposicao === "humida"} onClick={() => onExposicaoChange("humida")}>
+            Húmida
+          </ChipButton>
         </div>
       </SidebarSection>
 

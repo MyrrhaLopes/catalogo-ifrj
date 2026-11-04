@@ -10,6 +10,7 @@ export function useSearchSpecies(params: SearchParams) {
       !!params.q ||
       (params.taxNodes?.length ?? 0) > 0 ||
       (params.attrs?.length ?? 0) > 0 ||
+      (params.exposicao?.length ?? 0) > 0 ||
       params.page !== undefined,
   });
 }

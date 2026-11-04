@@ -27,6 +27,7 @@ const enrichedImageSchema = z.object({
 export type EnrichedImage = z.infer<typeof enrichedImageSchema>;
 
 export type Origin = "all" | "acervo" | "online";
+export type Exposicao = "all" | "seca" | "humida";
 export type GroupBy = "especie" | "familia" | "ordem" | "data";
 export type ThumbSize = "small" | "medium" | "large";
 

@@ -19,9 +19,13 @@ export type SpecimenPaginatedResponse = {
   pageSize: number;
 };
 
-export async function searchSpecimens(q: string): Promise<SpecimenSearchResponse> {
+export async function searchSpecimens(
+  q: string,
+  exposicao?: Array<"humida" | "seca">,
+): Promise<SpecimenSearchResponse> {
   const url = new URL("/api/v1/specimens/", window.location.origin);
   if (q) url.searchParams.set("q", q);
+  if (exposicao?.length) url.searchParams.set("exposicao", exposicao.join(","));
   const res = await apiFetch(url.toString());
   return specimenListResponseSchema.parse(await res.json());
 }

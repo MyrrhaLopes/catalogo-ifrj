@@ -1,97 +1,36 @@
-import { Trash2 } from "lucide-react";
-import type { ColumnBlock, ArticleBlock } from "../types";
-import { Button } from "@/frontend/components/ui/button";
-import { BlockInsertZone } from "./BlockInsertZone";
-import type { DraftItem } from "../../hooks/useArticleEditor";
-import { TextBlockEditor } from "./TextBlockEditor";
-import { ImageBlockEditor } from "./ImageBlockEditor";
+import type { ArticleBlock } from "../types";
+import type { DraftColumnItem } from "../../hooks/useArticleEditor";
+import { insertIntoColumn, removeFromColumn, updateInColumn } from "./draftTree";
+import { ColumnLane } from "./ColumnLane";
 
 type Props = {
-  block: ColumnBlock;
+  item: DraftColumnItem;
   speciesId: number;
-  onChange: (block: ColumnBlock) => void;
+  onChange: (item: DraftColumnItem) => void;
   onDeleteBlock?: (block: ArticleBlock) => void;
 };
 
-export function ColumnBlockEditor({ block, speciesId, onChange, onDeleteBlock }: Props) {
-  function addToColumn(colIndex: number, insertAt: number, item: DraftItem) {
-    if (item.kind !== "block" || item.block.type === "column") return;
-    const newColumns = block.columns.map((col, i) => {
-      if (i !== colIndex) return col;
-      const next = [...col];
-      next.splice(insertAt, 0, item.block);
-      return next;
-    });
-    onChange({ ...block, columns: newColumns });
-  }
-
-  function removeFromColumn(colIndex: number, blockIndex: number) {
-    const targetBlock = block.columns[colIndex]?.[blockIndex];
-    if (targetBlock) {
-      onDeleteBlock?.(targetBlock);
-    }
-    const newColumns = block.columns.map((col, i) => {
-      if (i !== colIndex) return col;
-      return col.filter((_, j) => j !== blockIndex);
-    });
-    onChange({ ...block, columns: newColumns });
-  }
-
-  function updateInColumn(colIndex: number, blockIndex: number, newBlock: ArticleBlock) {
-    const newColumns = block.columns.map((col, i) => {
-      if (i !== colIndex) return col;
-      return col.map((b, j) => (j === blockIndex ? newBlock : b));
-    });
-    onChange({ ...block, columns: newColumns });
+export function ColumnBlockEditor({ item, speciesId, onChange, onDeleteBlock }: Props) {
+  function handleRemove(childId: string) {
+    const { column, removed } = removeFromColumn(item, childId);
+    if (!removed) return;
+    onDeleteBlock?.(removed.block);
+    onChange(column);
   }
 
   return (
     <div className="flex gap-2 rounded border border-input bg-muted/20 p-2">
-      {block.columns.map((col, colIndex) => (
-        <div key={colIndex} className="flex-1 min-w-0 border-r border-input last:border-0 pr-2 last:pr-0">
-          <p className="text-[10px] text-muted-foreground mb-1 px-1">Coluna {colIndex + 1}</p>
-          <BlockInsertZone
-            onAdd={(item) => addToColumn(colIndex, 0, item)}
-            options={["text", "image"]}
-          />
-          {col.map((b, blockIndex) => (
-            <div key={blockIndex}>
-              <div className="group relative flex gap-1 items-start">
-                <div className="flex-1 min-w-0">
-                  {b.type === "text" ? (
-                    <TextBlockEditor
-                      block={b}
-                      onChange={(nb) => updateInColumn(colIndex, blockIndex, nb)}
-                    />
-                  ) : b.type === "image" ? (
-                    <ImageBlockEditor
-                      block={b}
-                      speciesId={speciesId}
-                      onChange={(nb) => updateInColumn(colIndex, blockIndex, nb)}
-                    />
-                  ) : (
-                    <div className="text-xs text-muted-foreground p-2 border border-dashed rounded">
-                      Coluna aninhada
-                    </div>
-                  )}
-                </div>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0 mt-1"
-                  title="Excluir bloco da coluna"
-                  onClick={() => removeFromColumn(colIndex, blockIndex)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
-              <BlockInsertZone
-                onAdd={(item) => addToColumn(colIndex, blockIndex + 1, item)}
-                options={["text", "image"]}
-              />
-            </div>
-          ))}
-        </div>
+      {item.columns.map((children, colIndex) => (
+        <ColumnLane
+          key={colIndex}
+          columnId={item.id}
+          colIndex={colIndex}
+          items={children}
+          speciesId={speciesId}
+          onAdd={(index, child) => onChange(insertIntoColumn(item, colIndex, index, child))}
+          onRemove={handleRemove}
+          onUpdate={(childId, block) => onChange(updateInColumn(item, childId, block))}
+        />
       ))}
     </div>
   );

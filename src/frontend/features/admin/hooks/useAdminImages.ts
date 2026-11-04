@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useDeferredValue, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -23,10 +23,17 @@ export const IMAGES_ADMIN_PAGE_SIZE = 20;
 
 export function useImagesAdminTable() {
   const [page, setPage] = useState(1);
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
+
+  function setSearch(value: string) {
+    setQuery(value);
+    setPage(1);
+  }
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["images", "admin-list", page],
-    queryFn: () => getAllImagesPaginated(page, IMAGES_ADMIN_PAGE_SIZE),
+    queryKey: ["images", "admin-list", page, deferredQuery],
+    queryFn: () => getAllImagesPaginated(page, IMAGES_ADMIN_PAGE_SIZE, deferredQuery || undefined),
     placeholderData: (prev) => prev,
   });
 
@@ -35,6 +42,8 @@ export function useImagesAdminTable() {
   return {
     page,
     setPage,
+    query,
+    setSearch,
     images: data?.images ?? [],
     totalPages,
     isLoading,

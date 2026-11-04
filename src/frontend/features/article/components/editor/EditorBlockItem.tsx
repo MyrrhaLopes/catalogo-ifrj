@@ -1,13 +1,14 @@
-import { GripVertical, Eye, EyeOff, FileText, Database, List, Trash2 } from "lucide-react";
+import { Eye, EyeOff, FileText, Database, List, Trash2 } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/frontend/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { DraftItem, SectionKey } from "../../hooks/useArticleEditor";
+import type { DraftItem } from "../../hooks/useArticleEditor";
 import type { ArticleBlock } from "../types";
 import { TextBlockEditor } from "./TextBlockEditor";
 import { ImageBlockEditor } from "./ImageBlockEditor";
 import { ColumnBlockEditor } from "./ColumnBlockEditor";
+import { DragHandle } from "./DragHandle";
 
 const DEFAULT_BLOCK_META = {
   TOC: { label: "Índice (TOC)", Icon: List },
@@ -17,10 +18,9 @@ const DEFAULT_BLOCK_META = {
 
 type Props = {
   item: DraftItem;
-  sectionKey: SectionKey;
   speciesId: number;
   onRemove: () => void;
-  onUpdate: (block: ArticleBlock) => void;
+  onUpdate: (next: DraftItem) => void;
   onToggleDefault: () => void;
   onDeleteNestedBlock?: (block: ArticleBlock) => void;
 };
@@ -53,30 +53,27 @@ export function EditorBlockItem({
   return (
     <div ref={setNodeRef} style={style} className={cn("group relative", isDragging && "opacity-40 z-50")}>
       <div className="flex items-start gap-1">
-        <span
-          {...attributes}
-          {...listeners}
-          className="cursor-grab text-muted-foreground hover:text-foreground p-0.5 mt-1 shrink-0 touch-none"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical className="h-3.5 w-3.5" />
-        </span>
+        <DragHandle {...attributes} {...listeners} />
 
         <div className={cn("flex-1 min-w-0 py-1", isDisabled && "opacity-40")}>
-          {isDefault ? (
+          {item.kind === "default" ? (
             <DefaultBlockDisplay name={item.name} />
-          ) : item.block.type === "text" ? (
-            <TextBlockEditor block={item.block} onChange={onUpdate} />
-          ) : item.block.type === "image" ? (
-            <ImageBlockEditor block={item.block} speciesId={speciesId} onChange={onUpdate} />
-          ) : (
+          ) : item.kind === "column" ? (
             <ColumnBlockEditor
-              block={item.block}
+              item={item}
               speciesId={speciesId}
               onChange={onUpdate}
               onDeleteBlock={onDeleteNestedBlock}
             />
-          )}
+          ) : item.block.type === "text" ? (
+            <TextBlockEditor block={item.block} onChange={(block) => onUpdate({ ...item, block })} />
+          ) : item.block.type === "image" ? (
+            <ImageBlockEditor
+              block={item.block}
+              speciesId={speciesId}
+              onChange={(block) => onUpdate({ ...item, block })}
+            />
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 shrink-0 mt-1">

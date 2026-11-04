@@ -21,6 +21,7 @@ import { CreateAttributeTemplateModal } from "./CreateAttributeTemplateModal";
 import { SearchableField } from "./SearchableField";
 import { DeleteImpactDialog } from "./AdminTableShared";
 import { AdminTablePagination } from "./AdminTablePagination";
+import { AdminSearchInput } from "./AdminSearchInput";
 
 // ────────────────────────────────────────────────────────────────────
 // Inline editable cell with search
@@ -143,23 +144,11 @@ function DeleteTemplateCell({ id, label }: { id: number; label: string }) {
 // ────────────────────────────────────────────────────────────────────
 
 export function AttributeTemplatesTable() {
-  const { templates, isLoading, isError, page, setPage, totalPages } = useAttributeTemplatesAdminTable();
+  const { templates, isLoading, isError, page, setPage, query, setSearch, totalPages } =
+    useAttributeTemplatesAdminTable();
   const { data: existingUnits = [] } = useDistinctUnits();
   const existingLabels = useDistinctLabels();
   const [createOpen, setCreateOpen] = useState(false);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-40 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin mr-2" />
-        Carregando templates…
-      </div>
-    );
-  }
-
-  if (isError) {
-    return <div className="text-destructive text-sm p-4">Erro ao carregar templates.</div>;
-  }
 
   return (
     <>
@@ -180,6 +169,8 @@ export function AttributeTemplatesTable() {
         </span>
       </div>
 
+      <AdminSearchInput value={query} onChange={setSearch} placeholder="Buscar template…" />
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -191,10 +182,23 @@ export function AttributeTemplatesTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {templates.length === 0 ? (
+            {isLoading ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                  Nenhum template cadastrado
+                  <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
+                  Carregando templates…
+                </TableCell>
+              </TableRow>
+            ) : isError ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center text-destructive py-8">
+                  Erro ao carregar templates.
+                </TableCell>
+              </TableRow>
+            ) : templates.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                  {query ? "Nenhum template encontrado para essa busca" : "Nenhum template cadastrado"}
                 </TableCell>
               </TableRow>
             ) : (

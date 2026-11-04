@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import { TaxonomyFilters } from "./TaxonomyFilters";
+import { TogglePillGroup } from "./TogglePillGroup";
 import {
   AttributeFilters,
   AddAttributeButton,
@@ -7,11 +7,24 @@ import {
   type AttrOperator,
 } from "./AttributeFilters";
 
+const SEARCH_IN_OPTIONS = [
+  { key: "species", label: "Espécies" },
+  { key: "specimen", label: "Espécimes" },
+] as const;
+
+const EXPOSICAO_OPTIONS = [
+  { key: "seca", label: "Exposição seca" },
+  { key: "humida", label: "Exposição húmida" },
+] as const;
+
 type SearchIn = "species" | "specimen" | "both";
+type Exposicao = "humida" | "seca";
 
 type Props = {
   searchIn: SearchIn;
   onToggleSearchIn: (type: "species" | "specimen") => void;
+  exposicao: Exposicao[];
+  onToggleExposicao: (type: Exposicao) => void;
   includesSpecies: boolean;
   taxNodes: number[];
   onTaxNodesChange: (ids: number[]) => void;
@@ -27,6 +40,8 @@ type Props = {
 export function SearchFiltersPanel({
   searchIn,
   onToggleSearchIn,
+  exposicao,
+  onToggleExposicao,
   includesSpecies,
   taxNodes,
   onTaxNodesChange,
@@ -38,36 +53,20 @@ export function SearchFiltersPanel({
 }: Props) {
   return (
     <div className="space-y-5">
-      {/* Search type toggles */}
-      <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-          Buscar em
-        </p>
-        <div className="flex gap-2">
-          {(
-            [
-              { key: "species", label: "Espécies" },
-              { key: "specimen", label: "Espécimes" },
-            ] as const
-          ).map(({ key, label }) => {
-            const active = searchIn === key || searchIn === "both";
-            return (
-              <button
-                key={key}
-                onClick={() => onToggleSearchIn(key)}
-                className={cn(
-                  "rounded-full border px-3 py-1 text-xs font-medium transition-colors tv:text-sm",
-                  active
-                    ? "border-green-600 bg-green-50 text-green-700"
-                    : "border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300",
-                )}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <TogglePillGroup
+        title="Buscar em"
+        options={SEARCH_IN_OPTIONS}
+        isActive={(key) => searchIn === key || searchIn === "both"}
+        onToggle={onToggleSearchIn}
+      />
+
+      {/* Vale tanto para espécies quanto para espécimes, por isso fica fora do includesSpecies */}
+      <TogglePillGroup
+        title="Exposição"
+        options={EXPOSICAO_OPTIONS}
+        isActive={(key) => exposicao.includes(key)}
+        onToggle={onToggleExposicao}
+      />
 
       {/* Taxonomy filters — only shown when species is included */}
       {includesSpecies && (

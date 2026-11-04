@@ -23,6 +23,15 @@ function parseInlineCitations(text: string, sourcesMap?: Map<number, number>): R
           </a>
         </sup>,
       );
+    } else {
+      // Citação referencia uma fonte inexistente no mapa (ex: sourceKey incorreto
+      // no seed) — não descarta silenciosamente, mostra um marcador visível para
+      // facilitar detectar o problema em revisão de conteúdo.
+      parts.push(
+        <sup key={match.index} className="text-destructive text-[10px] font-medium" title="Citação sem fonte correspondente">
+          [?]
+        </sup>,
+      );
     }
     last = match.index + match[0].length;
   }

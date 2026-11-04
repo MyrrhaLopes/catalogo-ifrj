@@ -44,8 +44,15 @@ export const idParamSchema = z.object({
   id: z.coerce.number().int().positive(),
 });
 
+const parseExposicaoArray = (val: unknown): string[] | undefined => {
+  if (typeof val === "string" && val.length > 0) return val.split(",");
+  if (Array.isArray(val)) return val as string[];
+  return undefined;
+};
+
 export const specimenSearchQuerySchema = z.object({
   q: z.string().optional(),
   page: z.coerce.number().int().positive().optional(),
   pageSize: z.coerce.number().int().positive().max(100).optional(),
+  exposicao: z.preprocess(parseExposicaoArray, z.array(exposicaoSchema).optional()),
 });

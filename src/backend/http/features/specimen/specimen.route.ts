@@ -12,15 +12,20 @@ export const specimenRouter = Router();
 
 specimenRouter.get("/specimens/", async (req, res, next) => {
   try {
-    const { q, page, pageSize } = specimenSearchQuerySchema.parse(req.query);
+    const { q, page, pageSize, exposicao } = specimenSearchQuerySchema.parse(req.query);
 
     if (page !== undefined) {
-      const result = await SPECIMEN_SERVICE.listSpecimensPaginated({ q, page, pageSize: pageSize ?? 20 });
+      const result = await SPECIMEN_SERVICE.listSpecimensPaginated({
+        q,
+        page,
+        pageSize: pageSize ?? 20,
+        exposicao,
+      });
       return res.status(200).json(result);
     }
 
-    if (q) {
-      const specimens = await SPECIMEN_SERVICE.searchSpecimens(q);
+    if (q || exposicao?.length) {
+      const specimens = await SPECIMEN_SERVICE.searchSpecimens({ q, exposicao });
       return res.status(200).json({ specimens, total: specimens.length });
     }
     const specimens = await SPECIMEN_SERVICE.listSpecimens();

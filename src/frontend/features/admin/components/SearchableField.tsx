@@ -1,6 +1,5 @@
 import { useState, useRef, useId } from "react";
 import { createPortal } from "react-dom";
-import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -29,6 +28,10 @@ export function SearchableField({ id, value, onChange, onSelect, options, placeh
   const [open, setOpen] = useState(false);
   const [dropdownPos, setDropdownPos] = useState<DropdownPos | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Portal target: document.body, unless we're inside a Radix Dialog — then we
+  // portal into DialogContent itself, since body gets pointer-events:none while
+  // a modal Dialog is open (clicks outside Content would be swallowed/dismiss it).
+  const portalContainerRef = useRef<Element>(document.body);
   const fallbackId = useId();
   const inputId = id ?? fallbackId;
 
@@ -42,14 +45,34 @@ export function SearchableField({ id, value, onChange, onSelect, options, placeh
     ? [...filtered].sort((a, b) => scoreSimilarity(b, q) - scoreSimilarity(a, q)).slice(0, 3)
     : filtered.slice(0, 3);
 
-  const showCreate = q.length > 0 && filtered.length === 0;
-  const showDropdown = open && (sorted.length > 0 || showCreate);
+  const showDropdown = open && sorted.length > 0;
 
   function updatePos() {
-    if (inputRef.current) {
-      const rect = inputRef.current.getBoundingClientRect();
+    if (!inputRef.current) return;
+    const container =
+      (inputRef.current.closest('[role="dialog"]') as HTMLElement | null) ?? document.body;
+    portalContainerRef.current = container;
+
+    const rect = inputRef.current.getBoundingClientRect();
+    if (container === document.body) {
       setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    } else {
+      // DialogContent's CSS transform makes it the containing block for
+      // fixed-position descendants — position relative to it, not the viewport.
+      const containerRect = container.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom - containerRect.top + 4,
+        left: rect.left - containerRect.left,
+        width: rect.width,
+      });
     }
+  }
+
+  // Re-measure after the Dialog's open animation (zoom-in/slide) settles.
+  function scheduleReposition() {
+    updatePos();
+    requestAnimationFrame(() => requestAnimationFrame(updatePos));
+    setTimeout(updatePos, 220);
   }
 
   function select(val: string) {
@@ -84,7 +107,7 @@ export function SearchableField({ id, value, onChange, onSelect, options, placeh
           updatePos();
           setOpen(true);
         }}
-        onFocus={() => { updatePos(); setOpen(true); }}
+        onFocus={() => { scheduleReposition(); setOpen(true); }}
         onBlur={() => setTimeout(() => setOpen(false), 120)}
         onKeyDown={(e) => {
           if (e.key === "Escape") setOpen(false);
@@ -119,22 +142,8 @@ export function SearchableField({ id, value, onChange, onSelect, options, placeh
               {opt}
             </button>
           ))}
-
-          {showCreate && (
-            <button
-              type="button"
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-primary hover:bg-muted transition-colors"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                select(q);
-              }}
-            >
-              <Plus className="h-3.5 w-3.5 shrink-0" />
-              Criar &ldquo;{q}&rdquo;
-            </button>
-          )}
         </div>,
-        document.body,
+        portalContainerRef.current,
       )}
     </div>
   );

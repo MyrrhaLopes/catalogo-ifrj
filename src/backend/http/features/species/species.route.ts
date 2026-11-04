@@ -33,7 +33,8 @@ speciesRouter.get("/species/", async (req, res, next) => {
       req.query.q !== undefined ||
       req.query.page !== undefined ||
       req.query.taxNodes !== undefined ||
-      req.query.attrs !== undefined;
+      req.query.attrs !== undefined ||
+      req.query.exposicao !== undefined;
 
     if (hasSearchParams) {
       const params = speciesListQuerySchema.parse(req.query);

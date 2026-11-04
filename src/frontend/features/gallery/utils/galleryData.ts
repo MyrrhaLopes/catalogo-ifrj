@@ -1,5 +1,5 @@
 import { filterByTaxonomyPath } from "./filterTaxonomy";
-import type { EnrichedImage, GroupBy, Origin } from "../gallery.api";
+import type { EnrichedImage, Exposicao, GroupBy, Origin } from "../gallery.api";
 import type { ImageGroup } from "../components/SpeciesGroup";
 
 const MONTHS_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"] as const;
@@ -73,12 +73,15 @@ export function matchesGalleryQuery(img: EnrichedImage, q: string): boolean {
 export function filterGalleryImages(
   allImages: EnrichedImage[],
   origin: Origin,
+  exposicao: Exposicao,
   taxLabels: string[],
   taxPath: string[],
   search: string,
 ): EnrichedImage[] {
   const byOrigin = origin === "all" ? allImages : allImages.filter((i) => i.type === origin);
-  const byTax = filterByTaxonomyPath(byOrigin, taxLabels, taxPath);
+  const byExposicao =
+    exposicao === "all" ? byOrigin : byOrigin.filter((i) => i.specimen?.exposicao === exposicao);
+  const byTax = filterByTaxonomyPath(byExposicao, taxLabels, taxPath);
   const q = search.trim().toLowerCase();
   return q ? byTax.filter((i) => matchesGalleryQuery(i, q)) : byTax;
 }

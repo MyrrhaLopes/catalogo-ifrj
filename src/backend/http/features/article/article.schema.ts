@@ -27,11 +27,28 @@ const articleBlock: z.ZodType<ArticleBlock> = z.union([
   columnBlock,
 ]);
 
-const defaultArticleBlocks = z.enum(["TOC", "SOURCES", "PROPERTIES"]);
+export const defaultArticleBlockName = z.enum(["TOC", "SOURCES", "PROPERTIES"]);
 
-export const articleSectionValues = z.array(
-  z.union([articleBlock, defaultArticleBlocks]),
-);
+/**
+ * Formato atual de um bloco padrão: fica sempre presente na seção e guarda se
+ * está oculto. Assim a seção continua "existindo" mesmo com todos os seus
+ * blocos padrão desabilitados.
+ */
+export const defaultArticleBlockItem = z.object({
+  type: z.literal("default"),
+  name: defaultArticleBlockName,
+  disabled: z.boolean().default(false),
+});
+
+export const articleSectionItem = z.union([
+  articleBlock,
+  defaultArticleBlockItem,
+  // Formato legado: string solta = bloco padrão visível. Defaults ocultos
+  // simplesmente não apareciam no array. Mantido apenas para leitura.
+  defaultArticleBlockName,
+]);
+
+export const articleSectionValues = z.array(articleSectionItem);
 
 export const sectionKeys = z.enum(["left", "center", "right"]);
 

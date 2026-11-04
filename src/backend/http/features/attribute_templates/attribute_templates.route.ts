@@ -12,10 +12,10 @@ export const attributeTemplatesRouter = Router();
 
 attributeTemplatesRouter.get("/attribute-templates", async (req, res, next) => {
   try {
-    const { page, pageSize } = attributeTemplateListQuerySchema.parse(req.query);
+    const { page, pageSize, q } = attributeTemplateListQuerySchema.parse(req.query);
 
     if (page !== undefined) {
-      const result = await ATTRIBUTE_TEMPLATES_SERVICE.listPaginated({ page, pageSize: pageSize ?? 20 });
+      const result = await ATTRIBUTE_TEMPLATES_SERVICE.listPaginated({ page, pageSize: pageSize ?? 20, q });
       return res.status(200).json(result);
     }
 

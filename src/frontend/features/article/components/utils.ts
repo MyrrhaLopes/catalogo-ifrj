@@ -80,6 +80,28 @@ function collectInlineCitationIds(content: ArticleContent): number[] {
   return ordered;
 }
 
+// Sufixo abreviado exibido ao lado do valor de um atributo, conforme a
+// unidade gravada em português pelo seed (ex: "metro" → "m"). Unidades
+// desconhecidas não quebram a renderização: caem no fallback sem sufixo.
+const ATTRIBUTE_UNIT_SUFFIXES: Record<string, string> = {
+  metro: "m",
+  centímetro: "cm",
+  quilograma: "kg",
+  grama: "g",
+  ano: " anos",
+  dia: " dias",
+  celsius: "°C",
+  par: " par",
+  unidade: "",
+  categoria: "",
+  ppt: " ppt",
+};
+
+export function getAttributeUnitSuffix(unit: string | undefined | null): string {
+  if (!unit) return "";
+  return ATTRIBUTE_UNIT_SUFFIXES[unit] ?? "";
+}
+
 export function domainFromUrl(url: string): string {
   try {
     return new URL(url).hostname.replace(/^www\./, "");

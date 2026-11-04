@@ -23,7 +23,7 @@ export function BlockInsertZone({ onAdd, options = ["text", "image", "column"] }
     } else if (type === "image") {
       onAdd({ id, kind: "block", block: { type: "image", content: "" } });
     } else {
-      onAdd({ id, kind: "block", block: { type: "column", columns: [[], []] } });
+      onAdd({ id, kind: "column", columns: [[], []] });
     }
   }
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Trash2, ChevronDown } from "lucide-react";
 import { useAttributeTemplates } from "@/frontend/features/species/hooks/useAttributeTemplates";
 import {
@@ -10,6 +10,7 @@ import {
 import { unitLabels } from "../utils/unitLabels";
 import type { AttributeTemplate } from "@/frontend/features/species/species.api";
 import { Input } from "@/frontend/components/ui/input";
+import { AttributeTemplateDropdown } from "./AttributeTemplateDropdown";
 
 export type AttrOperator = "=" | ">" | "<";
 
@@ -121,6 +122,18 @@ type AddButtonProps = {
 export function AddAttributeButton({ activeFilters, onAdd }: AddButtonProps) {
   const { data: templates = [], isLoading } = useAttributeTemplates();
   const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
 
   if (isLoading) return null;
 
@@ -141,7 +154,7 @@ export function AddAttributeButton({ activeFilters, onAdd }: AddButtonProps) {
   }
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <button
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-1 rounded-md border border-neutral-200 bg-white px-2.5 py-1 text-xs text-neutral-600 transition-colors hover:border-green-500 hover:text-green-700"
@@ -149,19 +162,7 @@ export function AddAttributeButton({ activeFilters, onAdd }: AddButtonProps) {
         Adicionar atributo
         <ChevronDown size={12} />
       </button>
-      {open && (
-        <div className="absolute right-0 top-full z-10 mt-1 w-56 rounded-lg border border-neutral-200 bg-white shadow-lg">
-          {available.map((t) => (
-            <button
-              key={t.id}
-              className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50"
-              onClick={() => handleAdd(t)}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      )}
+      {open && <AttributeTemplateDropdown templates={available} onSelect={handleAdd} />}
     </div>
   );
 }

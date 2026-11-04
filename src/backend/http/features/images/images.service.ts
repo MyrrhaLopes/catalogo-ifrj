@@ -1,6 +1,13 @@
 import { db } from "@/backend/db/drizzle";
-import { imageTable, articleTable } from "@/backend/db/schema";
-import { desc, eq, sql } from "drizzle-orm";
+import { imageTable, articleTable, speciesTable, taxonomyTable } from "@/backend/db/schema";
+import { alias } from "drizzle-orm/pg-core";
+import { desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
+
+// Alias usado para resolver o nome científico (gênero + epíteto) da espécie
+// vinculada à imagem, seguindo a mesma lógica de getScientificName: último nó
+// "Espécie" (leafTax) + penúltimo nó (parentTax, geralmente o gênero).
+const leafTax = alias(taxonomyTable, "image_search_leaf_tax");
+const parentTax = alias(taxonomyTable, "image_search_parent_tax");
 
 const imageWithSpeciesSelect = {
   id: imageTable.id,
@@ -31,19 +38,40 @@ export const IMAGES_SERVICE = {
       .leftJoin(articleTable, eq(imageTable.article, articleTable.id));
   },
 
-  getAllPaginated: async (params: { page: number; pageSize: number }) => {
-    const { page, pageSize } = params;
+  getAllPaginated: async (params: { page: number; pageSize: number; q?: string }) => {
+    const { page, pageSize, q } = params;
     const offset = (page - 1) * pageSize;
+
+    const where: SQL | undefined = q
+      ? or(
+          ilike(imageTable.alt, `%${q}%`),
+          ilike(imageTable.url, `%${q}%`),
+          ilike(speciesTable.scientificNameOverride, `%${q}%`),
+          ilike(leafTax.labelValue, `%${q}%`),
+          ilike(parentTax.labelValue, `%${q}%`),
+        )
+      : undefined;
 
     const [rows, [countRow]] = await Promise.all([
       db
         .select(imageWithSpeciesSelect)
         .from(imageTable)
         .leftJoin(articleTable, eq(imageTable.article, articleTable.id))
+        .leftJoin(speciesTable, eq(articleTable.species, speciesTable.id))
+        .leftJoin(leafTax, eq(speciesTable.speciesRoot, leafTax.id))
+        .leftJoin(parentTax, eq(leafTax.parent, parentTax.id))
+        .where(where)
         .orderBy(desc(imageTable.id))
         .limit(pageSize)
         .offset(offset),
-      db.select({ count: sql<number>`COUNT(*)::int` }).from(imageTable),
+      db
+        .select({ count: sql<number>`COUNT(DISTINCT ${imageTable.id})::int` })
+        .from(imageTable)
+        .leftJoin(articleTable, eq(imageTable.article, articleTable.id))
+        .leftJoin(speciesTable, eq(articleTable.species, speciesTable.id))
+        .leftJoin(leafTax, eq(speciesTable.speciesRoot, leafTax.id))
+        .leftJoin(parentTax, eq(leafTax.parent, parentTax.id))
+        .where(where),
     ]);
 
     return { images: rows, total: countRow?.count ?? 0, page, pageSize };

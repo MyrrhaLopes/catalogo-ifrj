@@ -32,6 +32,7 @@ const searchParamsSchema = z.object({
     )
     .optional(),
   searchIn: z.enum(["species", "specimen", "both"]).default("species"),
+  exposicao: z.array(z.enum(["humida", "seca"])).default(["humida", "seca"]),
 });
 
 type SearchParams = z.infer<typeof searchParamsSchema>;
@@ -61,6 +62,19 @@ function getSafeArray<T>(arr?: T[]): T[] {
   return arr || [];
 }
 
+// Mesma semântica do toggle "Buscar em": clicar na opção que já está sozinha
+// selecionada não faz nada (não permite ficar sem nenhuma selecionada); clicar
+// na opção que falta junta as duas; clicar em uma das duas quando ambas estão
+// selecionadas deixa apenas a outra marcada.
+function getToggledExposicao(
+  current: SearchParams["exposicao"],
+  type: "humida" | "seca",
+): SearchParams["exposicao"] {
+  if (current.length === 1 && current[0] === type) return current;
+  if (current.length === 2) return current.filter((v) => v !== type);
+  return ["humida", "seca"];
+}
+
 function useSearchRouteParams() {
   const navigate = useNavigate();
   const search = speciesSearchRoute.useSearch();
@@ -70,12 +84,19 @@ function useSearchRouteParams() {
   const taxNodes = getSafeArray(search.taxNodes);
   const urlAttrs = getSafeArray(search.attrs);
   const searchIn = search.searchIn;
+  const exposicao = search.exposicao;
 
   const setSearch = useCallback(
     (patch: Partial<SearchParams>) => {
       navigate({
         to: ROUTE,
-        search: (prev) => ({ ...prev, searchIn: prev.searchIn ?? "species", ...patch, page: 1 }),
+        search: (prev) => ({
+          ...prev,
+          searchIn: prev.searchIn ?? "species",
+          exposicao: prev.exposicao ?? ["humida", "seca"],
+          ...patch,
+          page: 1,
+        }),
       });
     },
     [navigate],
@@ -89,17 +110,42 @@ function useSearchRouteParams() {
     [searchIn, setSearch],
   );
 
+  const toggleExposicao = useCallback(
+    (type: "humida" | "seca") => {
+      const next = getToggledExposicao(exposicao, type);
+      if (next !== exposicao) setSearch({ exposicao: next });
+    },
+    [exposicao, setSearch],
+  );
+
   const handlePageChange = useCallback(
     (nextPage: number) => {
       navigate({
         to: ROUTE,
-        search: (p) => ({ ...p, searchIn: p.searchIn ?? "species", page: nextPage }),
+        search: (p) => ({
+          ...p,
+          searchIn: p.searchIn ?? "species",
+          exposicao: p.exposicao ?? ["humida", "seca"],
+          page: nextPage,
+        }),
       });
     },
     [navigate],
   );
 
-  return { q, page, taxNodes, urlAttrs, searchIn, setSearch, toggleSearchIn, handlePageChange, navigate };
+  return {
+    q,
+    page,
+    taxNodes,
+    urlAttrs,
+    searchIn,
+    exposicao,
+    setSearch,
+    toggleSearchIn,
+    toggleExposicao,
+    handlePageChange,
+    navigate,
+  };
 }
 
 function useSearchInput(q: string, setSearch: (patch: Partial<SearchParams>) => void) {
@@ -162,6 +208,7 @@ function buildSearchArgs(
   page: number,
   taxNodes: number[],
   urlAttrs: NonNullable<SearchParams["attrs"]>,
+  exposicao: SearchParams["exposicao"],
 ) {
   const attrs = urlAttrs.map((a) => ({
     templateId: a.tid,
@@ -174,6 +221,7 @@ function buildSearchArgs(
     pageSize: PAGE_SIZE,
     taxNodes: taxNodes.length ? taxNodes : undefined,
     attrs: attrs.length ? attrs : undefined,
+    exposicao: exposicao.length ? exposicao : undefined,
   };
 }
 
@@ -183,18 +231,20 @@ function useSpeciesSearchResults(
   taxNodes: number[],
   urlAttrs: NonNullable<SearchParams["attrs"]>,
   searchIn: SearchParams["searchIn"],
+  exposicao: SearchParams["exposicao"],
 ) {
   const includesSpecies = searchIn !== "specimen";
   const includesSpecimen = searchIn !== "species";
   const searchArgs = useMemo(
-    () => buildSearchArgs(q, page, taxNodes, urlAttrs),
-    [q, page, taxNodes, urlAttrs],
+    () => buildSearchArgs(q, page, taxNodes, urlAttrs, exposicao),
+    [q, page, taxNodes, urlAttrs, exposicao],
   );
 
   const { data: speciesData, isLoading: speciesLoading } = useSearchSpecies(searchArgs);
   const { data: specimenData, isLoading: specimenLoading } = useSearchSpecimens(
     q,
     includesSpecimen,
+    exposicao,
   );
 
   return {
@@ -232,7 +282,12 @@ function useSearchFilterReset(
     setActiveFilters([]);
     navigate({
       to: ROUTE,
-      search: (p) => ({ q: p.q, searchIn: p.searchIn ?? "species", page: 1 }),
+      search: (p) => ({
+        q: p.q,
+        searchIn: p.searchIn ?? "species",
+        exposicao: ["humida", "seca"],
+        page: 1,
+      }),
     });
   }, [navigate, setActiveFilters]);
 }
@@ -242,18 +297,19 @@ function computeSearchMetrics(
   specimensList: NonNullable<ReturnType<typeof useSearchSpecimens>["data"]>["specimens"],
   taxNodesCount: number,
   attrsCount: number,
+  exposicaoIsFiltered: boolean,
 ) {
   return {
     speciesTotal,
     totalPages: Math.ceil(speciesTotal / PAGE_SIZE),
     specimensList,
-    activeFilterBadgeCount: taxNodesCount + attrsCount,
+    activeFilterBadgeCount: taxNodesCount + attrsCount + (exposicaoIsFiltered ? 1 : 0),
   };
 }
 
 function useSpeciesSearchState() {
   const routeParams = useSearchRouteParams();
-  const { q, page, taxNodes, urlAttrs, searchIn, setSearch, navigate } = routeParams;
+  const { q, page, taxNodes, urlAttrs, searchIn, exposicao, setSearch, navigate } = routeParams;
   const { inputValue, handleInputChange, handleInputKeyDown } = useSearchInput(q, setSearch);
   const { activeFilters, setActiveFilters, handleAttrsSearchChange } = useActiveAttributeFilters(
     urlAttrs,
@@ -262,7 +318,7 @@ function useSpeciesSearchState() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const { speciesData, specimenData, isLoading, includesSpecies, includesSpecimen } =
-    useSpeciesSearchResults(q, page, taxNodes, urlAttrs, searchIn);
+    useSpeciesSearchResults(q, page, taxNodes, urlAttrs, searchIn, exposicao);
 
   const { speciesTotal, specimensList } = extractDataTotals(speciesData, specimenData);
   const metrics = computeSearchMetrics(
@@ -270,6 +326,7 @@ function useSpeciesSearchState() {
     specimensList,
     taxNodes.length,
     urlAttrs.length,
+    exposicao.length > 0 && exposicao.length < 2,
   );
 
   const handleTaxNodesChange = useTaxNodesFilter(setSearch);
@@ -375,6 +432,8 @@ function SpeciesSearchPage() {
               <SearchFiltersPanel
                 searchIn={s.searchIn}
                 onToggleSearchIn={s.toggleSearchIn}
+                exposicao={s.exposicao}
+                onToggleExposicao={s.toggleExposicao}
                 includesSpecies={s.includesSpecies}
                 taxNodes={s.taxNodes}
                 onTaxNodesChange={s.handleTaxNodesChange}

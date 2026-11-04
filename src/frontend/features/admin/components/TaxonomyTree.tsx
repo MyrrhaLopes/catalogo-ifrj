@@ -366,10 +366,12 @@ function ManageTreeNode({ node, expandedIds, onToggle, activeId, ctx, highlighte
         style={style}
         className={cn(
           "flex items-center gap-1 px-2 py-1 rounded text-sm group",
+          hasChildren && "cursor-pointer",
           isDragging && "opacity-40",
           isOver && activeId !== node.id && "bg-primary/10 ring-1 ring-primary",
           isHighlighted && "bg-primary/10 ring-1 ring-inset ring-primary font-medium",
         )}
+        onClick={() => hasChildren && onToggle(node.id)}
       >
         <span
           {...attributes}
@@ -379,34 +381,38 @@ function ManageTreeNode({ node, expandedIds, onToggle, activeId, ctx, highlighte
         >
           <GripVertical className="h-3 w-3" />
         </span>
-        <button
-          className="p-0 w-4 h-4 flex items-center justify-center shrink-0"
-          onClick={() => onToggle(node.id)}
-        >
-          {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-        </button>
+        <span className="p-0 w-4 h-4 flex items-center justify-center shrink-0">
+          {hasChildren ? (
+            isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />
+          ) : (
+            <span className="w-3" />
+          )}
+        </span>
 
         {editState ? (
           <>
-            <SearchableField
-              value={editState.label}
-              onChange={(v) => setEditState({ ...editState, label: v })}
-              onSelect={(v) => setEditState({ ...editState, label: v })}
-              options={availableLabels}
-              inputClassName="h-6 text-xs flex-1 min-w-0"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && editState.label && editState.labelValue) {
-                  e.preventDefault();
-                  void updateLabel.mutateAsync({ nodeId: node.id, label: editState.label, labelValue: editState.labelValue }).then(() => setEditState(null));
-                }
-                if (e.key === "Escape") { e.preventDefault(); setEditState(null); }
-              }}
-            />
+            <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
+              <SearchableField
+                value={editState.label}
+                onChange={(v) => setEditState({ ...editState, label: v })}
+                onSelect={(v) => setEditState({ ...editState, label: v })}
+                options={availableLabels}
+                inputClassName="h-6 text-xs w-full"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && editState.label && editState.labelValue) {
+                    e.preventDefault();
+                    void updateLabel.mutateAsync({ nodeId: node.id, label: editState.label, labelValue: editState.labelValue }).then(() => setEditState(null));
+                  }
+                  if (e.key === "Escape") { e.preventDefault(); setEditState(null); }
+                }}
+              />
+            </div>
             <Input
               value={editState.labelValue}
               onChange={(e) => setEditState({ ...editState, labelValue: e.target.value })}
               className="h-6 text-xs flex-1 min-w-0"
+              onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && editState.label && editState.labelValue) {
                   e.preventDefault();
@@ -420,14 +426,20 @@ function ManageTreeNode({ node, expandedIds, onToggle, activeId, ctx, highlighte
               variant="ghost"
               className="h-6 w-6 shrink-0"
               disabled={!editState.label || !editState.labelValue || updateLabel.isPending}
-              onClick={async () => {
+              onClick={async (e) => {
+                e.stopPropagation();
                 await updateLabel.mutateAsync({ nodeId: node.id, label: editState.label, labelValue: editState.labelValue });
                 setEditState(null);
               }}
             >
               <Check className="h-3 w-3" />
             </Button>
-            <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" onClick={() => setEditState(null)}>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6 shrink-0"
+              onClick={(e) => { e.stopPropagation(); setEditState(null); }}
+            >
               <X className="h-3 w-3" />
             </Button>
           </>
@@ -446,11 +458,16 @@ function ManageTreeNode({ node, expandedIds, onToggle, activeId, ctx, highlighte
                   variant="destructive"
                   className="h-5 px-2 text-[10px]"
                   disabled={deleteNode.isPending}
-                  onClick={() => void deleteNode.mutateAsync(node.id).catch(() => setDeletePhase(null))}
+                  onClick={(e) => { e.stopPropagation(); void deleteNode.mutateAsync(node.id).catch(() => setDeletePhase(null)); }}
                 >
                   Sim
                 </Button>
-                <Button size="sm" variant="ghost" className="h-5 px-2 text-[10px]" onClick={() => setDeletePhase(null)}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-5 px-2 text-[10px]"
+                  onClick={(e) => { e.stopPropagation(); setDeletePhase(null); }}
+                >
                   Não
                 </Button>
               </div>
@@ -460,7 +477,7 @@ function ManageTreeNode({ node, expandedIds, onToggle, activeId, ctx, highlighte
                   size="icon"
                   variant="ghost"
                   className="h-5 w-5"
-                  onClick={() => { setEditState({ label: node.label, labelValue: node.labelValue }); }}
+                  onClick={(e) => { e.stopPropagation(); setEditState({ label: node.label, labelValue: node.labelValue }); }}
                 >
                   <Pencil className="h-2.5 w-2.5" />
                 </Button>
@@ -468,7 +485,7 @@ function ManageTreeNode({ node, expandedIds, onToggle, activeId, ctx, highlighte
                   size="icon"
                   variant="ghost"
                   className="h-5 w-5 text-destructive hover:text-destructive"
-                  onClick={() => void handleTrashClick()}
+                  onClick={(e) => { e.stopPropagation(); void handleTrashClick(); }}
                 >
                   <Trash2 className="h-2.5 w-2.5" />
                 </Button>
@@ -744,6 +761,27 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
       availableLabels,
     };
 
+    const headerActions = (
+      <div className="flex gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 px-2 text-[11px]"
+          onClick={() => setExpandedIds(new Set(allNodes.map((n) => n.id)))}
+        >
+          Abrir tudo
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 px-2 text-[11px]"
+          onClick={() => setExpandedIds(new Set())}
+        >
+          Colapsar tudo
+        </Button>
+      </div>
+    );
+
     return renderDraggableTree(
       <>
         <InsertZone zoneId="top" parentId={0} ctx={ctx} />
@@ -761,6 +799,7 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
         ))}
         <InsertZone zoneId="bottom" parentId={0} ctx={ctx} />
       </>,
+      headerActions,
     );
   }
 
@@ -777,7 +816,7 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
     )),
   );
 
-  function renderDraggableTree(children: React.ReactNode) {
+  function renderDraggableTree(children: React.ReactNode, headerActions?: React.ReactNode) {
     const activeNode = activeId ? nodes.find((n) => n.id === activeId) : null;
     return (
       <DndContext
@@ -787,7 +826,10 @@ export function TaxonomyTree(props: TaxonomyTreeProps) {
         onDragEnd={handleDragEnd}
       >
         <div className="border rounded-md p-2 overflow-y-auto">
-          <p className="text-xs font-medium text-muted-foreground mb-1 px-1">Árvore taxonômica</p>
+          <div className="flex items-center justify-between mb-1 px-1">
+            <p className="text-xs font-medium text-muted-foreground">Árvore taxonômica</p>
+            {headerActions}
+          </div>
           {reorderError && (
             <p className="text-xs text-destructive flex items-center gap-1 mb-1 px-1">
               <AlertCircle className="h-3 w-3 shrink-0" />

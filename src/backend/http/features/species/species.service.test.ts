@@ -1,6 +1,28 @@
 import { vi, describe, it, expect } from "vitest";
-import { groupSpeciesRows, getScientificName, SPECIES_SERVICE } from "./species.service";
+import type { SQL } from "drizzle-orm";
+import {
+  groupSpeciesRows,
+  getScientificName,
+  SPECIES_SERVICE,
+  buildAttrFilterCondition,
+  buildSearchWhereClause,
+  NUMERIC_VALUE_REGEX,
+} from "./species.service";
 import { db } from "@/backend/db/drizzle";
+
+// Renderiza um SQL do drizzle com os parâmetros inline, só para fins de asserção em teste —
+// nunca usado em produção (lá os parâmetros são sempre passados via placeholder, não inline).
+function renderSql(query: SQL<unknown>): string {
+  return query
+    .toQuery({
+      escapeName: (name: string) => name,
+      escapeParam: (idx: number) => `$${idx + 1}`,
+      escapeString: (value: string) => `'${value.replace(/'/g, "''")}'`,
+      inlineParams: true,
+    } as Parameters<SQL<unknown>["toQuery"]>[0])
+    .sql.replace(/\s+/g, " ")
+    .trim();
+}
 
 // O módulo importa `db` no topo — mock evita tentativa de conexão ao banco
 vi.mock("@/backend/db/drizzle", () => ({ db: { delete: vi.fn(), select: vi.fn() } }));
@@ -230,5 +252,99 @@ describe("SPECIES_SERVICE.getDeleteImpact", () => {
       specimensCount: 0,
       imagesCount: 0,
     });
+  });
+});
+
+// Regressão do bug documentado em todos/10-busca-atributos-500-e-lista-scroll.md: o seed real
+// tem valores de atributo não numéricos (ex: "1 a 5", "LC", "80 (em cativeiro...)") e um CAST
+// direto para NUMERIC lançava uma exceção do Postgres (22P02) que virava um 500 genérico.
+describe("NUMERIC_VALUE_REGEX (guarda usada antes do CAST para numeric)", () => {
+  it.each([
+    ["5", true],
+    ["5.5", true],
+    ["-5", true],
+    ["-5.25", true],
+    ["0", true],
+    ["1 a 5", false],
+    ["LC", false],
+    ["DD", false],
+    ["80 (em cativeiro, Heteractis magnifica)", false],
+    ["0.3-1.5", false],
+    ["200 a 300, excepcionalmente até 800", false],
+    ["até 25", false],
+    ["", false],
+    ["5.", false],
+    [".5", false],
+  ])("valor %p é numérico? %p", (value, expected) => {
+    expect(NUMERIC_VALUE_REGEX.test(value)).toBe(expected);
+  });
+});
+
+describe("buildAttrFilterCondition", () => {
+  it("protege o CAST com um CASE WHEN que valida o formato numérico antes de converter", () => {
+    const rendered = renderSql(buildAttrFilterCondition({ templateId: 1, valueInBaseUnit: 5 }));
+    expect(rendered).toContain("CASE WHEN attr_f.value ~");
+    expect(rendered).toContain("THEN attr_f.value::numeric END");
+    expect(rendered).not.toMatch(/CAST\(attr_f\.value AS NUMERIC\)/);
+  });
+
+  it("usa = como operador padrão quando operator não é informado", () => {
+    const rendered = renderSql(buildAttrFilterCondition({ templateId: 7, valueInBaseUnit: 12 }));
+    expect(rendered).toContain("attr_f.attribute = 7");
+    expect(rendered).toMatch(/END\) = 12/);
+  });
+
+  it("usa o operador > quando informado", () => {
+    const rendered = renderSql(
+      buildAttrFilterCondition({ templateId: 1, valueInBaseUnit: 3, operator: ">" }),
+    );
+    expect(rendered).toMatch(/END\) > 3/);
+  });
+
+  it("usa o operador < quando informado", () => {
+    const rendered = renderSql(
+      buildAttrFilterCondition({ templateId: 1, valueInBaseUnit: 3, operator: "<" }),
+    );
+    expect(rendered).toMatch(/END\) < 3/);
+  });
+});
+
+describe("buildSearchWhereClause", () => {
+  it("retorna TRUE quando nenhum filtro é informado", () => {
+    expect(renderSql(buildSearchWhereClause())).toBe("TRUE");
+  });
+
+  it("não inclui a condição de exposição quando exposicao não é informado", () => {
+    const rendered = renderSql(buildSearchWhereClause(undefined, undefined, undefined, undefined));
+    expect(rendered).not.toContain("sp_ex");
+  });
+
+  it("não inclui a condição de exposição quando exposicao é um array vazio", () => {
+    const rendered = renderSql(buildSearchWhereClause(undefined, undefined, undefined, []));
+    expect(rendered).not.toContain("sp_ex");
+  });
+
+  it("inclui NOT EXISTS OR EXISTS para o filtro de exposição, nunca um EXISTS puro", () => {
+    const rendered = renderSql(buildSearchWhereClause(undefined, undefined, undefined, ["seca"]));
+    expect(rendered).toContain("NOT EXISTS (SELECT 1 FROM specimens sp_ex WHERE sp_ex.species_id = s.id)");
+    expect(rendered).toContain("sp_ex.exposicao = ANY('{seca}'::text[])");
+  });
+
+  it("monta o literal de array com as duas exposições quando ambas são selecionadas", () => {
+    const rendered = renderSql(
+      buildSearchWhereClause(undefined, undefined, undefined, ["humida", "seca"]),
+    );
+    expect(rendered).toContain("sp_ex.exposicao = ANY('{humida,seca}'::text[])");
+  });
+
+  it("combina múltiplos filtros (taxNodes + attrs + exposicao) com AND", () => {
+    const rendered = renderSql(
+      buildSearchWhereClause(undefined, [10], [{ templateId: 2, valueInBaseUnit: 1 }], ["seca"]),
+    );
+    expect(rendered).toContain("tp_f.node_id = 10");
+    expect(rendered).toContain("attr_f.attribute = 2");
+    expect(rendered).toContain("sp_ex.exposicao = ANY");
+    // as três condições devem estar unidas por AND, não apenas concatenadas
+    expect(rendered.match(/\bAND\b/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
   });
 });
