@@ -8,6 +8,7 @@ import { SpeciesHero } from "../features/species/components/SpeciesHero";
 import { buildSpeciesViewerImages } from "../features/species/utils/speciesViewer";
 import { ArticleLayout } from "../features/article/components/ArticleLayout";
 import { ArticleEditController } from "../features/article/components/ArticleEditController";
+import { ArticleEmptyState } from "../features/article/components/ArticleEmptyState";
 import { ArticleEditorHeader } from "../features/article/components/editor/ArticleEditorHeader";
 import { SaveArticleConfirmDialog } from "../features/article/components/editor/SaveArticleConfirmDialog";
 import { ImageViewer } from "../features/images/components/ImageViewer";
@@ -306,7 +307,7 @@ function SpeciesViewBody({
     );
   }
   if (!content) {
-    return null;
+    return <ArticleEmptyState />;
   }
   return (
     <SpeciesViewModeContent

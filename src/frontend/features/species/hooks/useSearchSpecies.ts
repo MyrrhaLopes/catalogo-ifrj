@@ -3,7 +3,7 @@ import { searchSpecies, type SearchParams } from "../species.api";
 
 export function useSearchSpecies(params: SearchParams) {
   return useQuery({
-    queryKey: ["species-search", params],
+    queryKey: ["species", "search", params],
     queryFn: () => searchSpecies(params),
     placeholderData: (prev) => prev,
     enabled:

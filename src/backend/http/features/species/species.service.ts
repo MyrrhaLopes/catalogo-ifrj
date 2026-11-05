@@ -85,11 +85,21 @@ export function groupSpeciesRows(rows: SpeciesRow[]) {
 
 export const SPECIES_SERVICE = {
   registerSpecie: async (values: SpeciesTableInsert) => {
-    const [newSpecies] = await db
-      .insert(speciesTable)
-      .values(values)
-      .returning();
-    return { ...newSpecies, specimens: [] };
+    return await db.transaction(async (tx) => {
+      const [newSpecies] = await tx
+        .insert(speciesTable)
+        .values(values)
+        .returning();
+
+      // Toda espécie precisa nascer com um artigo (ainda que vazio), senão a
+      // página de visualização não tem o que renderizar (ver SpeciesViewPage).
+      await tx.insert(articleTable).values({
+        species: newSpecies.id,
+        content: { sections: {} },
+      });
+
+      return { ...newSpecies, specimens: [] };
+    });
   },
 
   getSpecies: async () => {

@@ -10,6 +10,7 @@ import {
   NUMERIC_VALUE_REGEX,
 } from "./species.service";
 import { db } from "@/backend/db/drizzle";
+import { articleTable } from "@/backend/db/schema";
 
 // Renderiza um SQL do drizzle com os parâmetros inline, só para fins de asserção em teste —
 // nunca usado em produção (lá os parâmetros são sempre passados via placeholder, não inline).
@@ -26,7 +27,7 @@ function renderSql(query: SQL<unknown>): string {
 }
 
 // O módulo importa `db` no topo — mock evita tentativa de conexão ao banco
-vi.mock("@/backend/db/drizzle", () => ({ db: { delete: vi.fn(), select: vi.fn() } }));
+vi.mock("@/backend/db/drizzle", () => ({ db: { delete: vi.fn(), select: vi.fn(), transaction: vi.fn() } }));
 
 describe("groupSpeciesRows", () => {
   it("retorna array vazio para input vazio", () => {
@@ -160,6 +161,47 @@ describe("getScientificName", () => {
   it("retorna o último labelValue quando o nó Espécie não tem penúltimo nó", () => {
     const onlySpecies = [{ label: "Espécie", labelValue: "onca" }];
     expect(getScientificName(onlySpecies)).toBe("onca");
+  });
+});
+
+describe("SPECIES_SERVICE.registerSpecie", () => {
+  function mockTransaction(insertMock: ReturnType<typeof vi.fn>) {
+    vi.mocked(db.transaction).mockImplementation(
+      (cb: unknown) => (cb as (tx: { insert: typeof insertMock }) => unknown)({ insert: insertMock }) as never,
+    );
+  }
+
+  it("cria a espécie e um artigo vazio na mesma transação, retornando a espécie com specimens vazio", async () => {
+    const newSpecies = { id: 42, speciesRoot: 10, createdBy: "user-1" };
+    const speciesReturning = vi.fn().mockResolvedValue([newSpecies]);
+    const speciesValues = vi.fn().mockReturnValue({ returning: speciesReturning });
+    const articleValues = vi.fn().mockResolvedValue(undefined);
+
+    const insertMock = vi.fn().mockImplementation((table: unknown) =>
+      table === articleTable ? { values: articleValues } : { values: speciesValues },
+    );
+    mockTransaction(insertMock);
+
+    const result = await SPECIES_SERVICE.registerSpecie({ speciesRoot: 10, createdBy: "user-1" });
+
+    expect(speciesValues).toHaveBeenCalledWith({ speciesRoot: 10, createdBy: "user-1" });
+    expect(articleValues).toHaveBeenCalledWith({ species: 42, content: { sections: {} } });
+    expect(result).toEqual({ ...newSpecies, specimens: [] });
+  });
+
+  it("propaga o erro da transação quando a inserção do artigo falha (nenhuma espécie órfã deve ficar persistida)", async () => {
+    const newSpecies = { id: 42, speciesRoot: 10, createdBy: "user-1" };
+    const speciesValues = vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue([newSpecies]) });
+    const articleValues = vi.fn().mockRejectedValue(new Error("db down"));
+
+    const insertMock = vi.fn().mockImplementation((table: unknown) =>
+      table === articleTable ? { values: articleValues } : { values: speciesValues },
+    );
+    mockTransaction(insertMock);
+
+    await expect(
+      SPECIES_SERVICE.registerSpecie({ speciesRoot: 10, createdBy: "user-1" }),
+    ).rejects.toThrow("db down");
   });
 });
 
