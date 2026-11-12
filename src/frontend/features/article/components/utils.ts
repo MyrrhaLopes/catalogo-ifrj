@@ -6,6 +6,41 @@ export type Source = { index: number; id: number | null; label: string; url: str
 
 const CITE_RE = /\[cite:(\d+)\]/g;
 
+// Ordered alternation: citation markers and "**bold**" are tried before
+// single-"*" italic, so "**x**" is never misread as italic with leftover stars.
+const INLINE_TOKEN_RE = /\[cite:(\d+)\]|\*\*([^*]+?)\*\*|\*([^*]+?)\*/g;
+
+export type InlineToken =
+  | { type: "text"; value: string }
+  | { type: "cite"; id: number }
+  | { type: "bold"; value: string }
+  | { type: "italic"; value: string };
+
+/** Tokeniza um trecho de texto em partes simples, negrito, itálico e marcadores de citação. */
+export function parseInlineFormatting(text: string): InlineToken[] {
+  const tokens: InlineToken[] = [];
+  let last = 0;
+  let match: RegExpExecArray | null;
+  INLINE_TOKEN_RE.lastIndex = 0;
+  while ((match = INLINE_TOKEN_RE.exec(text)) !== null) {
+    if (match.index > last) {
+      tokens.push({ type: "text", value: text.slice(last, match.index) });
+    }
+    if (match[1] !== undefined) {
+      tokens.push({ type: "cite", id: Number(match[1]) });
+    } else if (match[2] !== undefined) {
+      tokens.push({ type: "bold", value: match[2] });
+    } else {
+      tokens.push({ type: "italic", value: match[3] });
+    }
+    last = match.index + match[0].length;
+  }
+  if (last < text.length) {
+    tokens.push({ type: "text", value: text.slice(last) });
+  }
+  return tokens;
+}
+
 export function slugify(text: string): string {
   return text
     .toLowerCase()

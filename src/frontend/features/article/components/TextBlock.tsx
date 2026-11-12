@@ -1,44 +1,40 @@
 import type { ReactNode } from "react";
-import { slugify } from "./utils";
+import { slugify, parseInlineFormatting } from "./utils";
 
-const CITE_RE = /\[cite:(\d+)\]/g;
-
-function parseInlineCitations(text: string, sourcesMap?: Map<number, number>): ReactNode[] {
-  if (!sourcesMap) return [text];
-  const parts: ReactNode[] = [];
-  let last = 0;
-  let match: RegExpExecArray | null;
-  CITE_RE.lastIndex = 0;
-  while ((match = CITE_RE.exec(text)) !== null) {
-    if (match.index > last) {
-      parts.push(text.slice(last, match.index));
+function renderInlineTokens(text: string, sourcesMap?: Map<number, number>): ReactNode[] {
+  return parseInlineFormatting(text).map((token, i) => {
+    switch (token.type) {
+      case "text":
+        return token.value;
+      case "bold":
+        return <strong key={i}>{token.value}</strong>;
+      case "italic":
+        return <em key={i}>{token.value}</em>;
+      case "cite": {
+        // Mapa de fontes ainda não carregado: mantém o marcador cru visível
+        // em vez de resolver um número de citação incorreto.
+        if (!sourcesMap) return `[cite:${token.id}]`;
+        const n = sourcesMap.get(token.id);
+        if (n !== undefined) {
+          return (
+            <sup key={i}>
+              <a href={`#source-${n}`} className="text-primary hover:underline text-[10px] font-medium">
+                {n}
+              </a>
+            </sup>
+          );
+        }
+        // Citação referencia uma fonte inexistente no mapa (ex: sourceKey incorreto
+        // no seed) — não descarta silenciosamente, mostra um marcador visível para
+        // facilitar detectar o problema em revisão de conteúdo.
+        return (
+          <sup key={i} className="text-destructive text-[10px] font-medium" title="Citação sem fonte correspondente">
+            [?]
+          </sup>
+        );
+      }
     }
-    const id = Number(match[1]);
-    const n = sourcesMap.get(id);
-    if (n !== undefined) {
-      parts.push(
-        <sup key={match.index}>
-          <a href={`#source-${n}`} className="text-primary hover:underline text-[10px] font-medium">
-            {n}
-          </a>
-        </sup>,
-      );
-    } else {
-      // Citação referencia uma fonte inexistente no mapa (ex: sourceKey incorreto
-      // no seed) — não descarta silenciosamente, mostra um marcador visível para
-      // facilitar detectar o problema em revisão de conteúdo.
-      parts.push(
-        <sup key={match.index} className="text-destructive text-[10px] font-medium" title="Citação sem fonte correspondente">
-          [?]
-        </sup>,
-      );
-    }
-    last = match.index + match[0].length;
-  }
-  if (last < text.length) {
-    parts.push(text.slice(last));
-  }
-  return parts.length > 0 ? parts : [text];
+  });
 }
 
 type Props = {
@@ -55,7 +51,7 @@ export function TextBlock({ content, sourcesMap }: Props) {
     if (currentParagraph.length === 0) return;
     const raw = currentParagraph.join(" ");
     currentParagraph.length = 0;
-    const nodes = parseInlineCitations(raw, sourcesMap);
+    const nodes = renderInlineTokens(raw, sourcesMap);
     elements.push(
       <p key={key} className="text-sm text-neutral-700 leading-relaxed text-justify mb-4 md:text-base tv:text-lg tv:leading-loose">
         {nodes}
